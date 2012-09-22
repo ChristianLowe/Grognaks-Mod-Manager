@@ -146,7 +146,9 @@ for filename in modlist:
     # Unzip everything into a temporary folder
     for item in ftl.namelist():
         if item.endswith('/'):
-            os.makedirs(os.path.join(tmp, item))
+            path = os.path.join(tmp, item)
+            if not os.path.exists(path):
+                os.makedirs(path)
         else:
             ftl.extract(item, tmp)
     
