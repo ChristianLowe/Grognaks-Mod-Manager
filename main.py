@@ -157,16 +157,23 @@ for filename in modlist:
         if directory == "data":
             print " - Merging " + directory + " folder"
             for root, dirs, files in os.walk(os.path.join(tmp, directory)):
+                for d in dirs:
+                    path = os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], d)
+                    if not os.path.exists(path):
+                        os.makedirs(path)
                 for f in files:
                     if f.endswith(".append"):
                         appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
                     else:
-                        print "File name: " + f
                         sh.copy2(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f))
                     
         elif directory in ("audio", "fonts", "img"):
             print " - Merging " + directory + " folder"
             for root, dirs, files in os.walk(os.path.join(tmp, directory)):
+                for d in dirs:
+                    path = os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], d)
+                    if not os.path.exists(path):
+                        os.makedirs(path)
                 for f in files:
                     if f.endswith(".append"):
                         appendfile(os.path.join(root, f), os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
