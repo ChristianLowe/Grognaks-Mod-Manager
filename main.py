@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
+from ConfigParser import SafeConfigParser
 from ftldat import FTLDatUnpacker as du
 from ftldat import FTLDatPacker as dp
 
 import tempfile as tf
 import easygui as eg
 import zipfile as zf
-#import ftldat6 as fd
 import shutil as sh
 import glob
 import sys
@@ -72,7 +72,13 @@ if not os.path.isfile(os.path.join(dir_root, "FTLGame.exe")) and not os.path.isf
     eg.msgbox("Error: This executable must be in the same folder as FTLGame.exe", progname)
     sys.exit(0)
 
-print dir_root
+# Load up config file values
+cfg = SafeConfigParser()
+cfg.read("modman.ini")
+
+allowzip = cfg.getboolean("settings", "allowzip")
+
+print dir_root + "\n"
 
 # Loop through the .ftl files, check if on mod list.
 os.chdir(dir_mods)
@@ -92,7 +98,10 @@ modorder_read = modorder.readlines()
 modorder_read = [word.strip() for word in modorder_read]
 
 # Mod list sans the .ftl extention
-modname_list = [word[:-4] for word in modorder_read]
+if allowzip:
+    modname_list = modorder_read
+else:
+    modname_list = [word[:-4] for word in modorder_read]
 
 # Gets list of mods the player wants to be patched in
 msg = "Pick the modifications you'd like active:"
@@ -123,7 +132,10 @@ unpackdat("resource.dat")
 
 # Go through each .ftl archive and apply changes
 tmp = tf.mkdtemp()
-modlist = [word + ".ftl" for word in mergelist]
+if allowzip:
+    modlist = mergelist
+else:
+    modlist = [word + ".ftl" for word in mergelist]
 
 for filename in modlist:
     os.chdir(dir_mods)
