@@ -9,6 +9,7 @@ import easygui as eg
 import zipfile as zf
 import shutil as sh
 import glob
+import xml
 import sys
 import os
 
@@ -31,6 +32,9 @@ def appendfile(src, dst):
     
     source.close()
     target.close()
+    
+def mergefile(src, dst):
+    pass
     
 def packdat(datafolder, datfile):
     print "\nRepacking " + datfile
@@ -164,6 +168,8 @@ for filename in modlist:
                 for f in files:
                     if f.endswith(".append"):
                         appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
+                    elif f.endswith(".merge"):
+                        mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
                     else:
                         sh.copy2(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f))
                     
