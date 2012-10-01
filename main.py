@@ -15,7 +15,7 @@ import os
 
 progname = "Grognak's Mod Manager v1.3"
 
-dir_root = os.getcwd()
+dir_root = os.path.realpath(__file__)
 dir_mods = os.path.join(dir_root, "mods")
 dir_res = os.path.join(dir_root, "resources")
 
@@ -204,11 +204,3 @@ packdat("resource.dat-unpacked", "resource.dat")
 # All done!
 eg.msgbox("Patching completed successfully", progname)
     
-
-
-
-
-
-
-
-
