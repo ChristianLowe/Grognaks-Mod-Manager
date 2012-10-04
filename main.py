@@ -8,12 +8,13 @@ import tempfile as tf
 import easygui as eg
 import zipfile as zf
 import shutil as sh
+import platform
 import glob
 import xml
 import sys
 import os
 
-progname = "Grognak's Mod Manager v1.3"
+progname = "Grognak's Mod Manager v1.4"
 
 dir_root = os.path.realpath(__file__)
 dir_mods = os.path.join(dir_root, "mods")
@@ -72,9 +73,20 @@ def unpackdat(datafile):
             unpacker.extract_to(filename, f)
 
 # Verify that the user put GMM in the right location
-if not os.path.isfile(os.path.join(dir_root, "FTLGame.exe")) and not os.path.isfile(os.path.join(dir_root, "FTL")) and not os.path.isfile(os.path.join(dir_root, "MacOS", "FTL")):
-    eg.msgbox("Error: This executable must be in the same folder as FTLGame.exe", progname)
-    sys.exit(0)
+if platform.system() == "Windows":
+    if not os.path.isfile(os.path.join(dir_root, "FTLGame.exe")):
+        eg.msgbox("Error: This executable must be in the same folder as FTLGame.exe", progname)
+        sys.exit(0)
+elif platform.system() == "Darwin":
+    if not os.path.isfile(os.path.join(dir_root, "MacOS", "FTL")):
+        eg.msgbox("Error: Grognak's Mod Manager must be located directly above the MacOS folder.", progname)
+        sys.exit(0)
+elif platform.system() == "Linux":
+    if not os.path.isfile(os.path.join(dir_root, "FTL")):
+        eg.msgbox("Error: Grognak's Mod Manager must be located directly above the FTL folder.", progname)
+        sys.exit(0)
+else:
+    eg.msgbox("Warning: Unsupported platform. Results may be unexpected.", progname)
 
 # Load up config file values
 cfg = SafeConfigParser()
