@@ -107,6 +107,11 @@ modorder_read = [word.strip() for word in modorder_read]
 for f in glob.glob("*.ftl"):
     if not f in modorder_read:
         modorder.write(f + "\n")
+        
+if allowzip:
+    for f in glob.glob("*.zip"):
+        if not f in modorder_read:
+            modorder.write(f + "\n")
 
 # Refresh the list
 modorder.seek(0)
