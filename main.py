@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
+from sys import argv
 from ConfigParser import SafeConfigParser
 from ftldat import FTLDatUnpacker as du
 from ftldat import FTLDatPacker as dp
+from shutil import copy
 
 import tempfile as tf
 import easygui as eg
@@ -16,9 +18,29 @@ import os
 
 progname = "Grognak's Mod Manager v1.4"
 
-dir_root = os.path.realpath(__file__)
-dir_mods = os.path.join(dir_root, "mods")
-dir_res = os.path.join(dir_root, "resources")
+if platform.system()=='Darwin':
+   msg="Are you using Steam?"
+   yn=["Yes","No"]
+   steam=eg.choicebox(msg,progname,yn)
+   dir_root=os.path.split(argv[0])[0]
+   if steam=='Yes':
+       dir_res=os.path.join(os.environ['HOME'],'Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app/Contents/resources')
+   if steam=='No' or steam==None:
+      app=eg.diropenbox(msg="Select your FTL app",title=progname)
+      dir_res=os.path.join(app,'Contents/resources')
+   os.chdir(dir_root)
+   cfg=SafeConfigParser()
+   cfg.read("modman.ini")
+   dir_mods=cfg.get("settings","macmodsdir")
+   dir_mods=os.path.expanduser(dir_mods)
+   if not os.path.exists(dir_mods):
+      os.makedirs(dir_mods)
+      copy(os.path.join(dir_root,"mods/Beginning Scrap Advantage.ftl"),dir_mods)
+      eg.msgbox("A folder has been created on "+dir_mods+" .Please put any FTL mods there.",progname)
+else:
+   dir_root = dir_root = os.path.realpath(__file__)
+   dir_mods = os.path.join(dir_root, "mods")
+   dir_res = os.path.join(dir_root, "resources")
 
 def ftl_path_join(*args):
     """ Joins paths in the way FTL expects them to be in .dat files.
@@ -78,9 +100,7 @@ if platform.system() == "Windows":
         eg.msgbox("Error: This executable must be in the same folder as FTLGame.exe", progname)
         sys.exit(0)
 elif platform.system() == "Darwin":
-    if not os.path.isfile(os.path.join(dir_root, "MacOS", "FTL")):
-        eg.msgbox("Error: Grognak's Mod Manager must be located directly above the MacOS folder.", progname)
-        sys.exit(0)
+    pass
 elif platform.system() == "Linux":
     if not os.path.isfile(os.path.join(dir_root, "FTL")):
         eg.msgbox("Error: Grognak's Mod Manager must be located directly above the FTL folder.", progname)
