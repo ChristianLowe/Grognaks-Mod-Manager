@@ -127,11 +127,34 @@ modorder_read = [word.strip() for word in modorder_read]
 for f in glob.glob("*.ftl"):
     if not f in modorder_read:
         modorder.write(f + "\n")
+        print "Added "+f
         
 if allowzip:
     for f in glob.glob("*.zip"):
         if not f in modorder_read:
             modorder.write(f + "\n")
+        
+        
+# Check if any mods have beed deleted(are in modorder but not in the mods folder)
+modorder.seek(0)
+modorder_read = modorder.readlines()
+modorder_read = [word.strip() for word in modorder_read]
+for f in modorder_read:
+    if f not in glob.glob('*.ftl'):
+        modorder_read.remove(f)
+        print "Removed "+f
+        
+if allowzip:
+    for f in modorder_read:
+        if not f in glob.glob("*.zip"):
+            modorder_read.remove(f)
+            
+modorder.close()
+modorder = open('modorder.txt','w')
+modorder.write('\n'.join(modorder_read)+'\n')
+modorder.close()
+modorder = open("modorder.txt", "a+")
+
 
 # Refresh the list
 modorder.seek(0)
@@ -205,8 +228,12 @@ for filename in modlist:
                 for f in files:
                     if f.endswith(".append"):
                         appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
+                    elif f.endswith(".append.xml"):
+                        appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
                     elif f.endswith(".merge"):
-                        mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
+                        mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".merge")]))
+                    elif f.endswith("merge.xml"):
+                        mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
                     else:
                         sh.copy2(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f))
                     
