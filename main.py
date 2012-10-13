@@ -271,7 +271,6 @@ elif platform.system() == "Linux":
         sys.exit(0)
 elif platform.system() == "Darwin":
     steam = msgbox.askyesno(progname, "Did you purchase FTL through Steam?")
-    dir_root = os.path.realpath(__file__)
     if steam == True:
         dir_res = os.path.join(os.environ['HOME'], 'Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app/Contents/Resources')
     if steam == False or steam == None:
