@@ -2,14 +2,16 @@
 
 from sys import argv
 from ConfigParser import SafeConfigParser
+from Tkinter import * # I know, I know, bad practice
 from ftldat import FTLDatUnpacker as du
 from ftldat import FTLDatPacker as dp
 from shutil import copy
 
+import tkMessageBox as msgbox
 import tempfile as tf
-import easygui as eg
 import zipfile as zf
 import shutil as sh
+import webbrowser
 import platform
 import glob
 import xml
@@ -17,31 +19,181 @@ import sys
 import os
 
 progname = "Grognak's Mod Manager v1.4"
+mergelist = None
 
-if platform.system()=='Darwin':
-   msg="Are you using Steam?"
-   yn=["Yes","No"]
-   steam=eg.choicebox(msg,progname,yn)
-   dir_root=os.path.split(argv[0])[0]
-   if steam=='Yes':
-       dir_res=os.path.join(os.environ['HOME'],'Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app/Contents/resources')
-   if steam=='No' or steam==None:
-      app=eg.diropenbox(msg="Select your FTL app",title=progname)
-      dir_res=os.path.join(app,'Contents/resources')
-   os.chdir(dir_root)
-   cfg=SafeConfigParser()
-   cfg.read("modman.ini")
-   dir_mods=cfg.get("settings","macmodsdir")
-   dir_mods=os.path.expanduser(dir_mods)
-   if not os.path.exists(dir_mods):
-      os.makedirs(dir_mods)
-      copy(os.path.join(dir_root,"mods/Beginning Scrap Advantage.ftl"),dir_mods)
-      eg.msgbox("A folder has been created on "+dir_mods+" .Please put any FTL mods there.",progname)
-else:
-   dir_root = dir_root = os.path.realpath(__file__)
-   dir_mods = os.path.join(dir_root, "mods")
-   dir_res = os.path.join(dir_root, "resources")
-
+class MainWindow:
+    def __init__(self, parent):
+        self.myParent = parent
+        
+        self.button_width = 7
+        
+        self.button_padx = "2m" 
+        self.button_pady = "1m"
+        
+        self.buttons_frame_padx =  "3m"
+        self.buttons_frame_pady =  "2m"       
+        self.buttons_frame_ipadx = "3m"
+        self.buttons_frame_ipady = "1m"
+        
+        self.start()
+        
+    def start(self):
+        parent = self.myParent
+        
+        # Our topmost frame is called rootframe
+        self.rootframe = Frame(parent)
+        self.rootframe.pack()
+        
+       # Top frame (container)
+        self.top_frame = Frame(self.rootframe) 
+        self.top_frame.pack(side=TOP,
+                fill=BOTH, 
+                expand=YES,
+                )
+        
+        # Top-left frame (mod list)       
+        self.left_frame = Frame(self.top_frame, #background="red",
+            borderwidth=1,  relief=RIDGE,
+            height=250, 
+            width=50,
+            )
+        self.left_frame.pack(side=LEFT,
+            fill=BOTH, 
+            expand=YES,
+            )
+        
+        # Top-right frame (buttons)
+        self.right_frame = Frame(self.top_frame, width=250)
+        self.right_frame.pack(side=RIGHT,
+            fill=Y, 
+            expand=NO,
+            )
+        
+        # Bottom frame (mod descriptions)
+        self.bottom_frame = Frame(self.rootframe, 
+            borderwidth=3,  relief=RIDGE,
+            height=50, 
+            )
+        self.bottom_frame.pack(side=TOP,
+            fill=BOTH, 
+            expand=YES,
+            )
+        
+        # add a listbox to hold the mod names
+        self.modlistbox = Listbox(self.left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
+        self.modlistbox.pack(side=LEFT, fill=BOTH, expand=1)
+        self.modscrollbar = Scrollbar(self.left_frame, command=self.modlistbox.yview, orient=VERTICAL)
+        self.modscrollbar.pack(side=RIGHT, fill=Y)
+        self.modlistbox.configure(yscrollcommand=self.modscrollbar.set)
+        
+        # add textbox at bottom to hold mod information
+        self.descbox = Text(self.bottom_frame, width=60, height=10, wrap=WORD)
+        self.descbox.pack(fill=BOTH, expand=1)
+        
+        # Set formating tags
+        self.descbox.tag_configure("title", font="helvetica 24 bold")
+        
+        # now we add the buttons to the buttons_frame   
+        self.patchbutton = Button(self.right_frame, command=self.patchbuttonClick)
+        self.patchbutton.configure(text="Patch")
+        self.patchbutton.focus_force()       
+        self.patchbutton.configure( 
+                width=self.button_width,  
+                padx=self.button_padx,    
+                pady=self.button_pady     
+                )
+        
+        self.patchbutton.pack(side=TOP)    
+        self.patchbutton.bind("<Return>", self.patchbuttonClick_a)
+        
+        self.reorderbutton = Button(self.right_frame, command=self.reorderbuttonClick)
+        self.reorderbutton.configure(text="Reorder")  
+        self.reorderbutton.configure( 
+                width=self.button_width,  
+                padx=self.button_padx,     
+                pady=self.button_pady     
+                )
+        
+        self.reorderbutton.pack(side=TOP)
+        self.reorderbutton.bind("<Return>", self.reorderbuttonClick_a)
+        
+        self.forumbutton = Button(self.right_frame, command=self.forumbuttonClick)
+        self.forumbutton.configure(text="Forum")  
+        self.forumbutton.configure( 
+                width=self.button_width,  
+                padx=self.button_padx,     
+                pady=self.button_pady     
+                )
+        
+        self.forumbutton.pack(side=TOP)
+        self.forumbutton.bind("<Return>", self.forumbuttonClick_a) 
+        
+        self.exitbutton = Button(self.right_frame, command=self.exitbuttonClick)
+        self.exitbutton.configure(text="Exit")  
+        self.exitbutton.configure( 
+                width=self.button_width,  
+                padx=self.button_padx,     
+                pady=self.button_pady     
+                )
+        
+        self.exitbutton.pack(side=TOP)
+        self.exitbutton.bind("<Return>", self.exitbuttonClick_a)
+        
+        self.filldata()
+        
+    def filldata(self):
+        # Set default description
+        self.changedesc("Grognak's Mod Manager", "Grognak", 1.4, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
+        
+        # Gets list of mods the player wants to be patched in
+        for mod in modname_list:
+            self.addmod(mod, False)
+        
+    def addmod(self, modname, selected):
+        # Add a mod name to the list.
+        newitem = self.modlistbox.insert(END, modname)
+        if selected:
+            self.modlistbox.selection_set(newitem)
+        
+    def changedesc(self, title, author = None, version = None, description = None):
+        # Changes the description of the currently selected mod
+        self.descbox.configure(state=NORMAL)
+        self.descbox.delete('1.0', END)
+        self.descbox.insert(END, title + "\n", "title")
+        if author is not None and version is not None:
+            self.descbox.insert(END, "by " + author + " (version " + str(version) + ")\n\n")
+        if description is not None:
+            self.descbox.insert(END, description)
+        else:
+            self.descbox.insert(END, "No description.")
+        self.descbox.configure(state=DISABLED)
+        
+    def patchbuttonClick(self):
+        global mergelist
+        mergelist = [self.modlistbox.get(modname) for modname in self.modlistbox.curselection()]
+        self.myParent.destroy()
+        
+    def patchbuttonClick_a(self, event):  
+        self.patchbuttonClick()
+        
+    def exitbuttonClick(self):
+        sys.exit(0)
+        
+    def exitbuttonClick_a(self, event): 
+        self.exitbuttonClick() 
+        
+    def reorderbuttonClick(self): 
+        pass
+        
+    def reorderbuttonClick_a(self, event): 
+        self.reorderbuttonClick()
+        
+    def forumbuttonClick(self): 
+        webbrowser.open("http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464")
+        
+    def forumbuttonClick_a(self, event): 
+        self.forumbuttonClick()
+        
 def ftl_path_join(*args):
     """ Joins paths in the way FTL expects them to be in .dat files.
         That is: the UNIX way. """
@@ -94,19 +246,13 @@ def unpackdat(datafile):
         with open(target, 'wb') as f:
             unpacker.extract_to(filename, f)
 
-# Verify that the user put GMM in the right location
-if platform.system() == "Windows":
-    if not os.path.isfile(os.path.join(dir_root, "FTLGame.exe")):
-        eg.msgbox("Error: This executable must be in the same folder as FTLGame.exe", progname)
-        sys.exit(0)
-elif platform.system() == "Darwin":
-    pass
-elif platform.system() == "Linux":
-    if not os.path.isfile(os.path.join(dir_root, "FTL")):
-        eg.msgbox("Error: Grognak's Mod Manager must be located directly above the FTL folder.", progname)
-        sys.exit(0)
-else:
-    eg.msgbox("Warning: Unsupported platform. Results may be unexpected.", progname)
+# Set relative locations
+realpath = os.path.realpath(__file__)
+dir_root = realpath[:realpath.rindex("\\")]
+dir_mods = os.path.join(dir_root, "mods")
+dir_res = os.path.join(dir_root, "resources")
+
+print dir_root + "\n"
 
 # Load up config file values
 cfg = SafeConfigParser()
@@ -114,7 +260,34 @@ cfg.read("modman.ini")
 
 allowzip = cfg.getboolean("settings", "allowzip")
 
-print dir_root + "\n"
+# Verify that the user put GMM in the right location
+if platform.system() == "Windows":
+    if not os.path.isfile(os.path.join(dir_root, "FTLGame.exe")):
+        msgbox.showerror(progname, "This executable must be in the same folder as FTLGame.exe")
+        sys.exit(0)
+elif platform.system() == "Linux":
+    if not os.path.isfile(os.path.join(dir_root, "FTL")):
+        msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the FTL folder")
+        sys.exit(0)
+elif platform.system() == "Darwin":
+    steam = msgbox.askyesno(progname, "Did you purchase FTL through Steam?")
+    dir_root = os.path.realpath(__file__)
+    if steam == True:
+        dir_res = os.path.join(os.environ['HOME'], 'Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app/Contents/Resources')
+    if steam == False or steam == None:
+        if not os.path.isfile(os.path.join(dir_root, "MacOS", "FTL")):
+            msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the MacOS folder in FTL.dat")
+            sys.exit(0)
+        dir_res = os.path.join(dir_root, 'Resources')
+    os.chdir(dir_root)
+    dir_mods = cfg.get("settings", "macmodsdir")
+    dir_mods = os.path.expanduser(dir_mods)
+    if not os.path.exists(dir_mods):
+       os.makedirs(dir_mods)
+       copy(os.path.join(dir_root, "mods/Beginning Scrap Advantage.ftl"), dir_mods)
+       msgbox.showinfo(progname, "A folder has been created in " + dir_mods + ". Please place any FTL mods there.")
+else:
+    msgbox.showwarning(progname, "Unsupported platform; unexpected behavior may occur.")
 
 # Loop through the .ftl files, check if on mod list.
 os.chdir(dir_mods)
@@ -167,11 +340,14 @@ if allowzip:
 else:
     modname_list = [word[:-4] for word in modorder_read]
 
-# Gets list of mods the player wants to be patched in
-msg = "Pick the modifications you'd like active:"
-mergelist = eg.multchoicebox(msg, progname, modname_list)
-
-# User clicked cancel
+# Start the GUI
+root = Tk()
+root.resizable(False, False)
+root.wm_title(progname)
+MainWindow(root)
+root.mainloop()
+    
+# User hit the X button
 if (mergelist == None):
     sys.exit(0) 
 
@@ -266,5 +442,5 @@ packdat("data.dat-unpacked", "data.dat")
 packdat("resource.dat-unpacked", "resource.dat")
     
 # All done!
-eg.msgbox("Patching completed successfully", progname)
+msgbox.showinfo(progname, "Patching completed successfully.")
     
