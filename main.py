@@ -454,5 +454,13 @@ packdat("data.dat-unpacked", "data.dat")
 packdat("resource.dat-unpacked", "resource.dat")
     
 # All done!
-msgbox.showinfo(progname, "Patching completed successfully.")
-    
+if platform.system() == "Windows":
+    if msgbox.askyesno(progname, "Patching completed successfully. Run FTL now?"):
+        os.system("\"" + os.path.join(dir_root, "FTLGame.exe") + "\"")
+else:
+    msgbox.showinfo(progname, "Patching completed successfully.")
+
+
+
+
+
