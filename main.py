@@ -35,6 +35,8 @@ class MainWindow:
         self.buttons_frame_ipadx = "3m"
         self.buttons_frame_ipady = "1m"
         
+        self.oldlist = set()
+        
         self.start()
         
     def start(self):
@@ -84,6 +86,7 @@ class MainWindow:
         self.modlistbox.pack(side=LEFT, fill=BOTH, expand=1)
         self.modscrollbar = Scrollbar(self.left_frame, command=self.modlistbox.yview, orient=VERTICAL)
         self.modscrollbar.pack(side=RIGHT, fill=Y)
+        self.modlistbox.bind("<<ListboxSelect>>", self.ListboxSelect)
         self.modlistbox.configure(yscrollcommand=self.modscrollbar.set)
         
         # add textbox at bottom to hold mod information
@@ -148,6 +151,14 @@ class MainWindow:
         # Gets list of mods the player wants to be patched in
         for mod in modname_list:
             self.addmod(mod, False)
+            
+    def ListboxSelect(self, event):
+        curlist = self.modlistbox.curselection()
+        newset = [x for x in curlist if x not in self.oldlist]
+        self.oldlist = set(curlist)
+        
+        if len(newset) is not 0:
+            self.changedesc(self.modlistbox.get(newset[0]))
         
     def addmod(self, modname, selected):
         # Add a mod name to the list.
@@ -162,6 +173,8 @@ class MainWindow:
         self.descbox.insert(END, title + "\n", "title")
         if author is not None and version is not None:
             self.descbox.insert(END, "by " + author + " (version " + str(version) + ")\n\n")
+        else:
+            self.descbox.insert(END, "\n")
         if description is not None:
             self.descbox.insert(END, description)
         else:
