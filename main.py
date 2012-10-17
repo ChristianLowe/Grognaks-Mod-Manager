@@ -114,7 +114,8 @@ class MainWindow:
         self.reorderbutton.configure( 
                 width=self.button_width,  
                 padx=self.button_padx,     
-                pady=self.button_pady     
+                pady=self.button_pady,
+                state=DISABLED
                 )
         
         self.reorderbutton.pack(side=TOP)
@@ -195,8 +196,15 @@ class MainWindow:
     def exitbuttonClick_a(self, event): 
         self.exitbuttonClick() 
         
-    def reorderbuttonClick(self): 
-        pass
+    def reorderbuttonClick(self):
+        self.myParent.withdraw()
+        root = Tk()
+        root.resizable(False, False)
+        root.wm_title(progname + " - Reorder")
+        ReorderWindow(root)
+        root.mainloop()
+        self.myParent.update()
+        self.myParent.deiconify()
         
     def reorderbuttonClick_a(self, event): 
         self.reorderbuttonClick()
@@ -206,7 +214,142 @@ class MainWindow:
         
     def forumbuttonClick_a(self, event): 
         self.forumbuttonClick()
+
+class ReorderWindow:
+    # Not completely implemented yet, so button is disabled
+    def __init__(self, parent):
+        self.myParent = parent
         
+        self.rootframe = Frame(parent)
+        self.rootframe.pack()
+        
+        button_width = 7     
+        
+        button_padx = "2m"    
+        button_pady = "1m"   
+        
+        buttons_frame_padx =  "3m"   
+        buttons_frame_pady =  "2m"         
+        buttons_frame_ipadx = "3m"   
+        buttons_frame_ipady = "1m"         
+        
+        # top frame
+        self.top_frame = Frame(self.rootframe) 
+        self.top_frame.pack(side=TOP,
+                fill=BOTH, 
+                expand=YES,
+                ) 
+        
+        # left_frame        
+        self.left_frame = Frame(self.top_frame, #background="red",
+            borderwidth=1,  relief=RIDGE,
+            height=250, 
+            width=50,
+            ) 
+        self.left_frame.pack(side=LEFT,
+            fill=BOTH, 
+            expand=YES,
+            )  
+        
+        ### right_frame 
+        self.right_frame = Frame(self.top_frame,
+            width=250,
+            )
+        self.right_frame.pack(side=RIGHT,
+            fill=Y, 
+            expand=NO,
+            )  
+        
+        # add a listbox to hold the mod names
+        self.modlistbox = Listbox(self.left_frame, width=30, height=1) # Height readjusts itself for the button frame
+        self.modlistbox.pack(side=LEFT, fill=BOTH, expand=1)
+        self.modlistbox.bind("<<ListboxSelect>>", self.ListboxSelect)
+        self.modscrollbar = Scrollbar(self.left_frame, command=self.modlistbox.yview, orient=VERTICAL)
+        self.modscrollbar.pack(side=RIGHT, fill=Y)
+        self.modlistbox.configure(yscrollcommand=self.modscrollbar.set)
+        
+        
+        # now we add the buttons to the buttons_frame   
+        self.okbutton = Button(self.right_frame, command=self.okbuttonClick)
+        self.okbutton.configure(text="OK")
+        self.okbutton.focus_force()       
+        self.okbutton.configure( 
+                width=button_width,  
+                padx=button_padx,    
+                pady=button_pady     
+                )
+        
+        self.okbutton.pack(side=TOP)    
+        self.okbutton.bind("<Return>", self.okbuttonClick_a)
+        
+        self.upbutton = Button(self.right_frame, command=self.upbuttonClick)
+        self.upbutton.configure(text="Move Up")  
+        self.upbutton.configure( 
+                width=button_width,  
+                padx=button_padx,     
+                pady=button_pady,
+                state=DISABLED,
+                )
+        
+        self.upbutton.pack(side=TOP)
+        self.upbutton.bind("<Return>", self.upbuttonClick_a)
+        
+        self.downbutton = Button(self.right_frame, command=self.downbuttonClick)
+        self.downbutton.configure(text="Move Down")  
+        self.downbutton.configure( 
+                width=button_width,  
+                padx=button_padx,     
+                pady=button_pady,
+                state=DISABLED,
+                )
+        
+        self.downbutton.pack(side=TOP)
+        self.downbutton.bind("<Return>", self.downbuttonClick_a)
+        
+    def adjustPosition(self, index, amount):
+        newindex = index + amount
+        if newindex >= 0 and newindex < self.modlistbox.size():
+            item = self.modlistbox.get(index)
+            self.modlistbox.delete(index)
+            self.modlistbox.insert(newindex, item)
+            self.modlistbox.selection_set(newindex)
+            scrollfraction = float(newindex-3)/float(self.modlistbox.size())
+            self.modlistbox.yview_moveto(scrollfraction)
+            self.handleButtons(newindex)
+            
+    def ListboxSelect(self, event):
+        cursel = int(self.modlistbox.curselection()[0])
+        self.handleButtons(cursel)
+            
+    def handleButtons(self, cursel):
+        if cursel is 0:
+            self.upbutton['state'] = DISABLED
+            self.downbutton['state'] = ACTIVE
+        elif cursel is self.modlistbox.size()-1:
+            self.upbutton['state'] = ACTIVE
+            self.downbutton['state'] = DISABLED
+        else:
+            self.upbutton['state'] = ACTIVE
+            self.downbutton['state'] = ACTIVE
+        
+    def okbuttonClick(self):      
+        self.myParent.destroy()
+   
+    def okbuttonClick_a(self, event):  
+        self.okbuttonClick()
+        
+    def upbuttonClick(self): 
+        self.adjustPosition(int(self.modlistbox.curselection()[0]), -1)
+        
+    def upbuttonClick_a(self, event): 
+        self.upbuttonClick()
+
+    def downbuttonClick(self): 
+        self.adjustPosition(int(self.modlistbox.curselection()[0]), 1)
+        
+    def downbuttonClick_a(self, event): 
+        self.downbuttonClick()
+
 def ftl_path_join(*args):
     """ Joins paths in the way FTL expects them to be in .dat files.
         That is: the UNIX way. """
