@@ -404,7 +404,7 @@ def unpackdat(datafile):
 
 # Set relative locations
 realpath = os.path.realpath(__file__)
-dir_root = realpath[:realpath.rindex("\\")]
+dir_root = os.path.dirname(realpath)
 dir_mods = os.path.join(dir_root, "mods")
 dir_res = os.path.join(dir_root, "resources")
 
