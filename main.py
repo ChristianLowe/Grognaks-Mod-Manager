@@ -412,7 +412,7 @@ print dir_root + "\n"
 
 # Load up config file values
 cfg = SafeConfigParser()
-cfg.read("modman.ini")
+cfg.read(os.path.join(dir_root, "modman.ini"))
 
 allowzip = cfg.getboolean("settings", "allowzip")
 
