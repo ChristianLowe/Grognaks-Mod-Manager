@@ -18,8 +18,11 @@ import xml
 import sys
 import os
 
-progname = "Grognak's Mod Manager v1.4"
+
+progver = "1.6"
+progname = "Grognak's Mod Manager v%s" % progver
 mergelist = None
+
 
 class MainWindow:
     def __init__(self, parent):
@@ -328,7 +331,7 @@ def mergefile(src, dst):
 
 def packdat(datafolder, datfile):
     print "\nRepacking " + datfile
-    print 'Listing files to pack ...'
+    print "Listing files to pack ..."
     s = [()]
     files = []
     while s:
@@ -378,11 +381,11 @@ allowzip = cfg.getboolean("settings", "allowzip")
 # Verify that the user put GMM in the right location
 if platform.system() == "Windows":
     if not os.path.isfile(os.path.join(dir_root, "FTLGame.exe")):
-        msgbox.showerror(progname, "This executable must be in the same folder as FTLGame.exe")
+        msgbox.showerror(progname, "This executable must be in the same folder as FTLGame.exe.")
         sys.exit(0)
 elif platform.system() == "Linux":
     if not os.path.isfile(os.path.join(dir_root, "FTL")):
-        msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the FTL folder")
+        msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the FTL folder.")
         sys.exit(0)
 elif platform.system() == "Darwin":
     steam = msgbox.askyesno(progname, "Did you purchase FTL through Steam?")
@@ -390,7 +393,7 @@ elif platform.system() == "Darwin":
         dir_res = os.path.join(os.environ['HOME'], 'Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app/Contents/Resources')
     if steam == False or steam == None:
         if not os.path.isfile(os.path.join(dir_root, "MacOS", "FTL")):
-            msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the MacOS folder in FTL.dat")
+            msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the MacOS folder in FTL.app.")
             sys.exit(0)
         dir_res = os.path.join(dir_root, 'Resources')
     os.chdir(dir_root)
