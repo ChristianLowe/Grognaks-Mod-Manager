@@ -1,28 +1,70 @@
 #!/usr/bin/env python
 
-from sys import argv
-from ConfigParser import SafeConfigParser
-from ftldat import FTLDatUnpacker as du
-from ftldat import FTLDatPacker as dp
-from shutil import copy
-
-import Tkinter as tk
-import tkMessageBox as msgbox
-import tempfile as tf
-import zipfile as zf
-import shutil as sh
-import webbrowser
-import platform
-import glob
-import xml
-import sys
+# Do some basic imports, and set up logging to catch ImportError.
+import inspect
+import locale
+import logging
 import os
+import sys
+
+if (__name__ == "__main__"):
+    global dir_self
+    locale.setlocale(locale.LC_ALL, "")
+
+    # Get the un-symlinked, absolute path to this module.
+    dir_self = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
+    if (dir_self not in sys.path): sys.path.insert(0, dir_self)
+
+    # Go to this module's dir.
+    os.chdir(dir_self)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    logstream_handler = logging.StreamHandler()
+    logstream_formatter = logging.Formatter("%(levelname)s: %(message)s")
+    logstream_handler.setFormatter(logstream_formatter)
+    logstream_handler.setLevel(logging.INFO)
+    logger.addHandler(logstream_handler)
+
+    logfile_handler = logging.FileHandler(os.path.join(dir_self, "modman-log.txt"), mode="w")
+    logfile_formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s", "%Y-%m-%d %H:%M:%S")
+    logfile_handler.setFormatter(logfile_formatter)
+    logger.addHandler(logfile_handler)
+
+    # __main__ stuff is continued at the end of this file.
 
 
+# Import everything else (tkinter may be absent in some environments).
+try:
+    from ConfigParser import SafeConfigParser
+    import errno
+    import glob
+    import platform
+    import shutil as sh
+    import tempfile as tf
+    import webbrowser
+    import zipfile as zf
+    import Tkinter as tk
+    import tkMessageBox as msgbox
+
+    # Modules bundled with this script.
+    from ftldat import FTLDatUnpacker as du
+    from ftldat import FTLDatPacker as dp
+
+except (Exception) as err:
+    logging.exception(err)
+    sys.exit(1)
+
+
+# Declare globals.
 progver = "1.6"
 progname = "Grognak's Mod Manager v%s" % progver
+allowzip = False
 mergelist = None
 modname_list = None
+dir_mods = None
+dir_res = None
 
 
 class MainWindow(tk.Toplevel):
@@ -44,31 +86,31 @@ class MainWindow(tk.Toplevel):
 
         self.resizable(False, False)
 
-        # Our topmost frame is called rootframe
+        # Our topmost frame is called rootframe.
         self.rootframe = tk.Frame(self)
         self.rootframe.pack()
 
-        # Top frame (container)
+        # Top frame (container).
         self.top_frame = tk.Frame(self.rootframe)
         self.top_frame.pack(side="top", fill="both", expand="yes")
 
-        # Top-left frame (mod list)
+        # Top-left frame (mod list).
         self.left_frame = tk.Frame(self.top_frame, #background="red",
             borderwidth=1, relief="ridge",
             width=50, height=250)
         self.left_frame.pack(side="left", fill="both", expand="yes")
 
-        # Top-right frame (buttons)
+        # Top-right frame (buttons).
         self.right_frame = tk.Frame(self.top_frame, width=250)
         self.right_frame.pack(side="right", fill="y", expand="no")
 
-        # Bottom frame (mod descriptions)
+        # Bottom frame (mod descriptions).
         self.bottom_frame = tk.Frame(self.rootframe,
             borderwidth=3, relief="ridge",
             height=50)
         self.bottom_frame.pack(side="top", fill="both", expand="yes")
 
-        # add a listbox to hold the mod names
+        # Add a listbox to hold the mod names.
         self.modlistbox = tk.Listbox(self.left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
         self.modlistbox.pack(side="left", fill="both", expand="yes")
         self.modscrollbar = tk.Scrollbar(self.left_frame, command=self.modlistbox.yview, orient="vertical")
@@ -76,14 +118,14 @@ class MainWindow(tk.Toplevel):
         self.modlistbox.bind("<<ListboxSelect>>", self._on_listbox_select)
         self.modlistbox.configure(yscrollcommand=self.modscrollbar.set)
 
-        # add textbox at bottom to hold mod information
+        # Add textbox at bottom to hold mod information.
         self.descbox = tk.Text(self.bottom_frame, width=60, height=10, wrap="word")
         self.descbox.pack(fill="both", expand="yes")
 
-        # Set formating tags
+        # Set formating tags.
         self.descbox.tag_configure("title", font="helvetica 24 bold")
 
-        # now we add the buttons to the buttons_frame
+        # Add the buttons to the buttons frame.
         self.patch_btn = tk.Button(self.right_frame, command=self._patch)
         self.patch_btn.configure(text="Patch")
         self.patch_btn.focus_force()
@@ -128,12 +170,12 @@ class MainWindow(tk.Toplevel):
     def _filldata(self):
         global modname_list
 
-        # Set default description
+        # Set default description.
         self._set_description("Grognak's Mod Manager", "Grognak", progver, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
 
-        # Gets list of mods the player wants to be patched in
+        # Get list of mods the player wants to be patched in.
         for mod in modname_list:
-            self._addmod(mod, False)
+            self._add_mod(mod, False)
 
     def _on_listbox_select(self, event):
         curlist = self.modlistbox.curselection()
@@ -143,14 +185,14 @@ class MainWindow(tk.Toplevel):
         if (len(newset) > 0):
             self._set_description(self.modlistbox.get(newset[0]))
 
-    def _addmod(self, modname, selected):
-        # Add a mod name to the list.
+    def _add_mod(self, modname, selected):
+        """Add a mod name to the list."""
         newitem = self.modlistbox.insert(tk.END, modname)
         if (selected):
             self.modlistbox.selection_set(newitem)
 
     def _set_description(self, title, author=None, version=None, description=None):
-        # Changes the description of the currently selected mod
+        """Sets the currently displayed mod description."""
         self.descbox.configure(state="normal")
         self.descbox.delete("1.0", tk.END)
         self.descbox.insert(tk.END, (title +"\n"), "title")
@@ -167,7 +209,7 @@ class MainWindow(tk.Toplevel):
     def _patch(self):
         global mergelist
         mergelist = [self.modlistbox.get(modname) for modname in self.modlistbox.curselection()]
-        _die()
+        self._die()
 
     def _die(self):
         """Kill the app gracefully by destroying the root window."""
@@ -185,7 +227,7 @@ class MainWindow(tk.Toplevel):
 
 
 class ReorderWindow(tk.Toplevel):
-    # Not completely implemented yet, so button is disabled
+    # Not completely implemented yet, so button is disabled.
 
     def __init__(self, parent, *args, **kwargs):
         self.custom_args = {"title":None}
@@ -206,22 +248,22 @@ class ReorderWindow(tk.Toplevel):
         button_padx = "2m"
         button_pady = "1m"
 
-        # top frame
+        # Top frame.
         self.top_frame = tk.Frame(self.rootframe)
         self.top_frame.pack(side="top", fill="both", expand="yes")
 
-        # left_frame
+        # Left frame.
         self.left_frame = tk.Frame(self.top_frame, #background="red",
             borderwidth=1, relief="ridge",
             width=50, height=250)
         self.left_frame.pack(side="left", fill="both", expand="yes")
 
-        ### right_frame
+        # Right frame.
         self.right_frame = tk.Frame(self.top_frame,
             width=250)
         self.right_frame.pack(side="right", fill="y", expand="no")
 
-        # add a listbox to hold the mod names
+        # Add a listbox to hold the mod names.
         self.modlistbox = tk.Listbox(self.left_frame, width=30, height=1) # Height readjusts itself for the button frame
         self.modlistbox.pack(side="left", fill="both", expand="yes")
         self.modlistbox.bind("<<ListboxSelect>>", self._on_listbox_select)
@@ -230,7 +272,7 @@ class ReorderWindow(tk.Toplevel):
         self.modlistbox.configure(yscrollcommand=self.modscrollbar.set)
 
 
-        # now we add the buttons to the buttons_frame
+        # Add the buttons to the buttons frame.
         self.okbutton = tk.Button(self.right_frame, command=self._apply)
         self.okbutton.configure(text="OK")
         self.okbutton.focus_force()
@@ -314,65 +356,52 @@ def appendfile(src, dst):
 def mergefile(src, dst):
     pass
 
-def packdat(datafolder, datfile):
-    print "\nRepacking %s" % datfile
-    print "Listing files to pack ..."
+def packdat(unpack_dir, dat_path):
+    logging.info("\nRepacking %s" % os.path.basename(dat_path))
+    logging.info("Listing files to pack...")
     s = [()]
     files = []
     while s:
         current = s.pop()
-        for child in os.listdir(os.path.join(datafolder, *current)):
-            full_path = os.path.join(datafolder,
-                                        *(current + (child,)))
+        for child in os.listdir(os.path.join(unpack_dir, *current)):
+            full_path = os.path.join(unpack_dir, *(current + (child,)))
             if (os.path.isfile(full_path)):
                 files.append(current + (child,))
             elif (os.path.isdir(full_path)):
                 s.append(current + (child,))
-    print "Create datfile ..."
-    indexSize = len(files)
-    packer = dp(open(datfile, "wb"), indexSize)
-    print "Packing ..."
+    logging.info("Creating datfile...")
+    index_size = len(files)
+    packer = dp(open(dat_path, "wb"), index_size)
+    logging.info("Packing...")
     for _file in files:
-        full_path = os.path.join(datafolder, *_file)
+        full_path = os.path.join(unpack_dir, *_file)
         size = os.stat(full_path).st_size
         with open(full_path, "rb") as f:
             packer.add(ftl_path_join(*_file), f, size)
 
-def unpackdat(datafile):
-    print "Unpacking %s..." % datafile
-    unpacker = du(open(datafile, "rb"))
+def unpackdat(dat_path, unpack_dir):
+    logging.info("Unpacking %s..." % os.path.basename(dat_path))
+    unpacker = du(open(dat_path, "rb"))
 
     for i, filename, size, offset in unpacker:
-        target = os.path.join(datafile +"-unpacked", filename)
+        target = os.path.join(unpack_dir, filename)
         if (not os.path.exists(os.path.dirname(target))):
             os.makedirs(os.path.dirname(target))
         with open(target, "wb") as f:
             unpacker.extract_to(filename, f)
 
-def main():
-    global mergelist, modname_list, progname
+def verify_ftl_paths():
+    """Verifies that the user put GMM in the right location."""
+    global dir_self, dir_mods, dir_res
 
-    # Set relative locations
-    realpath = os.path.realpath(__file__)
-    dir_root = os.path.dirname(realpath)
-    dir_mods = os.path.join(dir_root, "mods")
-    dir_res = os.path.join(dir_root, "resources")
+    # TODO: Move the following prompts into the GUI thread.
 
-    print "%s\n" % dir_root
-
-    # Load up config file values
-    cfg = SafeConfigParser()
-    cfg.read(os.path.join(dir_root, "modman.ini"))
-
-    allowzip = cfg.getboolean("settings", "allowzip")
-
-    # Verify that the user put GMM in the right location
     if (platform.system() == "Windows"):
-        if (not os.path.isfile(os.path.join(dir_root, "FTLGame.exe"))):
+        if (not os.path.isfile(os.path.join(dir_self, "FTLGame.exe"))):
             msgbox.showerror(progname, "This executable must be in the same folder as FTLGame.exe.")
             sys.exit(0)
     elif (platform.system() == "Linux"):
-        if (not os.path.isfile(os.path.join(dir_root, "FTL"))):
+        if (not os.path.isfile(os.path.join(dir_self, "FTL"))):
             msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the FTL folder.")
             sys.exit(0)
     elif (platform.system() == "Darwin"):
@@ -380,101 +409,88 @@ def main():
         if (steam is True):
             dir_res = os.path.join(os.environ["HOME"], "Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app/Contents/Resources")
         if (steam is False or steam is None):
-            if (not os.path.isfile(os.path.join(dir_root, "MacOS", "FTL"))):
+            if (not os.path.isfile(os.path.join(dir_self, "MacOS", "FTL"))):
                 msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the MacOS folder in FTL.app.")
                 sys.exit(0)
-            dir_res = os.path.join(dir_root, "Resources")
-        os.chdir(dir_root)
+            dir_res = os.path.join(dir_self, "Resources")
         dir_mods = cfg.get("settings", "macmodsdir")
         dir_mods = os.path.expanduser(dir_mods)
         if (not os.path.exists(dir_mods)):
            os.makedirs(dir_mods)
-           copy(os.path.join(dir_root, "mods/Beginning Scrap Advantage.ftl"), dir_mods)
+           sh.copy(os.path.join(dir_self, "mods", "Beginning Scrap Advantage.ftl"), dir_mods)
            msgbox.showinfo(progname, "A folder has been created in %s. Please place any FTL mods there." % dir_mods)
     else:
         msgbox.showwarning(progname, "Unsupported platform; unexpected behavior may occur.")
 
-    # Loop through the .ftl files, check if on mod list.
-    os.chdir(dir_mods)
-    modorder = open("modorder.txt", "a+")
-    modorder.seek(0)
-    modorder_read = modorder.readlines()
+def load_modorder():
+    global allowzip
+    global dir_mods
+    """Reads the modorder, syncs it with existing files, and returns it."""
+    modorder_lines = []
+    try:
+        with open(os.path.join(dir_mods, "modorder.txt"), "r") as modorder_file:
+            modorder_lines = modorder_file.readlines()
+            modorder_lines = [word.strip() for word in modorder_lines]
+    except (IOError) as err:
+        if (err.errno == errno.ENOENT):  # No such file/dir.
+            pass
+        else:
+            raise
 
-    modorder_read = [word.strip() for word in modorder_read]
-
-    for f in glob.glob("*.ftl"):
-        if (not f in modorder_read):
-            modorder.write(f +"\n")
-            print "Added %s" % f
-
+    mod_filenames = glob.glob(os.path.join(dir_mods, "*.ftl"))
     if (allowzip):
-        for f in glob.glob("*.zip"):
-            if (not f in modorder_read):
-                modorder.write(f +"\n")
+        mod_filenames += glob.glob(os.path.join(dir_mods, "*.zip"))
+    mod_filenames = [os.path.basename(f) for f in mod_filenames]
 
+    # Append filenames not mentioned in the modorder.
+    new_mods = [f for f in mod_filenames if (f not in modorder_lines)]
+    for f in new_mods:
+        modorder_lines.append(f)
+        logging.info("Added %s" % f)
 
-    # Check if any mods have beed deleted(are in modorder but not in the mods folder)
-    modorder.seek(0)
-    modorder_read = modorder.readlines()
-    modorder_read = [word.strip() for word in modorder_read]
-    for f in modorder_read:
-        if (f not in glob.glob("*.ftl")):
-            modorder_read.remove(f)
-            print "Removed %s" % f
+    # Purge modorder lines that have no corresponding filename.
+    dead_mods = [f for f in modorder_lines if (f not in mod_filenames)]
+    for f in dead_mods:
+        modorder_lines.remove(f)
+        logging.info("Removed %s" % f)
 
-    if (allowzip):
-        for f in modorder_read:
-            if (not f in glob.glob("*.zip")):
-                modorder_read.remove(f)
+    return modorder_lines
 
-    modorder.close()
-    modorder = open("modorder.txt", "w")
-    modorder.write("\n".join(modorder_read) +"\n")
-    modorder.close()
-    modorder = open("modorder.txt", "a+")
+def save_modorder(modorder_lines):
+    global dir_mods
+    with open(os.path.join(dir_mods, "modorder.txt"), "w") as modorder_file:
+        modorder_file.write("\n".join(modorder_lines) +"\n")
 
+def patch_dats():
+    """Backs up, clobbers, unpacks, merges, and finally packs dats."""
+    global allowzip
+    global dir_self, dir_mods, dir_res
+    global mergelist
 
-    # Refresh the list
-    modorder.seek(0)
-    modorder_read = modorder.readlines()
-    modorder_read = [word.strip() for word in modorder_read]
+    data_dat_path = os.path.join(dir_res, "data.dat")
+    resource_dat_path = os.path.join(dir_res, "resource.dat")
 
-    # Mod list sans the .ftl extention
-    if (allowzip):
-        modname_list = modorder_read
-    else:
-        modname_list = [word[:-4] for word in modorder_read]
+    data_bak_path = os.path.join(dir_res, "data.dat.bak")
+    resource_bak_path = os.path.join(dir_res, "resource.dat.bak")
 
-    # Start the GUI
-    root = tk.Tk()
-    root.withdraw()
-    mygui = MainWindow(master=root, title=progname)
-    root.mainloop()
+    data_unp_path = os.path.join(dir_res, "data.dat-unpacked")
+    resource_unp_path = os.path.join(dir_res, "resource.dat-unpacked")
 
-    # User hit the X button
-    if (mergelist is None):
-        sys.exit(0)
+    # Create backup dats, if necessary.
+    for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
+        if (not os.path.isfile(bak_path)):
+            logging.info("Backing up %s" % os.path.basename(dat_path))
+            sh.copy2(dat_path, bak_path)
 
-    # Create data file backups, if necessary
-    os.chdir(dir_res)
+    # Clobber current dat files with their respective backups.
+    for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
+      sh.copy2(bak_path, dat_path)
 
-    if (not os.path.isfile("data.dat.bak")):
-        print "Backing up data.dat"
-        sh.copy2("data.dat", "data.dat.bak")
+    # Extract both of the backup files.
+    unpackdat(data_dat_path, data_unp_path)
+    unpackdat(resource_dat_path, resource_unp_path)
 
-    if (not os.path.isfile("resource.dat.bak")):
-        print "Backing up resource.dat\n"
-        sh.copy2("resource.dat", "resource.dat.bak")
-
-    # Overwrite old data files with their respective backups
-    sh.copy2("data.dat.bak", "data.dat")
-    sh.copy2("resource.dat.bak", "resource.dat")
-
-    # Extract both of the backup files
-    unpackdat("data.dat")
-    unpackdat("resource.dat")
-
-    # Go through each .ftl archive and apply changes
+    # Go through each .ftl archive and apply changes.
     tmp = tf.mkdtemp()
     if (allowzip):
         modlist = mergelist
@@ -482,58 +498,55 @@ def main():
         modlist = [(word +".ftl") for word in mergelist]
 
     for filename in modlist:
-        os.chdir(dir_mods)
-        ftl = zf.ZipFile(filename, "r")
+        logging.info("\nInstalling %s" % filename)
+        with zf.ZipFile(os.path.join(dir_mods, filename), "r") as mod_zip:
+            # Unzip everything into a temporary folder.
+            for item in mod_zip.namelist():
+                if (item.endswith("/")):
+                    path = os.path.join(tmp, item)
+                    if (not os.path.exists(path)):
+                        os.makedirs(path)
+                else:
+                    mod_zip.extract(item, tmp)
 
-        print "\nInstalling %s" % filename
-
-        # Unzip everything into a temporary folder
-        for item in ftl.namelist():
-            if (item.endswith("/")):
-                path = os.path.join(tmp, item)
-                if (not os.path.exists(path)):
-                    os.makedirs(path)
-            else:
-                ftl.extract(item, tmp)
-
-        # Go through each directory in the .ftl file
+        # Go through each directory in the .ftl file.
         for directory in os.listdir(tmp):
             if (directory == "data"):
-                print " - Merging %s folder" % directory
+                logging.info("Merging %s folder" % directory)
                 for root, dirs, files in os.walk(os.path.join(tmp, directory)):
                     for d in dirs:
-                        path = os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], d)
+                        path = os.path.join(data_unp_path, root[len(tmp)+1:], d)
                         if (not os.path.exists(path)):
                             os.makedirs(path)
                     for f in files:
                         if (f.endswith(".append")):
-                            appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
+                            appendfile(os.path.join(root, f), os.path.join(data_unp_path, root[len(tmp)+1:], f[:-len(".append")]))
                         elif (f.endswith(".append.xml")):
-                            appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
+                            appendfile(os.path.join(root, f), os.path.join(data_unp_path, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
                         elif (f.endswith(".merge")):
-                            mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".merge")]))
+                            mergefile(os.path.join(root, f), os.path.join(data_unp_path, root[len(tmp)+1:], f[:-len(".merge")]))
                         elif (f.endswith("merge.xml")):
-                            mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
+                            mergefile(os.path.join(root, f), os.path.join(data_unp_path, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
                         else:
-                            sh.copy2(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f))
+                            sh.copy2(os.path.join(root, f), os.path.join(data_unp_path, root[len(tmp)+1:], f))
 
             elif (directory in ("audio", "fonts", "img")):
-                print " - Merging %s folder" % directory
+                logging.info("Merging %s folder" % directory)
                 for root, dirs, files in os.walk(os.path.join(tmp, directory)):
                     for d in dirs:
-                        path = os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], d)
+                        path = os.path.join(resource_unp_path, root[len(tmp)+1:], d)
                         if (not os.path.exists(path)):
                             os.makedirs(path)
                     for f in files:
                         if (f.endswith(".append")):
-                            appendfile(os.path.join(root, f), os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
+                            appendfile(os.path.join(root, f), os.path.join(resource_unp_path, root[len(tmp)+1:], f[:-len(".append")]))
                         else:
-                            sh.copy2(os.path.join(root, f), os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], f))
+                            sh.copy2(os.path.join(root, f), os.path.join(resource_unp_path, root[len(tmp)+1:], f))
 
             else:
-                print " - WARNING: Unsupported folder: %s" % directory
+                logging.warning("Unsupported folder: %s" % directory)
 
-        # Clean up temporary folder's contents
+        # Clean up temporary folder's contents.
         for root, dirs, files in os.walk(tmp):
             for f in files:
                 os.unlink(os.path.join(root, f))
@@ -541,18 +554,73 @@ def main():
                 sh.rmtree(os.path.join(root, d))
 
     # All the mods are installed, so repack the files.
-    os.chdir(dir_res)
-    packdat("data.dat-unpacked", "data.dat")
-    packdat("resource.dat-unpacked", "resource.dat")
+    packdat(data_unp_path, data_dat_path)
+    packdat(resource_unp_path, resource_dat_path)
 
-    # All done!
-    if (platform.system() == "Windows"):
-        if (msgbox.askyesno(progname, "Patching completed successfully. Run FTL now?")):
-            os.system("\"%s\"" % os.path.join(dir_root, "FTLGame.exe"))
-    else:
-        msgbox.showinfo(progname, "Patching completed successfully.")
 
+def main():
+    global allowzip
+    global dir_self, dir_mods, dir_res
+    global mergelist, modname_list, progname
+
+    # Set relative locations.
+    dir_mods = os.path.join(dir_self, "mods")
+    dir_res = os.path.join(dir_self, "resources")
+
+    try:
+        logging.info("%s (on %s)" % (progname, platform.platform(aliased=True, terse=False)))
+        logging.info("Rooting at: %s\n" % dir_self)
+
+        # Load up config file values.
+        cfg = SafeConfigParser()
+        cfg.read(os.path.join(dir_self, "modman.ini"))
+
+        allowzip = cfg.getboolean("settings", "allowzip")
+
+        verify_ftl_paths()
+
+        modorder_lines = load_modorder()
+        save_modorder(modorder_lines)
+
+        # Mod list sans the .ftl extention.
+        if (allowzip):
+            modname_list = modorder_lines
+        else:
+            modname_list = [word[:-4] for word in modorder_lines]
+
+        # Start the GUI.
+        root = tk.Tk()
+        root.withdraw()
+
+        # Tkinter mainloop doesn't normally die and let its exceptions be caught.
+        def tk_error_func(exc, val, tb):
+            logging.exception("%s" % exc)
+            root.destroy()
+        root.report_callback_exception = tk_error_func
+
+        mygui = MainWindow(master=root, title=progname)
+
+        root.mainloop()
+
+        if (mergelist is None):  # User didn't click the "Patch" button.
+            sys.exit(0)
+
+        patch_dats()
+
+        # TODO: Move patching into a separate thread with a queued
+        # callback on completion, so the GUI thread can stay alive
+        # to show the following prompts.
+
+        # All done!
+        if (platform.system() == "Windows"):
+            if (msgbox.askyesno(progname, "Patching completed successfully. Run FTL now?")):
+                os.system("\"%s\"" % os.path.join(dir_self, "FTLGame.exe"))
+        else:
+            msgbox.showinfo(progname, "Patching completed successfully.")
+
+    except (Exception) as err:
+        logging.exception(err)
 
 
 if (__name__ == "__main__"):
-  main()
+    main()
