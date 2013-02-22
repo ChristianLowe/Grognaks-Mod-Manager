@@ -2,11 +2,11 @@
 
 from sys import argv
 from ConfigParser import SafeConfigParser
-from Tkinter import * # I know, I know, bad practice
 from ftldat import FTLDatUnpacker as du
 from ftldat import FTLDatPacker as dp
 from shutil import copy
 
+import Tkinter as tk
 import tkMessageBox as msgbox
 import tempfile as tf
 import zipfile as zf
@@ -43,104 +43,81 @@ class MainWindow:
         parent = self.myParent
 
         # Our topmost frame is called rootframe
-        self.rootframe = Frame(parent)
+        self.rootframe = tk.Frame(parent)
         self.rootframe.pack()
 
        # Top frame (container)
-        self.top_frame = Frame(self.rootframe)
-        self.top_frame.pack(side=TOP,
-                fill=BOTH,
-                expand=YES,
-                )
+        self.top_frame = tk.Frame(self.rootframe)
+        self.top_frame.pack(side="top", fill="both", expand="yes")
 
         # Top-left frame (mod list)
-        self.left_frame = Frame(self.top_frame, #background="red",
-            borderwidth=1,  relief=RIDGE,
-            height=250,
-            width=50,
-            )
-        self.left_frame.pack(side=LEFT,
-            fill=BOTH,
-            expand=YES,
-            )
+        self.left_frame = tk.Frame(self.top_frame, #background="red",
+            borderwidth=1, relief="ridge",
+            height=250, width=50)
+        self.left_frame.pack(side="left", fill="both", expand="yes")
 
         # Top-right frame (buttons)
-        self.right_frame = Frame(self.top_frame, width=250)
-        self.right_frame.pack(side=RIGHT,
-            fill=Y,
-            expand=NO,
-            )
+        self.right_frame = tk.Frame(self.top_frame, width=250)
+        self.right_frame.pack(side="right", fill="y", expand="no")
 
         # Bottom frame (mod descriptions)
-        self.bottom_frame = Frame(self.rootframe,
-            borderwidth=3,  relief=RIDGE,
-            height=50,
-            )
-        self.bottom_frame.pack(side=TOP,
-            fill=BOTH,
-            expand=YES,
-            )
+        self.bottom_frame = tk.Frame(self.rootframe,
+            borderwidth=3, relief="ridge",
+            height=50)
+        self.bottom_frame.pack(side="top", fill="both", expand="yes")
 
         # add a listbox to hold the mod names
-        self.modlistbox = Listbox(self.left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
-        self.modlistbox.pack(side=LEFT, fill=BOTH, expand=1)
-        self.modscrollbar = Scrollbar(self.left_frame, command=self.modlistbox.yview, orient=VERTICAL)
-        self.modscrollbar.pack(side=RIGHT, fill=Y)
+        self.modlistbox = tk.Listbox(self.left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
+        self.modlistbox.pack(side="left", fill="both", expand="yes")
+        self.modscrollbar = tk.Scrollbar(self.left_frame, command=self.modlistbox.yview, orient="vertical")
+        self.modscrollbar.pack(side="right", fill="y")
         self.modlistbox.bind("<<ListboxSelect>>", self.ListboxSelect)
         self.modlistbox.configure(yscrollcommand=self.modscrollbar.set)
 
         # add textbox at bottom to hold mod information
-        self.descbox = Text(self.bottom_frame, width=60, height=10, wrap=WORD)
-        self.descbox.pack(fill=BOTH, expand=1)
+        self.descbox = tk.Text(self.bottom_frame, width=60, height=10, wrap="word")
+        self.descbox.pack(fill="both", expand="yes")
 
         # Set formating tags
         self.descbox.tag_configure("title", font="helvetica 24 bold")
 
         # now we add the buttons to the buttons_frame
-        self.patchbutton = Button(self.right_frame, command=self.patchbuttonClick)
+        self.patchbutton = tk.Button(self.right_frame, command=self.patchbuttonClick)
         self.patchbutton.configure(text="Patch")
         self.patchbutton.focus_force()
         self.patchbutton.configure(
-                width=self.button_width,
-                padx=self.button_padx,
-                pady=self.button_pady
-                )
+            width=self.button_width,
+            padx=self.button_padx, pady=self.button_pady)
 
-        self.patchbutton.pack(side=TOP)
+        self.patchbutton.pack(side="top")
         self.patchbutton.bind("<Return>", self.patchbuttonClick_a)
 
-        self.reorderbutton = Button(self.right_frame, command=self.reorderbuttonClick)
+        self.reorderbutton = tk.Button(self.right_frame, command=self.reorderbuttonClick)
         self.reorderbutton.configure(text="Reorder")
         self.reorderbutton.configure(
-                width=self.button_width,
-                padx=self.button_padx,
-                pady=self.button_pady,
-                state=DISABLED
-                )
+            state="disabled",
+            width=self.button_width,
+            padx=self.button_padx, pady=self.button_pady)
 
-        self.reorderbutton.pack(side=TOP)
+        self.reorderbutton.pack(side="top")
         self.reorderbutton.bind("<Return>", self.reorderbuttonClick_a)
 
-        self.forumbutton = Button(self.right_frame, command=self.forumbuttonClick)
+        self.forumbutton = tk.Button(self.right_frame, command=self.forumbuttonClick)
         self.forumbutton.configure(text="Forum")
         self.forumbutton.configure(
-                width=self.button_width,
-                padx=self.button_padx,
-                pady=self.button_pady
-                )
+            width=self.button_width,
+            padx=self.button_padx, pady=self.button_pady)
 
-        self.forumbutton.pack(side=TOP)
+        self.forumbutton.pack(side="top")
         self.forumbutton.bind("<Return>", self.forumbuttonClick_a)
 
-        self.exitbutton = Button(self.right_frame, command=self.exitbuttonClick)
+        self.exitbutton = tk.Button(self.right_frame, command=self.exitbuttonClick)
         self.exitbutton.configure(text="Exit")
         self.exitbutton.configure(
-                width=self.button_width,
-                padx=self.button_padx,
-                pady=self.button_pady
-                )
+            width=self.button_width,
+            padx=self.button_padx, pady=self.button_pady)
 
-        self.exitbutton.pack(side=TOP)
+        self.exitbutton.pack(side="top")
         self.exitbutton.bind("<Return>", self.exitbuttonClick_a)
 
         self.filldata()
@@ -163,24 +140,24 @@ class MainWindow:
 
     def addmod(self, modname, selected):
         # Add a mod name to the list.
-        newitem = self.modlistbox.insert(END, modname)
+        newitem = self.modlistbox.insert(tk.END, modname)
         if selected:
             self.modlistbox.selection_set(newitem)
 
-    def changedesc(self, title, author = None, version = None, description = None):
+    def changedesc(self, title, author=None, version=None, description=None):
         # Changes the description of the currently selected mod
-        self.descbox.configure(state=NORMAL)
-        self.descbox.delete('1.0', END)
-        self.descbox.insert(END, title + "\n", "title")
+        self.descbox.configure(state="normal")
+        self.descbox.delete("1.0", tk.END)
+        self.descbox.insert(tk.END, title + "\n", "title")
         if author is not None and version is not None:
-            self.descbox.insert(END, "by " + author + " (version " + str(version) + ")\n\n")
+            self.descbox.insert(tk.END, "by " + author + " (version " + str(version) + ")\n\n")
         else:
-            self.descbox.insert(END, "\n")
+            self.descbox.insert(tk.END, "\n")
         if description is not None:
-            self.descbox.insert(END, description)
+            self.descbox.insert(tk.END, description)
         else:
-            self.descbox.insert(END, "No description.")
-        self.descbox.configure(state=DISABLED)
+            self.descbox.insert(tk.END, "No description.")
+        self.descbox.configure(state="disabled")
 
     def patchbuttonClick(self):
         global mergelist
@@ -198,7 +175,7 @@ class MainWindow:
 
     def reorderbuttonClick(self):
         self.myParent.withdraw()
-        root = Tk()
+        root = tk.Tk()
         root.resizable(False, False)
         root.wm_title(progname + " - Reorder")
         ReorderWindow(root)
@@ -220,7 +197,7 @@ class ReorderWindow:
     def __init__(self, parent):
         self.myParent = parent
 
-        self.rootframe = Frame(parent)
+        self.rootframe = tk.Frame(parent)
         self.rootframe.pack()
 
         button_width = 7
@@ -234,76 +211,58 @@ class ReorderWindow:
         buttons_frame_ipady = "1m"
 
         # top frame
-        self.top_frame = Frame(self.rootframe)
-        self.top_frame.pack(side=TOP,
-                fill=BOTH,
-                expand=YES,
-                )
+        self.top_frame = tk.Frame(self.rootframe)
+        self.top_frame.pack(side="top", fill="both", expand="yes")
 
         # left_frame
-        self.left_frame = Frame(self.top_frame, #background="red",
-            borderwidth=1,  relief=RIDGE,
-            height=250,
-            width=50,
-            )
-        self.left_frame.pack(side=LEFT,
-            fill=BOTH,
-            expand=YES,
-            )
+        self.left_frame = tk.Frame(self.top_frame, #background="red",
+            borderwidth=1, relief="ridge",
+            width=50, height=250)
+        self.left_frame.pack(side="left", fill="both", expand="yes")
 
         ### right_frame
-        self.right_frame = Frame(self.top_frame,
-            width=250,
-            )
-        self.right_frame.pack(side=RIGHT,
-            fill=Y,
-            expand=NO,
-            )
+        self.right_frame = tk.Frame(self.top_frame,
+            width=250)
+        self.right_frame.pack(side="right", fill="y", expand="no")
 
         # add a listbox to hold the mod names
-        self.modlistbox = Listbox(self.left_frame, width=30, height=1) # Height readjusts itself for the button frame
-        self.modlistbox.pack(side=LEFT, fill=BOTH, expand=1)
+        self.modlistbox = tk.Listbox(self.left_frame, width=30, height=1) # Height readjusts itself for the button frame
+        self.modlistbox.pack(side="left", fill="both", expand="yes")
         self.modlistbox.bind("<<ListboxSelect>>", self.ListboxSelect)
-        self.modscrollbar = Scrollbar(self.left_frame, command=self.modlistbox.yview, orient=VERTICAL)
-        self.modscrollbar.pack(side=RIGHT, fill=Y)
+        self.modscrollbar = tk.Scrollbar(self.left_frame, command=self.modlistbox.yview, orient="vertical")
+        self.modscrollbar.pack(side="right", fill="y")
         self.modlistbox.configure(yscrollcommand=self.modscrollbar.set)
 
 
         # now we add the buttons to the buttons_frame
-        self.okbutton = Button(self.right_frame, command=self.okbuttonClick)
+        self.okbutton = tk.Button(self.right_frame, command=self.okbuttonClick)
         self.okbutton.configure(text="OK")
         self.okbutton.focus_force()
         self.okbutton.configure(
-                width=button_width,
-                padx=button_padx,
-                pady=button_pady
-                )
+            width=button_width,
+            padx=button_padx, pady=button_pady)
 
-        self.okbutton.pack(side=TOP)
+        self.okbutton.pack(side="top")
         self.okbutton.bind("<Return>", self.okbuttonClick_a)
 
         self.upbutton = Button(self.right_frame, command=self.upbuttonClick)
         self.upbutton.configure(text="Move Up")
         self.upbutton.configure(
-                width=button_width,
-                padx=button_padx,
-                pady=button_pady,
-                state=DISABLED,
-                )
+            width=button_width,
+            padx=button_padx, pady=button_pady,
+            state="disabled")
 
-        self.upbutton.pack(side=TOP)
+        self.upbutton.pack(side="top")
         self.upbutton.bind("<Return>", self.upbuttonClick_a)
 
         self.downbutton = Button(self.right_frame, command=self.downbuttonClick)
         self.downbutton.configure(text="Move Down")
         self.downbutton.configure(
-                width=button_width,
-                padx=button_padx,
-                pady=button_pady,
-                state=DISABLED,
-                )
+            width=button_width,
+            padx=button_padx, pady=button_pady,
+            state="disabled")
 
-        self.downbutton.pack(side=TOP)
+        self.downbutton.pack(side="top")
         self.downbutton.bind("<Return>", self.downbuttonClick_a)
 
     def adjustPosition(self, index, amount):
@@ -323,14 +282,14 @@ class ReorderWindow:
 
     def handleButtons(self, cursel):
         if cursel is 0:
-            self.upbutton['state'] = DISABLED
-            self.downbutton['state'] = ACTIVE
+            self.upbutton['state'] = "disabled"
+            self.downbutton['state'] = "active"
         elif cursel is self.modlistbox.size()-1:
-            self.upbutton['state'] = ACTIVE
-            self.downbutton['state'] = DISABLED
+            self.upbutton['state'] = "active"
+            self.downbutton['state'] = "disabled"
         else:
-            self.upbutton['state'] = ACTIVE
-            self.downbutton['state'] = ACTIVE
+            self.upbutton['state'] = "active"
+            self.downbutton['state'] = "active"
 
     def okbuttonClick(self):
         self.myParent.destroy()
@@ -496,7 +455,7 @@ else:
     modname_list = [word[:-4] for word in modorder_read]
 
 # Start the GUI
-root = Tk()
+root = tk.Tk()
 root.resizable(False, False)
 root.wm_title(progname)
 MainWindow(root)
@@ -602,8 +561,3 @@ if platform.system() == "Windows":
         os.system("\"" + os.path.join(dir_root, "FTLGame.exe") + "\"")
 else:
     msgbox.showinfo(progname, "Patching completed successfully.")
-
-
-
-
-
