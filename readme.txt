@@ -25,21 +25,19 @@ Requirements
 
 Setup
 
-  Unzip all of the files from this archive and move them into:
-    Windows: the folder in which FTLGame.exe resides.
-    Mac OSX: the folder in which FTL_README.html resides.
-    Linux: in the folder which FTL resides.
+  Unzip the files from this archive anywhere.
 
-  For Mac/Linux users:
-    Move the contents of src into the same folder as modman.exe.
-    (It is safe to delete modman.exe.)
+  On the first run, you may be prompted to locate your
+  FTL resources. Specifically "data.dat" in the "resources"
+  directory under your FTL install (Mac users can select FTL.app).
+
+  In most cases, this should be located automatically.
 
 
 Usage
 
   To add a mod (an *.ftl file) to GMM:
-    Windows/Linux: Put it in the /mods/ folder.
-    Mac OSX: Put it in the ~/Documents/FTL Mods/ folder.
+    Put it in the GMM/mods/ folder.
 
   To Start GMM:
     Windows: Run modman.exe.
@@ -81,7 +79,11 @@ Troubleshooting
 Changelog
 
 1.6:
-- Unpack folders are deleted between patchings.
+- GMM no longer needs to be placed in the FTL directory
+- Added ini setting: ftl_dats_path
+- Deprecated ini setting: macmodsdir
+- Unpack folders are deleted between patchings
+- Added logging
 - Removed option to select all mods
 
 1.5:

@@ -47,6 +47,7 @@ try:
     import webbrowser
     import zipfile as zf
     import Tkinter as tk
+    import tkFileDialog
     import tkMessageBox as msgbox
 
     # Modules bundled with this script.
@@ -394,39 +395,65 @@ def unpackdat(dat_path, unpack_dir):
         with open(target, "wb") as f:
             unpacker.extract_to(filename, f)
 
-def verify_ftl_paths():
-    """Verifies that the user put GMM in the right location."""
+def is_dats_path_valid(dats_path):
+    """Returns True if the path exists and contains data.dat."""
+    return (os.path.isdir(dats_path) and os.path.isfile(os.path.join(dats_path, "data.dat")))
+
+def find_ftl_path():
+    """Returns a valid guessed path to FTL resources, or None."""
+    steam_chunks = ["Steam","steamapps","common","FTL Faster Than Light","resources"];
+    gog_chunks = ["GOG.com","Faster Than Light","resources"];
+
+    home_path = os.path.expanduser("~")
+
+    xdg_data_home = os.getenv("XDG_DATA_HOME")
+    if (not xdg_data_home):
+        xdg_data_home = os.path.join(home_path, *[".local","share"])
+
+    candidates = []
+    # Windows - Steam
+    candidates.append(os.path.join(os.getenv("ProgramFiles(x86)", ""), *steam_chunks))
+    candidates.append(os.path.join(os.getenv("ProgramFiles", ""), *steam_chunks))
+    # Windows - GOG
+    candidates.append(os.path.join(os.getenv("ProgramFiles(x86)", ""), *gog_chunks))
+    candidates.append(os.path.join(os.getenv("ProgramFiles", ""), *gog_chunks))
+    # Linux - Steam
+    candidates.append(os.path.join(xdg_data_home, *["Steam","SteamApps","common","FTL Faster Than Light","data","resources"]))
+    # OSX - Steam
+    candidates.append(os.path.join(home_path, *["Library","Application Support","Steam","SteamApps","common","FTL Faster Than Light","FTL.app","Contents","Resources"]))
+    # OSX
+    candidates.append(os.path.join("/", *["Applications","FTL.app","Contents","Resources"]))
+
+    result = None
+    for c in candidates:
+        if (is_dats_path_valid(c)):
+            result = c
+    return result
+
+def prompt_for_ftl_path():
+    """Returns a path to FTL resources chosen by the user, or None."""
     global APP_NAME
-    global dir_self, dir_mods, dir_res
-    global cfg
 
-    # TODO: Move the following prompts into the GUI thread.
+    message = ""
+    message += "The path to FTL's resources could not be guessed.\n\n";
+    message += "You will now be prompted to locate FTL manually.\n";
+    message += "Select '(FTL dir)/resources/data.dat'.\n";
+    message += "Or 'FTL.app', if you're on OSX.";
+    msgbox.showinfo(APP_NAME, message)
 
-    if (platform.system() == "Windows"):
-        if (not os.path.isfile(os.path.join(dir_self, "FTLGame.exe"))):
-            msgbox.showerror(APP_NAME, "This executable must be in the same folder as FTLGame.exe.")
-            sys.exit(0)
-    elif (platform.system() == "Linux"):
-        if (not os.path.isfile(os.path.join(dir_self, "FTL"))):
-            msgbox.showerror(APP_NAME, "Grognak's Mod Manager must be located directly above the FTL folder.")
-            sys.exit(0)
-    elif (platform.system() == "Darwin"):
-        steam = msgbox.askyesno(APP_NAME, "Did you purchase FTL through Steam?")
-        if (steam is True):
-            dir_res = os.path.join(os.environ["HOME"], "Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app/Contents/Resources")
-        if (steam is False or steam is None):
-            if (not os.path.isfile(os.path.join(dir_self, "MacOS", "FTL"))):
-                msgbox.showerror(APP_NAME, "Grognak's Mod Manager must be located directly above the MacOS folder in FTL.app.")
-                sys.exit(0)
-            dir_res = os.path.join(dir_self, "Resources")
-        dir_mods = cfg.get("settings", "macmodsdir")
-        dir_mods = os.path.expanduser(dir_mods)
-        if (not os.path.exists(dir_mods)):
-           os.makedirs(dir_mods)
-           sh.copy(os.path.join(dir_self, "mods", "Beginning Scrap Advantage.ftl"), dir_mods)
-           msgbox.showinfo(APP_NAME, "A folder has been created in %s. Please place any FTL mods there." % dir_mods)
-    else:
-        msgbox.showwarning(APP_NAME, "Unsupported platform; unexpected behavior may occur.")
+    result = tkFileDialog.askopenfilename(title="Find data.dat or FTL.app",
+        filetypes=[("data.dat or OSX Bundle", "data.dat;FTL.app")])
+
+    if (result):
+        if (os.path.basename(result) == "data.dat"):
+            result = os.path.split(result)[0]
+        elif (os.path.splitext(result)[1] == ".app" and os.path.isdir(result)):
+            if (os.path.isdir(os.path.join(result, *["Contents","Resources"]))):
+                result = os.path.join(result, *["Contents","Resources"])
+        if (result and is_dats_path_valid(result)):
+            return result
+
+    return None
 
 def find_mod(mod_name):
     """Returns the full path to a mod file, or None."""
@@ -602,9 +629,9 @@ def main():
     global dir_self, dir_mods, dir_res
     global cfg, modname_list, merge_list
 
-    # Set relative locations.
+    # dir_self was set earlier.
     dir_mods = os.path.join(dir_self, "mods")
-    dir_res = os.path.join(dir_self, "resources")
+    dir_res = None  # Set this later.
 
     try:
         logging.info("%s (on %s)" % (APP_NAME, platform.platform(aliased=True, terse=False)))
@@ -612,11 +639,64 @@ def main():
 
         # Load up config file values.
         cfg = SafeConfigParser()
-        cfg.read(os.path.join(dir_self, "modman.ini"))
+        cfg.add_section("settings")
 
-        allowzip = cfg.getboolean("settings", "allowzip")
+        # Set defaults.
+        cfg.set("settings", "allowzip", ("1" if (allowzip is True) else "0"))
 
-        verify_ftl_paths()
+        write_config = False
+        try:
+            with open(os.path.join(dir_self, "modman.ini"), "r") as cfg_file:
+                cfg.readfp(cfg_file)
+        except (Exception) as err:
+            write_config = True
+
+        if (cfg.has_option("settings", "allowzip")):
+            allowzip = cfg.getboolean("settings", "allowzip")
+
+        if (cfg.has_option("settings", "ftl_dats_path")):
+            dir_res = cfg.get("settings", "ftl_dats_path")
+
+        if (cfg.has_option("settings", "macmodsdir")):  # Deprecated.
+            cfg.remove_option("settings", "macmodsdir")
+
+        if (dir_res):
+            logging.info("Using FTL dats path from config: %s" % dir_res)
+            if (not is_dats_path_valid(dir_res)):
+                logging.error("The config's ftlDatsPath does not exist, or it lacks data.dat.")
+        else:
+            logging.debug("No FTL dats path previously set.")
+
+        # Find/prompt for the path to set in the config.
+        if (not dir_res):
+            dir_res = find_ftl_path()
+            if (dir_res):
+                if (not msgbox.askyesno(APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % dir_res)):
+                    dir_res = None
+
+            if (not dir_res):
+                logging.debug("FTL dats path was not located automatically. Prompting user for location.")
+                dir_res = prompt_for_ftl_path()
+
+            if (dir_res):
+                cfg.set("settings", "ftl_dats_path", dir_res)
+                write_config = True
+                logging.info("FTL dats located at: %s" % dir_res)
+
+        if (not dir_res):
+            logging.debug("No FTL dats path found, exiting.")
+            sys.exit(1)
+
+        if (write_config):
+            with open(os.path.join(dir_self, "modman.ini"), "w") as cfg_file:
+                cfg_file.write("#\n")
+                cfg_file.write("# allowzip - Sets whether to treat .zip files as .ftl files. Default: 0 (false).\n")
+                cfg_file.write("# ftl_dats_path - The path to FTL's resources folder. If invalid, you'll be prompted.\n")
+                cfg_file.write("#\n")
+                cfg_file.write("# macmodsdir - Deprecated. Each OS keeps mods in GMM/mods/ now.\n")
+                cfg_file.write("#\n")
+                cfg_file.write("\n")
+                cfg.write(cfg_file)
 
         modname_list = load_modorder()
         save_modorder(modname_list)
