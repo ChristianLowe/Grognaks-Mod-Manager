@@ -54,6 +54,30 @@ Usage
     Click "Patch" with none selected.
 
 
+Troubleshooting
+
+  If you need help installing on Mac...
+    Guide
+      http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464&start=450#p30155
+    Video tutorials
+      http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464&start=540#p32737
+
+  If you get permission errors...
+    Windows: Right-click modman.exe -> "Run as Administrator".
+    Mac/Linux: Make sure that your resource.dat and data.dat
+      files are not read-only.
+
+  If the game shows exclamation marks for everything...
+    Steam users can delete the /resources directory and "verify game cache".
+      https://support.steampowered.com/kb_article.php?ref=2037-QEUH-3335
+    Standalone users should be fine after reinstalling FTL.
+
+  Other...
+    Try deleting modorder.txt from the /mods folder and relaunching GMM.
+
+  When developing a mod, save your text files as ANSI, not UTF-8.
+
+
 Changelog
 
 1.6:
