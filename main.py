@@ -41,6 +41,7 @@ try:
     import errno
     import glob
     import platform
+    import re
     import shutil as sh
     import tempfile as tf
     import webbrowser
@@ -58,11 +59,12 @@ except (Exception) as err:
 
 
 # Declare globals.
-progver = "1.6"
-progname = "Grognak's Mod Manager v%s" % progver
+APP_VERSION = "1.6"
+APP_NAME = "Grognak's Mod Manager v%s" % APP_VERSION
 allowzip = False
-mergelist = None
-modname_list = None
+cfg = None
+modname_list = None  # Available mod names.
+merge_list = None    # Mod names to merge, selected in the GUI.
 dir_mods = None
 dir_res = None
 
@@ -168,10 +170,11 @@ class MainWindow(tk.Toplevel):
         self.wm_protocol("WM_DELETE_WINDOW", self._on_delete)
 
     def _filldata(self):
+        global APP_VERSION
         global modname_list
 
         # Set default description.
-        self._set_description("Grognak's Mod Manager", "Grognak", progver, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
+        self._set_description("Grognak's Mod Manager", "Grognak", APP_VERSION, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
 
         # Get list of mods the player wants to be patched in.
         for mod in modname_list:
@@ -207,8 +210,8 @@ class MainWindow(tk.Toplevel):
         self.descbox.configure(state="disabled")
 
     def _patch(self):
-        global mergelist
-        mergelist = [self.modlistbox.get(modname) for modname in self.modlistbox.curselection()]
+        global merge_list
+        merge_list = [self.modlistbox.get(mod_name) for mod_name in self.modlistbox.curselection()]
         self._die()
 
     def _die(self):
@@ -357,7 +360,8 @@ def mergefile(src, dst):
     pass
 
 def packdat(unpack_dir, dat_path):
-    logging.info("\nRepacking %s" % os.path.basename(dat_path))
+    logging.info("")
+    logging.info("Repacking %s" % os.path.basename(dat_path))
     logging.info("Listing files to pack...")
     s = [()]
     files = []
@@ -392,25 +396,27 @@ def unpackdat(dat_path, unpack_dir):
 
 def verify_ftl_paths():
     """Verifies that the user put GMM in the right location."""
+    global APP_NAME
     global dir_self, dir_mods, dir_res
+    global cfg
 
     # TODO: Move the following prompts into the GUI thread.
 
     if (platform.system() == "Windows"):
         if (not os.path.isfile(os.path.join(dir_self, "FTLGame.exe"))):
-            msgbox.showerror(progname, "This executable must be in the same folder as FTLGame.exe.")
+            msgbox.showerror(APP_NAME, "This executable must be in the same folder as FTLGame.exe.")
             sys.exit(0)
     elif (platform.system() == "Linux"):
         if (not os.path.isfile(os.path.join(dir_self, "FTL"))):
-            msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the FTL folder.")
+            msgbox.showerror(APP_NAME, "Grognak's Mod Manager must be located directly above the FTL folder.")
             sys.exit(0)
     elif (platform.system() == "Darwin"):
-        steam = msgbox.askyesno(progname, "Did you purchase FTL through Steam?")
+        steam = msgbox.askyesno(APP_NAME, "Did you purchase FTL through Steam?")
         if (steam is True):
             dir_res = os.path.join(os.environ["HOME"], "Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app/Contents/Resources")
         if (steam is False or steam is None):
             if (not os.path.isfile(os.path.join(dir_self, "MacOS", "FTL"))):
-                msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the MacOS folder in FTL.app.")
+                msgbox.showerror(APP_NAME, "Grognak's Mod Manager must be located directly above the MacOS folder in FTL.app.")
                 sys.exit(0)
             dir_res = os.path.join(dir_self, "Resources")
         dir_mods = cfg.get("settings", "macmodsdir")
@@ -418,29 +424,61 @@ def verify_ftl_paths():
         if (not os.path.exists(dir_mods)):
            os.makedirs(dir_mods)
            sh.copy(os.path.join(dir_self, "mods", "Beginning Scrap Advantage.ftl"), dir_mods)
-           msgbox.showinfo(progname, "A folder has been created in %s. Please place any FTL mods there." % dir_mods)
+           msgbox.showinfo(APP_NAME, "A folder has been created in %s. Please place any FTL mods there." % dir_mods)
     else:
-        msgbox.showwarning(progname, "Unsupported platform; unexpected behavior may occur.")
+        msgbox.showwarning(APP_NAME, "Unsupported platform; unexpected behavior may occur.")
 
-def load_modorder():
+def find_mod(mod_name):
+    """Returns the full path to a mod file, or None."""
     global allowzip
     global dir_mods
+
+    suffixes = ["", ".ftl"]
+    if (allowzip): suffixes.append(".zip")
+
+    for suffix in suffixes:
+        tmp_path = os.path.join(dir_mods, mod_name + suffix)
+        if (os.path.isfile(tmp_path)):
+            return tmp_path
+
+    logging.debug("Failed to find mod file by name: %s" % mod_name)
+    return None
+
+def load_modorder():
     """Reads the modorder, syncs it with existing files, and returns it."""
+    global allowzip
+    global dir_mods
+
     modorder_lines = []
     try:
+        # Translate mod names to full filenames, temporarily.
         with open(os.path.join(dir_mods, "modorder.txt"), "r") as modorder_file:
             modorder_lines = modorder_file.readlines()
-            modorder_lines = [word.strip() for word in modorder_lines]
+            modorder_lines = [line.strip() for line in modorder_lines]
+            modorder_lines = [find_mod(line) for line in modorder_lines]
+            modorder_lines = [line for line in modorder_lines if (line is not None)]
+            modorder_lines = [os.path.basename(line) for line in modorder_lines]
     except (IOError) as err:
         if (err.errno == errno.ENOENT):  # No such file/dir.
             pass
         else:
             raise
 
-    mod_filenames = glob.glob(os.path.join(dir_mods, "*.ftl"))
-    if (allowzip):
-        mod_filenames += glob.glob(os.path.join(dir_mods, "*.zip"))
-    mod_filenames = [os.path.basename(f) for f in mod_filenames]
+    mod_exts = ["ftl"]
+    if (allowzip): mod_exts.append("zip")
+
+    # Get a list of full filenames.
+    mod_filenames = []
+    for ext in mod_exts:
+        ext_filenames = glob.glob(os.path.join(dir_mods, "*."+ext))
+        ext_filenames = [os.path.basename(f) for f in ext_filenames]
+        mod_filenames.extend(ext_filenames)
+
+    # Purge modorder lines that have no corresponding filename.
+    dead_mods = [f for f in modorder_lines if (f not in mod_filenames)]
+    for f in dead_mods:
+        modorder_lines.remove(f)
+        logging.info("Removed %s" % f)
 
     # Append filenames not mentioned in the modorder.
     new_mods = [f for f in mod_filenames if (f not in modorder_lines)]
@@ -448,11 +486,9 @@ def load_modorder():
         modorder_lines.append(f)
         logging.info("Added %s" % f)
 
-    # Purge modorder lines that have no corresponding filename.
-    dead_mods = [f for f in modorder_lines if (f not in mod_filenames)]
-    for f in dead_mods:
-        modorder_lines.remove(f)
-        logging.info("Removed %s" % f)
+    # Strip extensions to get mod_names.
+    ext_ptn = "[.](?:"+ ("|".join(mod_exts)) +")$"
+    modorder_lines = [re.sub(ext_ptn, "", f, flags=re.I) for f in modorder_lines]
 
     return modorder_lines
 
@@ -465,7 +501,11 @@ def patch_dats():
     """Backs up, clobbers, unpacks, merges, and finally packs dats."""
     global allowzip
     global dir_self, dir_mods, dir_res
-    global mergelist
+    global merge_list
+
+    # Get full paths from mod names.
+    mod_list = [find_mod(mod_name) for mod_name in merge_list]
+    mod_list = [mod_path for mod_path in mod_list if (mod_path is not None)]
 
     data_dat_path = os.path.join(dir_res, "data.dat")
     resource_dat_path = os.path.join(dir_res, "resource.dat")
@@ -476,99 +516,98 @@ def patch_dats():
     data_unp_path = os.path.join(dir_res, "data.dat-unpacked")
     resource_unp_path = os.path.join(dir_res, "resource.dat-unpacked")
 
-    # Create backup dats, if necessary.
-    for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
-        if (not os.path.isfile(bak_path)):
-            logging.info("Backing up %s" % os.path.basename(dat_path))
-            sh.copy2(dat_path, bak_path)
+    unp_map = {}
+    for x in ["data"]:
+        unp_map[x] = data_unp_path
+    for x in ["audio", "fonts", "img"]:
+        unp_map[x] = resource_unp_path
 
-    # Clobber current dat files with their respective backups.
-    for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
-      sh.copy2(bak_path, dat_path)
+    tmp = None
 
-    # Extract both of the backup files.
-    unpackdat(data_dat_path, data_unp_path)
-    unpackdat(resource_dat_path, resource_unp_path)
+    try:
+        # Create backup dats, if necessary.
+        for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
+            if (not os.path.isfile(bak_path)):
+                logging.info("Backing up %s" % os.path.basename(dat_path))
+                sh.copy2(dat_path, bak_path)
 
-    # Go through each .ftl archive and apply changes.
-    tmp = tf.mkdtemp()
-    if (allowzip):
-        modlist = mergelist
-    else:
-        modlist = [(word +".ftl") for word in mergelist]
+        # Clobber current dat files with their respective backups.
+        for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
+            sh.copy2(bak_path, dat_path)
 
-    for filename in modlist:
-        logging.info("\nInstalling %s" % filename)
-        with zf.ZipFile(os.path.join(dir_mods, filename), "r") as mod_zip:
-            # Unzip everything into a temporary folder.
-            for item in mod_zip.namelist():
-                if (item.endswith("/")):
-                    path = os.path.join(tmp, item)
-                    if (not os.path.exists(path)):
-                        os.makedirs(path)
+        # Extract both of the dats.
+        sh.rmtree(data_unp_path)
+        sh.rmtree(resource_unp_path)
+        unpackdat(data_dat_path, data_unp_path)
+        unpackdat(resource_dat_path, resource_unp_path)
+
+        # Go through each .ftl archive and apply changes.
+        tmp = tf.mkdtemp()
+
+        for mod_path in mod_list:
+            logging.info("")
+            logging.info("Installing mod: %s" % os.path.basename(mod_path))
+            with zf.ZipFile(mod_path, "r") as mod_zip:
+                # Unzip everything into a temporary folder.
+                for item in mod_zip.namelist():
+                    if (item.endswith("/")):
+                        path = os.path.join(tmp, item)
+                        if (not os.path.exists(path)):
+                            os.makedirs(path)
+                    else:
+                        mod_zip.extract(item, tmp)
+
+            # Go through each directory in the .ftl file.
+            for directory in os.listdir(tmp):
+                if (directory in unp_map):
+                    logging.info("Merging folder: %s" % directory)
+                    unpack_dir = unp_map[directory]
+                    for root, dirs, files in os.walk(os.path.join(tmp, directory)):
+                        for d in dirs:
+                            path = os.path.join(unpack_dir, root[len(tmp)+1:], d)
+                            if (not os.path.exists(path)):
+                                os.makedirs(path)
+                        for f in files:
+                            if (f.endswith(".append")):
+                                appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
+                            elif (f.endswith(".append.xml")):
+                                appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
+                            elif (f.endswith(".merge")):
+                                mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge")]))
+                            elif (f.endswith("merge.xml")):
+                                mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
+                            else:
+                                sh.copy2(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f))
+
                 else:
-                    mod_zip.extract(item, tmp)
+                    logging.warning("Unsupported folder: %s" % directory)
 
-        # Go through each directory in the .ftl file.
-        for directory in os.listdir(tmp):
-            if (directory == "data"):
-                logging.info("Merging %s folder" % directory)
-                for root, dirs, files in os.walk(os.path.join(tmp, directory)):
-                    for d in dirs:
-                        path = os.path.join(data_unp_path, root[len(tmp)+1:], d)
-                        if (not os.path.exists(path)):
-                            os.makedirs(path)
-                    for f in files:
-                        if (f.endswith(".append")):
-                            appendfile(os.path.join(root, f), os.path.join(data_unp_path, root[len(tmp)+1:], f[:-len(".append")]))
-                        elif (f.endswith(".append.xml")):
-                            appendfile(os.path.join(root, f), os.path.join(data_unp_path, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
-                        elif (f.endswith(".merge")):
-                            mergefile(os.path.join(root, f), os.path.join(data_unp_path, root[len(tmp)+1:], f[:-len(".merge")]))
-                        elif (f.endswith("merge.xml")):
-                            mergefile(os.path.join(root, f), os.path.join(data_unp_path, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
-                        else:
-                            sh.copy2(os.path.join(root, f), os.path.join(data_unp_path, root[len(tmp)+1:], f))
+            # All the mods are installed, so repack the files.
+            packdat(data_unp_path, data_dat_path)
+            packdat(resource_unp_path, resource_dat_path)
 
-            elif (directory in ("audio", "fonts", "img")):
-                logging.info("Merging %s folder" % directory)
-                for root, dirs, files in os.walk(os.path.join(tmp, directory)):
-                    for d in dirs:
-                        path = os.path.join(resource_unp_path, root[len(tmp)+1:], d)
-                        if (not os.path.exists(path)):
-                            os.makedirs(path)
-                    for f in files:
-                        if (f.endswith(".append")):
-                            appendfile(os.path.join(root, f), os.path.join(resource_unp_path, root[len(tmp)+1:], f[:-len(".append")]))
-                        else:
-                            sh.copy2(os.path.join(root, f), os.path.join(resource_unp_path, root[len(tmp)+1:], f))
-
-            else:
-                logging.warning("Unsupported folder: %s" % directory)
-
+    finally:
         # Clean up temporary folder's contents.
-        for root, dirs, files in os.walk(tmp):
-            for f in files:
-                os.unlink(os.path.join(root, f))
-            for d in dirs:
-                sh.rmtree(os.path.join(root, d))
+        if (tmp is not None):
+            sh.rmtree(tmp, ignore_errors=True)
 
-    # All the mods are installed, so repack the files.
-    packdat(data_unp_path, data_dat_path)
-    packdat(resource_unp_path, resource_dat_path)
+        # Delete unpack folders.
+        sh.rmtree(data_unp_path, ignore_errors=True)
+        sh.rmtree(resource_unp_path, ignore_errors=True)
 
 
 def main():
+    global APP_NAME
     global allowzip
     global dir_self, dir_mods, dir_res
-    global mergelist, modname_list, progname
+    global cfg, modname_list, merge_list
 
     # Set relative locations.
     dir_mods = os.path.join(dir_self, "mods")
     dir_res = os.path.join(dir_self, "resources")
 
     try:
-        logging.info("%s (on %s)" % (progname, platform.platform(aliased=True, terse=False)))
+        logging.info("%s (on %s)" % (APP_NAME, platform.platform(aliased=True, terse=False)))
         logging.info("Rooting at: %s\n" % dir_self)
 
         # Load up config file values.
@@ -579,14 +618,8 @@ def main():
 
         verify_ftl_paths()
 
-        modorder_lines = load_modorder()
-        save_modorder(modorder_lines)
-
-        # Mod list sans the .ftl extention.
-        if (allowzip):
-            modname_list = modorder_lines
-        else:
-            modname_list = [word[:-4] for word in modorder_lines]
+        modname_list = load_modorder()
+        save_modorder(modname_list)
 
         # Start the GUI.
         root = tk.Tk()
@@ -598,11 +631,11 @@ def main():
             root.destroy()
         root.report_callback_exception = tk_error_func
 
-        mygui = MainWindow(master=root, title=progname)
+        mygui = MainWindow(master=root, title=APP_NAME)
 
         root.mainloop()
 
-        if (mergelist is None):  # User didn't click the "Patch" button.
+        if (merge_list is None):  # User didn't click the "Patch" button.
             sys.exit(0)
 
         patch_dats()
@@ -613,10 +646,10 @@ def main():
 
         # All done!
         if (platform.system() == "Windows"):
-            if (msgbox.askyesno(progname, "Patching completed successfully. Run FTL now?")):
+            if (msgbox.askyesno(APP_NAME, "Patching completed successfully. Run FTL now?")):
                 os.system("\"%s\"" % os.path.join(dir_self, "FTLGame.exe"))
         else:
-            msgbox.showinfo(progname, "Patching completed successfully.")
+            msgbox.showinfo(APP_NAME, "Patching completed successfully.")
 
     except (Exception) as err:
         logging.exception(err)

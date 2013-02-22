@@ -81,6 +81,7 @@ Troubleshooting
 Changelog
 
 1.6:
+- Unpack folders are deleted between patchings.
 - Removed option to select all mods
 
 1.5:
