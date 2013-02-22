@@ -126,6 +126,8 @@ class MainWindow:
         self.filldata()
 
     def filldata(self):
+        global modname_list
+
         # Set default description
         self.changedesc("Grognak's Mod Manager", "Grognak", 1.4, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
 
@@ -194,6 +196,7 @@ class MainWindow:
 
     def forumbuttonClick_a(self, event):
         self.forumbuttonClick()
+
 
 class ReorderWindow:
     # Not completely implemented yet, so button is disabled
@@ -312,6 +315,7 @@ class ReorderWindow:
     def downbuttonClick_a(self, event):
         self.downbuttonClick()
 
+
 def ftl_path_join(*args):
     """ Joins paths in the way FTL expects them to be in .dat files.
         That is: the UNIX way. """
@@ -364,203 +368,211 @@ def unpackdat(datafile):
         with open(target, 'wb') as f:
             unpacker.extract_to(filename, f)
 
-# Set relative locations
-realpath = os.path.realpath(__file__)
-dir_root = os.path.dirname(realpath)
-dir_mods = os.path.join(dir_root, "mods")
-dir_res = os.path.join(dir_root, "resources")
+def main():
+    global mergelist, modname_list
 
-print dir_root + "\n"
+    # Set relative locations
+    realpath = os.path.realpath(__file__)
+    dir_root = os.path.dirname(realpath)
+    dir_mods = os.path.join(dir_root, "mods")
+    dir_res = os.path.join(dir_root, "resources")
 
-# Load up config file values
-cfg = SafeConfigParser()
-cfg.read(os.path.join(dir_root, "modman.ini"))
+    print dir_root + "\n"
 
-allowzip = cfg.getboolean("settings", "allowzip")
+    # Load up config file values
+    cfg = SafeConfigParser()
+    cfg.read(os.path.join(dir_root, "modman.ini"))
 
-# Verify that the user put GMM in the right location
-if platform.system() == "Windows":
-    if not os.path.isfile(os.path.join(dir_root, "FTLGame.exe")):
-        msgbox.showerror(progname, "This executable must be in the same folder as FTLGame.exe.")
-        sys.exit(0)
-elif platform.system() == "Linux":
-    if not os.path.isfile(os.path.join(dir_root, "FTL")):
-        msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the FTL folder.")
-        sys.exit(0)
-elif platform.system() == "Darwin":
-    steam = msgbox.askyesno(progname, "Did you purchase FTL through Steam?")
-    if steam == True:
-        dir_res = os.path.join(os.environ['HOME'], 'Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app/Contents/Resources')
-    if steam == False or steam == None:
-        if not os.path.isfile(os.path.join(dir_root, "MacOS", "FTL")):
-            msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the MacOS folder in FTL.app.")
+    allowzip = cfg.getboolean("settings", "allowzip")
+
+    # Verify that the user put GMM in the right location
+    if platform.system() == "Windows":
+        if not os.path.isfile(os.path.join(dir_root, "FTLGame.exe")):
+            msgbox.showerror(progname, "This executable must be in the same folder as FTLGame.exe.")
             sys.exit(0)
-        dir_res = os.path.join(dir_root, 'Resources')
-    os.chdir(dir_root)
-    dir_mods = cfg.get("settings", "macmodsdir")
-    dir_mods = os.path.expanduser(dir_mods)
-    if not os.path.exists(dir_mods):
-       os.makedirs(dir_mods)
-       copy(os.path.join(dir_root, "mods/Beginning Scrap Advantage.ftl"), dir_mods)
-       msgbox.showinfo(progname, "A folder has been created in " + dir_mods + ". Please place any FTL mods there.")
-else:
-    msgbox.showwarning(progname, "Unsupported platform; unexpected behavior may occur.")
+    elif platform.system() == "Linux":
+        if not os.path.isfile(os.path.join(dir_root, "FTL")):
+            msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the FTL folder.")
+            sys.exit(0)
+    elif platform.system() == "Darwin":
+        steam = msgbox.askyesno(progname, "Did you purchase FTL through Steam?")
+        if steam == True:
+            dir_res = os.path.join(os.environ['HOME'], 'Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app/Contents/Resources')
+        if steam == False or steam == None:
+            if not os.path.isfile(os.path.join(dir_root, "MacOS", "FTL")):
+                msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the MacOS folder in FTL.app.")
+                sys.exit(0)
+            dir_res = os.path.join(dir_root, 'Resources')
+        os.chdir(dir_root)
+        dir_mods = cfg.get("settings", "macmodsdir")
+        dir_mods = os.path.expanduser(dir_mods)
+        if not os.path.exists(dir_mods):
+           os.makedirs(dir_mods)
+           copy(os.path.join(dir_root, "mods/Beginning Scrap Advantage.ftl"), dir_mods)
+           msgbox.showinfo(progname, "A folder has been created in " + dir_mods + ". Please place any FTL mods there.")
+    else:
+        msgbox.showwarning(progname, "Unsupported platform; unexpected behavior may occur.")
 
-# Loop through the .ftl files, check if on mod list.
-os.chdir(dir_mods)
-modorder = open("modorder.txt", "a+")
-modorder.seek(0)
-modorder_read = modorder.readlines()
+    # Loop through the .ftl files, check if on mod list.
+    os.chdir(dir_mods)
+    modorder = open("modorder.txt", "a+")
+    modorder.seek(0)
+    modorder_read = modorder.readlines()
 
-modorder_read = [word.strip() for word in modorder_read]
+    modorder_read = [word.strip() for word in modorder_read]
 
-for f in glob.glob("*.ftl"):
-    if not f in modorder_read:
-        modorder.write(f + "\n")
-        print "Added "+f
-
-if allowzip:
-    for f in glob.glob("*.zip"):
+    for f in glob.glob("*.ftl"):
         if not f in modorder_read:
             modorder.write(f + "\n")
+            print "Added "+f
+
+    if allowzip:
+        for f in glob.glob("*.zip"):
+            if not f in modorder_read:
+                modorder.write(f + "\n")
 
 
-# Check if any mods have beed deleted(are in modorder but not in the mods folder)
-modorder.seek(0)
-modorder_read = modorder.readlines()
-modorder_read = [word.strip() for word in modorder_read]
-for f in modorder_read:
-    if f not in glob.glob('*.ftl'):
-        modorder_read.remove(f)
-        print "Removed "+f
-
-if allowzip:
+    # Check if any mods have beed deleted(are in modorder but not in the mods folder)
+    modorder.seek(0)
+    modorder_read = modorder.readlines()
+    modorder_read = [word.strip() for word in modorder_read]
     for f in modorder_read:
-        if not f in glob.glob("*.zip"):
+        if f not in glob.glob('*.ftl'):
             modorder_read.remove(f)
+            print "Removed "+f
 
-modorder.close()
-modorder = open('modorder.txt','w')
-modorder.write('\n'.join(modorder_read)+'\n')
-modorder.close()
-modorder = open("modorder.txt", "a+")
+    if allowzip:
+        for f in modorder_read:
+            if not f in glob.glob("*.zip"):
+                modorder_read.remove(f)
+
+    modorder.close()
+    modorder = open('modorder.txt','w')
+    modorder.write('\n'.join(modorder_read)+'\n')
+    modorder.close()
+    modorder = open("modorder.txt", "a+")
 
 
-# Refresh the list
-modorder.seek(0)
-modorder_read = modorder.readlines()
-modorder_read = [word.strip() for word in modorder_read]
+    # Refresh the list
+    modorder.seek(0)
+    modorder_read = modorder.readlines()
+    modorder_read = [word.strip() for word in modorder_read]
 
-# Mod list sans the .ftl extention
-if allowzip:
-    modname_list = modorder_read
-else:
-    modname_list = [word[:-4] for word in modorder_read]
+    # Mod list sans the .ftl extention
+    if allowzip:
+        modname_list = modorder_read
+    else:
+        modname_list = [word[:-4] for word in modorder_read]
 
-# Start the GUI
-root = tk.Tk()
-root.resizable(False, False)
-root.wm_title(progname)
-MainWindow(root)
-root.mainloop()
+    # Start the GUI
+    root = tk.Tk()
+    root.resizable(False, False)
+    root.wm_title(progname)
+    MainWindow(root)
+    root.mainloop()
 
-# User hit the X button
-if (mergelist == None):
-    sys.exit(0)
+    # User hit the X button
+    if (mergelist == None):
+        sys.exit(0)
 
-# Create data file backups, if necessary
-os.chdir(dir_res)
+    # Create data file backups, if necessary
+    os.chdir(dir_res)
 
-if not os.path.isfile("data.dat.bak"):
-    print "Backing up data.dat"
-    sh.copy2("data.dat", "data.dat.bak")
+    if not os.path.isfile("data.dat.bak"):
+        print "Backing up data.dat"
+        sh.copy2("data.dat", "data.dat.bak")
 
-if not os.path.isfile("resource.dat.bak"):
-    print "Backing up resource.dat\n"
-    sh.copy2("resource.dat", "resource.dat.bak")
+    if not os.path.isfile("resource.dat.bak"):
+        print "Backing up resource.dat\n"
+        sh.copy2("resource.dat", "resource.dat.bak")
 
-# Overwrite old data files with their respective backups
-sh.copy2("data.dat.bak", "data.dat")
-sh.copy2("resource.dat.bak", "resource.dat")
+    # Overwrite old data files with their respective backups
+    sh.copy2("data.dat.bak", "data.dat")
+    sh.copy2("resource.dat.bak", "resource.dat")
 
-# Extract both of the backup files
-unpackdat("data.dat")
-unpackdat("resource.dat")
+    # Extract both of the backup files
+    unpackdat("data.dat")
+    unpackdat("resource.dat")
 
-# Go through each .ftl archive and apply changes
-tmp = tf.mkdtemp()
-if allowzip:
-    modlist = mergelist
-else:
-    modlist = [word + ".ftl" for word in mergelist]
+    # Go through each .ftl archive and apply changes
+    tmp = tf.mkdtemp()
+    if allowzip:
+        modlist = mergelist
+    else:
+        modlist = [word + ".ftl" for word in mergelist]
 
-for filename in modlist:
-    os.chdir(dir_mods)
-    ftl = zf.ZipFile(filename, 'r')
+    for filename in modlist:
+        os.chdir(dir_mods)
+        ftl = zf.ZipFile(filename, 'r')
 
-    print "\nInstalling " + filename
+        print "\nInstalling " + filename
 
-    # Unzip everything into a temporary folder
-    for item in ftl.namelist():
-        if item.endswith('/'):
-            path = os.path.join(tmp, item)
-            if not os.path.exists(path):
-                os.makedirs(path)
-        else:
-            ftl.extract(item, tmp)
+        # Unzip everything into a temporary folder
+        for item in ftl.namelist():
+            if item.endswith('/'):
+                path = os.path.join(tmp, item)
+                if not os.path.exists(path):
+                    os.makedirs(path)
+            else:
+                ftl.extract(item, tmp)
 
-    # Go through each directory in the .ftl file
-    for directory in os.listdir(tmp):
-        if directory == "data":
-            print " - Merging " + directory + " folder"
-            for root, dirs, files in os.walk(os.path.join(tmp, directory)):
-                for d in dirs:
-                    path = os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], d)
-                    if not os.path.exists(path):
-                        os.makedirs(path)
-                for f in files:
-                    if f.endswith(".append"):
-                        appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
-                    elif f.endswith(".append.xml"):
-                        appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
-                    elif f.endswith(".merge"):
-                        mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".merge")]))
-                    elif f.endswith("merge.xml"):
-                        mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
-                    else:
-                        sh.copy2(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f))
+        # Go through each directory in the .ftl file
+        for directory in os.listdir(tmp):
+            if directory == "data":
+                print " - Merging " + directory + " folder"
+                for root, dirs, files in os.walk(os.path.join(tmp, directory)):
+                    for d in dirs:
+                        path = os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], d)
+                        if not os.path.exists(path):
+                            os.makedirs(path)
+                    for f in files:
+                        if f.endswith(".append"):
+                            appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
+                        elif f.endswith(".append.xml"):
+                            appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
+                        elif f.endswith(".merge"):
+                            mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".merge")]))
+                        elif f.endswith("merge.xml"):
+                            mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
+                        else:
+                            sh.copy2(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f))
 
-        elif directory in ("audio", "fonts", "img"):
-            print " - Merging " + directory + " folder"
-            for root, dirs, files in os.walk(os.path.join(tmp, directory)):
-                for d in dirs:
-                    path = os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], d)
-                    if not os.path.exists(path):
-                        os.makedirs(path)
-                for f in files:
-                    if f.endswith(".append"):
-                        appendfile(os.path.join(root, f), os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
-                    else:
-                        sh.copy2(os.path.join(root, f), os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], f))
+            elif directory in ("audio", "fonts", "img"):
+                print " - Merging " + directory + " folder"
+                for root, dirs, files in os.walk(os.path.join(tmp, directory)):
+                    for d in dirs:
+                        path = os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], d)
+                        if not os.path.exists(path):
+                            os.makedirs(path)
+                    for f in files:
+                        if f.endswith(".append"):
+                            appendfile(os.path.join(root, f), os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
+                        else:
+                            sh.copy2(os.path.join(root, f), os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], f))
 
-        else:
-            print " - WARNING: Unsupported folder " + directory
+            else:
+                print " - WARNING: Unsupported folder " + directory
 
-    # Clean up temporary folder's contents
-    for root, dirs, files in os.walk(tmp):
-        for f in files:
-            os.unlink(os.path.join(root, f))
-        for d in dirs:
-            sh.rmtree(os.path.join(root, d))
+        # Clean up temporary folder's contents
+        for root, dirs, files in os.walk(tmp):
+            for f in files:
+                os.unlink(os.path.join(root, f))
+            for d in dirs:
+                sh.rmtree(os.path.join(root, d))
 
-# All the mods are installed, so repack the files.
-os.chdir(dir_res)
-packdat("data.dat-unpacked", "data.dat")
-packdat("resource.dat-unpacked", "resource.dat")
+    # All the mods are installed, so repack the files.
+    os.chdir(dir_res)
+    packdat("data.dat-unpacked", "data.dat")
+    packdat("resource.dat-unpacked", "resource.dat")
 
-# All done!
-if platform.system() == "Windows":
-    if msgbox.askyesno(progname, "Patching completed successfully. Run FTL now?"):
-        os.system("\"" + os.path.join(dir_root, "FTLGame.exe") + "\"")
-else:
-    msgbox.showinfo(progname, "Patching completed successfully.")
+    # All done!
+    if platform.system() == "Windows":
+        if msgbox.askyesno(progname, "Patching completed successfully. Run FTL now?"):
+            os.system("\"" + os.path.join(dir_root, "FTLGame.exe") + "\"")
+    else:
+        msgbox.showinfo(progname, "Patching completed successfully.")
+
+
+
+if (__name__ == "__main__"):
+  main()
