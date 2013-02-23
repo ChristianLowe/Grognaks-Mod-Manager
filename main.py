@@ -45,6 +45,7 @@ try:
     import re
     import shutil as sh
     import tempfile as tf
+    import threading
     import webbrowser
     import zipfile as zf
     import Tkinter as tk
@@ -848,12 +849,16 @@ class LogicObj(object):
             self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
             return
 
-        logging.info("")
-        logging.info("Patching...")
-        logging.info("")
-        result = patch_dats(arg_dict["mod_names"])
+        def payload():
+            logging.info("")
+            logging.info("Patching...")
+            logging.info("")
+            result = patch_dats(arg_dict["mod_names"])
 
-        self.patching_finished({"result":result})
+            self.patching_finished({"result":result})
+
+        t = threading.Thread(target=payload)
+        t.start()
 
     def patching_finished(self, arg_dict):
         for arg in ["result"]:
