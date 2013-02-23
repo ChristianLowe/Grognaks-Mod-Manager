@@ -580,15 +580,8 @@ def patch_dats(selected_mods):
     data_bak_path = os.path.join(dir_res, "data.dat.bak")
     resource_bak_path = os.path.join(dir_res, "resource.dat.bak")
 
-    data_unp_path = os.path.join(dir_res, "data.dat-unpacked")
-    resource_unp_path = os.path.join(dir_res, "resource.dat-unpacked")
-
-    unp_map = {}
-    for x in ["data"]:
-        unp_map[x] = data_unp_path
-    for x in ["audio", "fonts", "img"]:
-        unp_map[x] = resource_unp_path
-
+    data_unp_path = None
+    resource_unp_path = None
     tmp = None
 
     try:
@@ -605,11 +598,15 @@ def patch_dats(selected_mods):
         if (len(mod_list) == 0):
             return True  # No mods. Skip the repacking.
 
-        # Delete old unpack dirs from previous patching.
-        for unpack_dir in (data_unp_path, resource_unp_path):
-            sh.rmtree(unpack_dir, ignore_errors=True)
-            if (os.path.exists(unpack_dir)):
-                logging.warning("Failed to delete existing unpack folder: %s" % unpack_dir)
+        # Use temp folders for unpacking.
+        data_unp_path = tf.mkdtemp()
+        resource_unp_path = tf.mkdtemp()
+
+        unp_map = {}
+        for x in ["data"]:
+            unp_map[x] = data_unp_path
+        for x in ["audio", "fonts", "img"]:
+            unp_map[x] = resource_unp_path
 
         # Extract both of the dats.
         unpackdat(data_dat_path, data_unp_path)
@@ -657,7 +654,7 @@ def patch_dats(selected_mods):
                         logging.warning("Unsupported folder: %s" % directory)
 
             finally:
-                # Clean up temporary folder's contents.
+                # Clean up temporary mod folder's contents.
                 if (tmp is not None):
                     sh.rmtree(tmp, ignore_errors=True)
                     tmp = None
@@ -670,7 +667,9 @@ def patch_dats(selected_mods):
 
     finally:
         # Delete unpack folders.
-        for unpack_dir in (data_unp_path, resource_unp_path):
+        for unpack_dir in [data_unp_path, resource_unp_path]:
+            if (not unpack_dir): continue
+
             sh.rmtree(unpack_dir, ignore_errors=True)
             if (os.path.exists(unpack_dir)):
                 logging.warning("Failed to delete unpack folder: %s" % unpack_dir)
