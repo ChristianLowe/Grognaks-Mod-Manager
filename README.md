@@ -12,8 +12,6 @@ Requirements
     * http://www.python.org/getit/
 * FTL (1.01-1.03.1, Windows/OSX/Linux, Steam/GOG/Standalone)
     * http://www.ftlgame.com/
-&nbsp;
-&nbsp;
 * Linux will need the python-tk package.
 * OSX may need to replace the stock Tcl/Tk from Apple.
     * http://www.python.org/download/mac/tcltk/
