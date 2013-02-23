@@ -56,12 +56,6 @@ Usage
 
 Troubleshooting
 
-  If you need help installing on Mac...
-    Guide
-      http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464&start=450#p30155
-    Video tutorials
-      http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464&start=540#p32737
-
   If you get permission errors...
     Windows: Right-click modman.exe -> "Run as Administrator".
     Mac/Linux: Make sure that your resource.dat and data.dat
