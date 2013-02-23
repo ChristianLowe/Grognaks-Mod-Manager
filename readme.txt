@@ -84,7 +84,8 @@ Changelog
 - GMM no longer needs to be placed in the FTL directory
 - Added ini setting: ftl_dats_path
 - Deprecated ini setting: macmodsdir
-- Added drag-and-drop mod reordering.
+- Added drag-and-drop mod reordering
+- Added "Toggle All" button
 - Unpack folders are deleted between patchings
 - Added logging
 - Removed option to select all mods

@@ -249,14 +249,14 @@ class MainWindow(tk.Toplevel):
         self.patch_btn.pack(side="top")
         self.patch_btn.bind("<Return>", lambda e: self._patch())
 
-        self.dummy_a_btn = tk.Button(self.right_frame)
-        self.dummy_a_btn.configure(text="")
-        self.dummy_a_btn.configure(
+        self.toggle_all_btn = tk.Button(self.right_frame, command=self._toggle_all)
+        self.toggle_all_btn.configure(text="Toggle All")
+        self.toggle_all_btn.configure(
             width=self.button_width,
-            padx=self.button_padx, pady=self.button_pady,
-            state="disabled")
+            padx=self.button_padx, pady=self.button_pady)
 
-        self.dummy_a_btn.pack(side="top")
+        self.toggle_all_btn.pack(side="top")
+        self.toggle_all_btn.bind("<Return>", lambda e: self._toggle_all())
 
         self.dummy_b_btn = tk.Button(self.right_frame)
         self.dummy_b_btn.configure(text="")
@@ -344,6 +344,14 @@ class MainWindow(tk.Toplevel):
         self._reordered_mods = self._mod_listbox.get(0, tk.END)
         self._pending_mods = [self._mod_listbox.get(n) for n in self._mod_listbox.curselection()]
         self._destroy()
+
+    def _toggle_all(self):
+        """Select all mods, or none if all are already selected."""
+        current_selection = self._mod_listbox.curselection()
+        if (len(current_selection) == self._mod_listbox.size()):
+            self._mod_listbox.selection_clear(0, tk.END)
+        else:
+            self._mod_listbox.selection_set(0, tk.END)
 
     def _browse_forum(self):
         webbrowser.open("http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464")
