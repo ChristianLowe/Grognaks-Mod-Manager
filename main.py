@@ -41,6 +41,7 @@ try:
     import errno
     import glob
     import platform
+    import Queue
     import re
     import shutil as sh
     import tempfile as tf
@@ -63,16 +64,122 @@ except (Exception) as err:
 APP_VERSION = "1.6"
 APP_NAME = "Grognak's Mod Manager v%s" % APP_VERSION
 allowzip = False
-cfg = None
-modname_list = None  # Available mod names.
-merge_list = None    # Mod names to merge, selected in the GUI.
 dir_mods = None
 dir_res = None
 
 
+class RootWindow(tk.Tk):
+    def __init__(self, master, *args, **kwargs):
+        tk.Tk.__init__(self, master, *args, **kwargs)
+        # Pseudo enum constants.
+        self.ACTIONS = ["ACTION_CONFIG", "ACTION_SHOW_MAIN_WINDOW",
+                        "ACTION_PATCHING_SUCCEEDED", "ACTION_PATCHING_FAILED",
+                        "ACTION_DIE"]
+        for x in self.ACTIONS: setattr(self, x, x)
+
+        self._event_queue = Queue.Queue()
+        self._main_window = None
+
+        self.wm_protocol("WM_DELETE_WINDOW", self._on_delete)
+
+        def poll_queue():
+            self.process_event_queue(None)
+            self._poll_queue_alarm_id = self.after(100, self._poll_queue)
+        self._poll_queue_alarm_id = None
+        self._poll_queue = poll_queue
+
+        self._poll_queue()
+
+    def _on_delete(self):
+        if (self._poll_queue_alarm_id is not None):
+            self.after_cancel(self._poll_queue_alarm_id)
+        self._root().quit()
+
+    def process_event_queue(self, event):
+        """Processes every pending event on the queue."""
+        # With after() polling, always use get_nowait() to avoid blocking.
+        func_or_name, arg_dict = None, None
+        while (True):
+            try:
+                func_or_name, arg_dict = self._event_queue.get_nowait()
+            except (Queue.Empty) as err:
+                break
+            else:
+                self._process_event(func_or_name, arg_dict)
+
+    def _process_event(self, func_or_name, arg_dict):
+        """Processes events queued via invoke_later()."""
+        global APP_NAME
+        global dir_self, dir_res
+
+        def check_args(args):
+            for arg in args:
+                if (arg not in arg_dict):
+                    logging.error("Missing %s arg queued to %s %s." % (arg, self.__class__.__name__, func_or_name))
+                    return False
+            return True
+
+        if (hasattr(func_or_name, "__call__")):
+            func_or_name(arg_dict)
+
+        elif (func_or_name == self.ACTION_CONFIG):
+            check_args(["write_config", "config_parser", "next_func"])
+
+            if (dir_res):
+                if (not msgbox.askyesno(APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % dir_res)):
+                    dir_res = None
+
+            if (not dir_res):
+                logging.debug("FTL dats path was not located automatically. Prompting user for location.")
+                dir_res = prompt_for_ftl_path()
+
+            if (dir_res):
+                arg_dict["config_parser"].set("settings", "ftl_dats_path", dir_res)
+                arg_dict["write_config"] = True
+                logging.info("FTL dats located at: %s" % dir_res)
+
+            if (not dir_res):
+                logging.debug("No FTL dats path found, exiting.")
+                sys.exit(1)
+
+            arg_dict["next_func"]({"write_config":arg_dict["write_config"], "config_parser":arg_dict["config_parser"]})
+
+        elif (func_or_name == self.ACTION_SHOW_MAIN_WINDOW):
+            check_args(["mod_names", "next_func"])
+
+            if (not self._main_window):
+                def die_func(arg_dict):
+                    """Kill the app gracefully by destroying the root window."""
+                    self.invoke_later(self.ACTION_DIE, {})
+
+                self._main_window = MainWindow(master=self, title=APP_NAME, mod_names=arg_dict["mod_names"], die_func=die_func, next_func=arg_dict["next_func"])
+
+        elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
+            ftl_exe_path = find_ftl_exe()
+            if (ftl_exe_path):
+                if (msgbox.askyesno(APP_NAME, "Patching completed successfully. Run FTL now?")):
+                    os.system("\"%s\"" % ftl_exe_path)
+            else:
+                msgbox.showinfo(APP_NAME, "Patching completed successfully.")
+
+        elif (func_or_name == self.ACTION_PATCHING_FAILED):
+                msgbox.showerror(APP_NAME, "Patching failed. See log for details.")
+
+        elif (func_or_name == self.ACTION_DIE):
+            # Destruction awaits. Nothing more to do.
+            with self._event_queue.mutex:
+                self._event_queue.queue.clear()
+            self._root().destroy()
+
+    def invoke_later(self, func_or_name, arg_dict):
+        """Schedules an action to occur in this thread (thread-safe)."""
+        self._event_queue.put((func_or_name, arg_dict))
+        # The queue will be polled eventually by an after() alarm.
+
+
 class MainWindow(tk.Toplevel):
     def __init__(self, master, *args, **kwargs):
-        self.custom_args = {"title":None}
+        self.custom_args = {"title":None, "mod_names":[], "die_func":None, "next_func":None}
         for k in self.custom_args.keys():
           if (k in kwargs):
             self.custom_args[k] = kwargs[k]
@@ -85,7 +192,8 @@ class MainWindow(tk.Toplevel):
         self.button_padx = "2m"
         self.button_pady = "1m"
 
-        self.oldlist = set()
+        self._prev_selection = set()
+        self._pending_names = None
 
         self.resizable(False, False)
 
@@ -167,27 +275,26 @@ class MainWindow(tk.Toplevel):
         self.exit_btn.pack(side="top")
         self.exit_btn.bind("<Return>", lambda e: self._die())
 
-        self._filldata()
-        self.wm_protocol("WM_DELETE_WINDOW", self._on_delete)
+        self._fill_list()
+        self.wm_protocol("WM_DELETE_WINDOW", self._destroy)  # Intercept window manager closing.
 
-    def _filldata(self):
+    def _fill_list(self):
+        """Fills the list of all available mods."""
         global APP_VERSION
-        global modname_list
 
         # Set default description.
         self._set_description("Grognak's Mod Manager", "Grognak", APP_VERSION, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
 
-        # Get list of mods the player wants to be patched in.
-        for mod in modname_list:
-            self._add_mod(mod, False)
+        for mod_name in self.custom_args["mod_names"]:
+            self._add_mod(mod_name, False)
 
     def _on_listbox_select(self, event):
-        curlist = self.modlistbox.curselection()
-        newset = [x for x in curlist if (x not in self.oldlist)]
-        self.oldlist = set(curlist)
+        current_selection = self.modlistbox.curselection()
+        new_selection = [x for x in current_selection if (x not in self._prev_selection)]
+        self._prev_selection = set(current_selection)
 
-        if (len(newset) > 0):
-            self._set_description(self.modlistbox.get(newset[0]))
+        if (len(new_selection) > 0):
+            self._set_description(self.modlistbox.get(new_selection[0]))
 
     def _add_mod(self, modname, selected):
         """Add a mod name to the list."""
@@ -211,13 +318,14 @@ class MainWindow(tk.Toplevel):
         self.descbox.configure(state="disabled")
 
     def _patch(self):
-        global merge_list
-        merge_list = [self.modlistbox.get(mod_name) for mod_name in self.modlistbox.curselection()]
-        self._die()
+        # Remember the names to return in _on_delete().
+        self._pending_names = [self.modlistbox.get(mod_name) for mod_name in self.modlistbox.curselection()]
+        self._destroy()
 
     def _die(self):
-        """Kill the app gracefully by destroying the root window."""
-        self._root().destroy()
+        if (self.custom_args["die_func"]):
+            self.custom_args["die_func"]({})
+        self._destroy()
 
     def _reorder(self):
         ReorderWindow(root, title=("%s - Reorder" % self.wm_title()))
@@ -226,8 +334,15 @@ class MainWindow(tk.Toplevel):
         webbrowser.open("http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464")
 
     def _on_delete(self):
-        """When this window is gone, end the mainloop."""
-        self._root().quit()
+        # The window manager closed this window.
+        self._destroy()
+
+    def _destroy(self):
+        """Destroys this window, but triggers a callback first."""
+        # If patch was clicked, names will be returned. Otherwise None.
+        if (self.custom_args["next_func"]):
+            self._root().invoke_later(self.custom_args["next_func"], {"mod_names":self._pending_names})
+        self.destroy()
 
 
 class ReorderWindow(tk.Toplevel):
@@ -431,7 +546,9 @@ def find_ftl_path():
     return result
 
 def prompt_for_ftl_path():
-    """Returns a path to FTL resources chosen by the user, or None."""
+    """Returns a path to FTL resources chosen by the user, or None.
+    This should be called from a tkinter gui mainloop.
+    """
     global APP_NAME
 
     message = ""
@@ -486,10 +603,9 @@ def load_modorder():
             modorder_lines = [line for line in modorder_lines if (line is not None)]
             modorder_lines = [os.path.basename(line) for line in modorder_lines]
     except (IOError) as err:
-        if (err.errno == errno.ENOENT):  # No such file/dir.
-            pass
-        else:
-            raise
+        # Ignore "No such file/dir."
+        if (err.errno == errno.ENOENT): pass
+        else: raise
 
     mod_exts = ["ftl"]
     if (allowzip): mod_exts.append("zip")
@@ -524,14 +640,16 @@ def save_modorder(modorder_lines):
     with open(os.path.join(dir_mods, "modorder.txt"), "w") as modorder_file:
         modorder_file.write("\n".join(modorder_lines) +"\n")
 
-def patch_dats():
-    """Backs up, clobbers, unpacks, merges, and finally packs dats."""
+def patch_dats(selected_mods):
+    """Backs up, clobbers, unpacks, merges, and finally packs dats.
+
+    :return: True if successful, False otherwise.
+    """
     global allowzip
     global dir_self, dir_mods, dir_res
-    global merge_list
 
     # Get full paths from mod names.
-    mod_list = [find_mod(mod_name) for mod_name in merge_list]
+    mod_list = [find_mod(mod_name) for mod_name in selected_mods]
     mod_list = [mod_path for mod_path in mod_list if (mod_path is not None)]
 
     data_dat_path = os.path.join(dir_res, "data.dat")
@@ -637,22 +755,29 @@ def patch_dats():
 
     return False
 
+def find_ftl_exe():
+    """Returns the FTL executable's path, or None."""
+    global dir_res
 
-def main():
-    global APP_NAME
-    global allowzip
-    global dir_self, dir_mods, dir_res
-    global cfg, modname_list, merge_list
+    if (platform.system() == "Windows"):
+        exe_path = os.path.normpath(os.path.join(dir_res, *["..", "FTLGame.exe"]))
+        if (os.path.isfile(exe_path)):
+            return exe_path
 
-    # dir_self was set earlier.
-    dir_mods = os.path.join(dir_self, "mods")
-    dir_res = None  # Set this later.
+    return None
 
-    try:
-        logging.info("%s (on %s)" % (APP_NAME, platform.platform(aliased=True, terse=False)))
-        logging.info("Rooting at: %s\n" % dir_self)
 
-        # Load up config file values.
+class LogicObj(object):
+    def __init__(self, root_window):
+        self._mygui = root_window
+
+    def run(self):
+        self.load_config({})
+
+    def load_config(self, arg_dict):
+        global allowzip
+        global dir_self, dir_res
+
         cfg = SafeConfigParser()
         cfg.add_section("settings")
 
@@ -685,24 +810,19 @@ def main():
         # Find/prompt for the path to set in the config.
         if (not dir_res):
             dir_res = find_ftl_path()
-            if (dir_res):
-                if (not msgbox.askyesno(APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % dir_res)):
-                    dir_res = None
+            self._mygui.invoke_later(self._mygui.ACTION_CONFIG, {"write_config":write_config, "config_parser":cfg, "next_func":self.config_loaded})
+        else:
+            self.config_loaded({"write_config":write_config, "config_parser":cfg})
 
-            if (not dir_res):
-                logging.debug("FTL dats path was not located automatically. Prompting user for location.")
-                dir_res = prompt_for_ftl_path()
+    def config_loaded(self, arg_dict):
+        global dir_self
 
-            if (dir_res):
-                cfg.set("settings", "ftl_dats_path", dir_res)
-                write_config = True
-                logging.info("FTL dats located at: %s" % dir_res)
+        for arg in ["write_config","config_parser"]:
+            if (arg not in arg_dict):
+                logging.error("Missing arg %s foor config_loaded callback." % arg)
+                return
 
-        if (not dir_res):
-            logging.debug("No FTL dats path found, exiting.")
-            sys.exit(1)
-
-        if (write_config):
+        if (arg_dict["write_config"]):
             with open(os.path.join(dir_self, "modman.ini"), "w") as cfg_file:
                 cfg_file.write("#\n")
                 cfg_file.write("# allowzip - Sets whether to treat .zip files as .ftl files. Default: 0 (false).\n")
@@ -711,40 +831,74 @@ def main():
                 cfg_file.write("# macmodsdir - Deprecated. Each OS keeps mods in GMM/mods/ now.\n")
                 cfg_file.write("#\n")
                 cfg_file.write("\n")
-                cfg.write(cfg_file)
+                arg_dict["config_parser"].write(cfg_file)
 
-        modname_list = load_modorder()
-        save_modorder(modname_list)
+        all_mod_names = load_modorder()
+        save_modorder(all_mod_names)
+
+        self._mygui.invoke_later(self._mygui.ACTION_SHOW_MAIN_WINDOW, {"mod_names":all_mod_names, "next_func":self.main_window_closed})
+
+    def main_window_closed(self, arg_dict):
+        if ("mod_names" not in arg_dict):
+            logging.error("Missing arg \"mod_names\" for main_window_closed callback.")
+            return
+
+        if (arg_dict["mod_names"] is None):
+            logging.debug("User didn't click the \"Patch\" button. Exiting.")
+            self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
+            return
+
+        logging.info("")
+        logging.info("Patching...")
+        logging.info("")
+        result = patch_dats(arg_dict["mod_names"])
+
+        self.patching_finished({"result":result})
+
+    def patching_finished(self, arg_dict):
+        for arg in ["result"]:
+            if (arg not in arg_dict):
+                logging.error("Missing arg %s for patching_finished callback." % arg)
+                return
+
+        logging.info("")
+        if (arg_dict["result"] is True):
+            logging.info("Patching succeeded.")
+            self._mygui.invoke_later(self._mygui.ACTION_PATCHING_SUCCEEDED, {})
+        else:
+            logging.info("Patching failed.")
+            self._mygui.invoke_later(self._mygui.ACTION_PATCHING_FAILED, {})
+
+        self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
+
+
+def main():
+    global APP_NAME
+    global allowzip
+    global dir_self, dir_mods, dir_res
+
+    # dir_self was set earlier.
+    dir_mods = os.path.join(dir_self, "mods")
+    dir_res = None  # Set this later.
+
+    try:
+        logging.info("%s (on %s)" % (APP_NAME, platform.platform(aliased=True, terse=False)))
+        logging.info("Rooting at: %s\n" % dir_self)
 
         # Start the GUI.
-        root = tk.Tk()
-        root.withdraw()
+        mygui = RootWindow(None)
+        mygui.withdraw()
 
         # Tkinter mainloop doesn't normally die and let its exceptions be caught.
         def tk_error_func(exc, val, tb):
             logging.exception("%s" % exc)
-            root.destroy()
-        root.report_callback_exception = tk_error_func
+            mygui.destroy()
+        mygui.report_callback_exception = tk_error_func
 
-        mygui = MainWindow(master=root, title=APP_NAME)
+        logic_obj = LogicObj(mygui)
+        logic_obj.run()
 
-        root.mainloop()
-
-        if (merge_list is None):  # User didn't click the "Patch" button.
-            sys.exit(0)
-
-        patch_dats()
-
-        # TODO: Move patching into a separate thread with a queued
-        # callback on completion, so the GUI thread can stay alive
-        # to show the following prompts.
-
-        # All done!
-        if (platform.system() == "Windows"):
-            if (msgbox.askyesno(APP_NAME, "Patching completed successfully. Run FTL now?")):
-                os.system("\"%s\"" % os.path.join(dir_self, "FTLGame.exe"))
-        else:
-            msgbox.showinfo(APP_NAME, "Patching completed successfully.")
+        mygui.mainloop()
 
     except (Exception) as err:
         logging.exception(err)
