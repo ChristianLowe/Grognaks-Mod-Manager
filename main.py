@@ -150,6 +150,7 @@ class RootWindow(tk.Tk):
 
             if (not self._main_window):
                 self._main_window = MainWindow(master=self, title=APP_NAME, mod_names=arg_dict["mod_names"], next_func=arg_dict["next_func"])
+                self._main_window.center_window()
 
         elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
             ftl_exe_path = find_ftl_exe()
@@ -355,6 +356,16 @@ class MainWindow(tk.Toplevel):
 
     def _browse_forum(self):
         webbrowser.open("http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464")
+
+    def center_window(self):
+        """Centers this window on the screen.
+        Mostly. Window manager decoration and the menubar aren't factored in.
+        """
+        # An event-driven call to this would go nuts with plain update().
+        self.update_idletasks()  # Make window width/height methods work.
+        xp = (self.winfo_screenwidth()//2) - (self.winfo_width()//2)
+        yp = (self.winfo_screenheight()//2) - (self.winfo_height()//2)
+        self.geometry("+%d+%d" % (xp, yp))
 
     def _on_delete(self):
         # The window manager closed this window.
