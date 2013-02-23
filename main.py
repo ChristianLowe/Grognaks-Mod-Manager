@@ -149,11 +149,7 @@ class RootWindow(tk.Tk):
             check_args(["mod_names", "next_func"])
 
             if (not self._main_window):
-                def die_func(arg_dict):
-                    """Kill the app gracefully by destroying the root window."""
-                    self.invoke_later(self.ACTION_DIE, {})
-
-                self._main_window = MainWindow(master=self, title=APP_NAME, mod_names=arg_dict["mod_names"], die_func=die_func, next_func=arg_dict["next_func"])
+                self._main_window = MainWindow(master=self, title=APP_NAME, mod_names=arg_dict["mod_names"], next_func=arg_dict["next_func"])
 
         elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
             ftl_exe_path = find_ftl_exe()
@@ -180,7 +176,7 @@ class RootWindow(tk.Tk):
 
 class MainWindow(tk.Toplevel):
     def __init__(self, master, *args, **kwargs):
-        self.custom_args = {"title":None, "mod_names":[], "die_func":None, "next_func":None}
+        self.custom_args = {"title":None, "mod_names":[], "next_func":None}
         for k in self.custom_args.keys():
           if (k in kwargs):
             self.custom_args[k] = kwargs[k]
@@ -194,7 +190,10 @@ class MainWindow(tk.Toplevel):
         self.button_pady = "1m"
 
         self._prev_selection = set()
-        self._pending_names = None
+        self._mouse_press_list_index = None
+
+        self._reordered_mods = None
+        self._pending_mods = None
 
         self.resizable(False, False)
 
@@ -223,12 +222,14 @@ class MainWindow(tk.Toplevel):
         self.bottom_frame.pack(side="top", fill="both", expand="yes")
 
         # Add a listbox to hold the mod names.
-        self.modlistbox = tk.Listbox(self.left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
-        self.modlistbox.pack(side="left", fill="both", expand="yes")
-        self.modscrollbar = tk.Scrollbar(self.left_frame, command=self.modlistbox.yview, orient="vertical")
+        self._mod_listbox = tk.Listbox(self.left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
+        self._mod_listbox.pack(side="left", fill="both", expand="yes")
+        self.modscrollbar = tk.Scrollbar(self.left_frame, command=self._mod_listbox.yview, orient="vertical")
         self.modscrollbar.pack(side="right", fill="y")
-        self.modlistbox.bind("<<ListboxSelect>>", self._on_listbox_select)
-        self.modlistbox.configure(yscrollcommand=self.modscrollbar.set)
+        self._mod_listbox.bind("<<ListboxSelect>>", self._on_listbox_select)
+        self._mod_listbox.bind("<Button-1>", self._on_listbox_mouse_pressed)
+        self._mod_listbox.bind("<B1-Motion>", self._on_listbox_mouse_dragged)
+        self._mod_listbox.configure(yscrollcommand=self.modscrollbar.set)
 
         # Add textbox at bottom to hold mod information.
         self.descbox = tk.Text(self.bottom_frame, width=60, height=10, wrap="word")
@@ -248,15 +249,23 @@ class MainWindow(tk.Toplevel):
         self.patch_btn.pack(side="top")
         self.patch_btn.bind("<Return>", lambda e: self._patch())
 
-        self.reorder_btn = tk.Button(self.right_frame, command=self._reorder)
-        self.reorder_btn.configure(text="Reorder")
-        self.reorder_btn.configure(
+        self.dummy_a_btn = tk.Button(self.right_frame)
+        self.dummy_a_btn.configure(text="")
+        self.dummy_a_btn.configure(
             width=self.button_width,
             padx=self.button_padx, pady=self.button_pady,
             state="disabled")
 
-        self.reorder_btn.pack(side="top")
-        self.reorder_btn.bind("<Return>", lambda e: self._reorder())
+        self.dummy_a_btn.pack(side="top")
+
+        self.dummy_b_btn = tk.Button(self.right_frame)
+        self.dummy_b_btn.configure(text="")
+        self.dummy_b_btn.configure(
+            width=self.button_width,
+            padx=self.button_padx, pady=self.button_pady,
+            state="disabled")
+
+        self.dummy_b_btn.pack(side="top")
 
         self.forum_btn = tk.Button(self.right_frame, command=self._browse_forum)
         self.forum_btn.configure(text="Forum")
@@ -266,15 +275,6 @@ class MainWindow(tk.Toplevel):
 
         self.forum_btn.pack(side="top")
         self.forum_btn.bind("<Return>", lambda e: self._browse_forum())
-
-        self.exit_btn = tk.Button(self.right_frame, command=self._die)
-        self.exit_btn.configure(text="Exit")
-        self.exit_btn.configure(
-            width=self.button_width,
-            padx=self.button_padx, pady=self.button_pady)
-
-        self.exit_btn.pack(side="top")
-        self.exit_btn.bind("<Return>", lambda e: self._die())
 
         self._fill_list()
         self.wm_protocol("WM_DELETE_WINDOW", self._destroy)  # Intercept window manager closing.
@@ -290,18 +290,39 @@ class MainWindow(tk.Toplevel):
             self._add_mod(mod_name, False)
 
     def _on_listbox_select(self, event):
-        current_selection = self.modlistbox.curselection()
+        current_selection = self._mod_listbox.curselection()
         new_selection = [x for x in current_selection if (x not in self._prev_selection)]
         self._prev_selection = set(current_selection)
 
         if (len(new_selection) > 0):
-            self._set_description(self.modlistbox.get(new_selection[0]))
+            self._set_description(self._mod_listbox.get(new_selection[0]))
+
+    def _on_listbox_mouse_pressed(self, event):
+        self._mouse_press_list_index = self._mod_listbox.nearest(event.y)
+
+    def _on_listbox_mouse_dragged(self, event):
+        if (self._mouse_press_list_index is None): return
+
+        current_selection = [int(i) for i in self._mod_listbox.curselection()]
+        n = self._mod_listbox.nearest(event.y)
+        if (n < self._mouse_press_list_index):
+            x = self._mod_listbox.get(n)
+            self._mod_listbox.delete(n)
+            self._mod_listbox.insert(n+1, x)
+            if ((n) in current_selection): self._mod_listbox.selection_set(n+1)
+            self._mouse_press_list_index = n
+        elif (n > self._mouse_press_list_index):
+            x = self._mod_listbox.get(n)
+            self._mod_listbox.delete(n)
+            self._mod_listbox.insert(n-1, x)
+            if ((n) in current_selection): self._mod_listbox.selection_set(n-1)
+            self._mouse_press_list_index = n
 
     def _add_mod(self, modname, selected):
         """Add a mod name to the list."""
-        newitem = self.modlistbox.insert(tk.END, modname)
+        newitem = self._mod_listbox.insert(tk.END, modname)
         if (selected):
-            self.modlistbox.selection_set(newitem)
+            self._mod_listbox.selection_set(newitem)
 
     def _set_description(self, title, author=None, version=None, description=None):
         """Sets the currently displayed mod description."""
@@ -320,16 +341,9 @@ class MainWindow(tk.Toplevel):
 
     def _patch(self):
         # Remember the names to return in _on_delete().
-        self._pending_names = [self.modlistbox.get(mod_name) for mod_name in self.modlistbox.curselection()]
+        self._reordered_mods = self._mod_listbox.get(0, tk.END)
+        self._pending_mods = [self._mod_listbox.get(n) for n in self._mod_listbox.curselection()]
         self._destroy()
-
-    def _die(self):
-        if (self.custom_args["die_func"]):
-            self.custom_args["die_func"]({})
-        self._destroy()
-
-    def _reorder(self):
-        ReorderWindow(root, title=("%s - Reorder" % self.wm_title()))
 
     def _browse_forum(self):
         webbrowser.open("http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464")
@@ -342,121 +356,8 @@ class MainWindow(tk.Toplevel):
         """Destroys this window, but triggers a callback first."""
         # If patch was clicked, names will be returned. Otherwise None.
         if (self.custom_args["next_func"]):
-            self._root().invoke_later(self.custom_args["next_func"], {"mod_names":self._pending_names})
+            self._root().invoke_later(self.custom_args["next_func"], {"all_mods":self._reordered_mods, "selected_mods":self._pending_mods})
         self.destroy()
-
-
-class ReorderWindow(tk.Toplevel):
-    # Not completely implemented yet, so button is disabled.
-
-    def __init__(self, parent, *args, **kwargs):
-        self.custom_args = {"title":None}
-        for k in self.custom_args.keys():
-          if (k in kwargs):
-            self.custom_args[k] = kwargs[k]
-            del kwargs[k]
-        tk.Toplevel.__init__(self, parent, *args, **kwargs)
-
-        if (self.custom_args["title"]): self.wm_title(self.custom_args["title"])
-
-        self.resizable(False, False)
-
-        self.rootframe = tk.Frame(self)
-        self.rootframe.pack()
-
-        button_width = 7
-        button_padx = "2m"
-        button_pady = "1m"
-
-        # Top frame.
-        self.top_frame = tk.Frame(self.rootframe)
-        self.top_frame.pack(side="top", fill="both", expand="yes")
-
-        # Left frame.
-        self.left_frame = tk.Frame(self.top_frame, #background="red",
-            borderwidth=1, relief="ridge",
-            width=50, height=250)
-        self.left_frame.pack(side="left", fill="both", expand="yes")
-
-        # Right frame.
-        self.right_frame = tk.Frame(self.top_frame,
-            width=250)
-        self.right_frame.pack(side="right", fill="y", expand="no")
-
-        # Add a listbox to hold the mod names.
-        self.modlistbox = tk.Listbox(self.left_frame, width=30, height=1) # Height readjusts itself for the button frame
-        self.modlistbox.pack(side="left", fill="both", expand="yes")
-        self.modlistbox.bind("<<ListboxSelect>>", self._on_listbox_select)
-        self.modscrollbar = tk.Scrollbar(self.left_frame, command=self.modlistbox.yview, orient="vertical")
-        self.modscrollbar.pack(side="right", fill="y")
-        self.modlistbox.configure(yscrollcommand=self.modscrollbar.set)
-
-
-        # Add the buttons to the buttons frame.
-        self.okbutton = tk.Button(self.right_frame, command=self._apply)
-        self.okbutton.configure(text="OK")
-        self.okbutton.focus_force()
-        self.okbutton.configure(
-            width=button_width,
-            padx=button_padx, pady=button_pady)
-
-        self.okbutton.pack(side="top")
-        self.okbutton.bind("<Return>", lambda e: self._apply())
-
-        self.upbutton = Button(self.right_frame, command=self._shift_up)
-        self.upbutton.configure(text="Move Up")
-        self.upbutton.configure(
-            width=button_width,
-            padx=button_padx, pady=button_pady,
-            state="disabled")
-
-        self.upbutton.pack(side="top")
-        self.upbutton.bind("<Return>", lambda e: self._shift_up())
-
-        self.downbutton = Button(self.right_frame, command=self._shift_down)
-        self.downbutton.configure(text="Move Down")
-        self.downbutton.configure(
-            width=button_width,
-            padx=button_padx, pady=button_pady,
-            state="disabled")
-
-        self.downbutton.pack(side="top")
-        self.downbutton.bind("<Return>", lambda e: self._shift_down())
-
-    def _adjustPosition(self, index, amount):
-        newindex = index + amount
-        if (newindex >= 0 and newindex < self.modlistbox.size()):
-            item = self.modlistbox.get(index)
-            self.modlistbox.delete(index)
-            self.modlistbox.insert(newindex, item)
-            self.modlistbox.selection_set(newindex)
-            scrollfraction = float(newindex-3)/float(self.modlistbox.size())
-            self.modlistbox.yview_moveto(scrollfraction)
-            self._handleButtons(newindex)
-
-    def _on_listbox_select(self, event):
-        cursel = int(self.modlistbox.curselection()[0])
-        self._handleButtons(cursel)
-
-    def _handleButtons(self, cursel):
-        if (cursel is 0):
-            self.upbutton['state'] = "disabled"
-            self.downbutton['state'] = "active"
-        elif (cursel is self.modlistbox.size()-1):
-            self.upbutton['state'] = "active"
-            self.downbutton['state'] = "disabled"
-        else:
-            self.upbutton['state'] = "active"
-            self.downbutton['state'] = "active"
-
-    def _apply(self):
-        self.destroy()
-
-    def _shift_up(self):
-        self._adjustPosition(int(self.modlistbox.curselection()[0]), -1)
-
-    def _shift_down(self):
-        self._adjustPosition(int(self.modlistbox.curselection()[0]), 1)
 
 
 def ftl_path_join(*args):
@@ -644,6 +545,7 @@ def save_modorder(modorder_lines):
 def patch_dats(selected_mods):
     """Backs up, clobbers, unpacks, merges, and finally packs dats.
 
+    :param selected_mods: A list of mod names to install.
     :return: True if successful, False otherwise.
     """
     global allowzip
@@ -818,9 +720,9 @@ class LogicObj(object):
     def config_loaded(self, arg_dict):
         global dir_self
 
-        for arg in ["write_config","config_parser"]:
+        for arg in ["write_config", "config_parser"]:
             if (arg not in arg_dict):
-                logging.error("Missing arg %s foor config_loaded callback." % arg)
+                logging.error("Missing arg %s for config_loaded callback." % arg)
                 return
 
         if (arg_dict["write_config"]):
@@ -840,20 +742,23 @@ class LogicObj(object):
         self._mygui.invoke_later(self._mygui.ACTION_SHOW_MAIN_WINDOW, {"mod_names":all_mod_names, "next_func":self.main_window_closed})
 
     def main_window_closed(self, arg_dict):
-        if ("mod_names" not in arg_dict):
-            logging.error("Missing arg \"mod_names\" for main_window_closed callback.")
-            return
+        for arg in ["all_mods", "selected_mods"]:
+            if (arg not in arg_dict):
+                logging.error("Missing arg %s for main_window_closed callback." % arg)
+                return
 
-        if (arg_dict["mod_names"] is None):
+        if (arg_dict["selected_mods"] is None):
             logging.debug("User didn't click the \"Patch\" button. Exiting.")
             self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
             return
+
+        save_modorder(arg_dict["all_mods"])
 
         def payload():
             logging.info("")
             logging.info("Patching...")
             logging.info("")
-            result = patch_dats(arg_dict["mod_names"])
+            result = patch_dats(arg_dict["selected_mods"])
 
             self.patching_finished({"result":result})
 

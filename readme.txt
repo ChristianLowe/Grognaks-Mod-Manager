@@ -44,9 +44,11 @@ Usage
     Mac/Linux: Run main.py via python.
 
   To install mods:
-    Select the mods you want to be installed.
+    Select the mods you want to install.
+    Mods at the top get clobbered by ones below. Drag names to reorder.
     Click the "Patch" button.
     (Any unselected mods will be omitted/uninstalled.)
+
 
   To uninstall all mods:
     Click "Patch" with none selected.
@@ -82,6 +84,7 @@ Changelog
 - GMM no longer needs to be placed in the FTL directory
 - Added ini setting: ftl_dats_path
 - Deprecated ini setting: macmodsdir
+- Added drag-and-drop mod reordering.
 - Unpack folders are deleted between patchings
 - Added logging
 - Removed option to select all mods
