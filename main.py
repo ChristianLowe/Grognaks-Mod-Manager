@@ -1,365 +1,394 @@
 #!/usr/bin/env python
 
-from sys import argv
-from ConfigParser import SafeConfigParser
-from Tkinter import * # I know, I know, bad practice
-from ftldat import FTLDatUnpacker as du
-from ftldat import FTLDatPacker as dp
-from shutil import copy
-
-import tkMessageBox as msgbox
-import tempfile as tf
-import zipfile as zf
-import shutil as sh
-import webbrowser
-import platform
-import glob
-import xml
-import sys
+# Do some basic imports, and set up logging to catch ImportError.
+import inspect
+import locale
+import logging
 import os
+import sys
 
-progname = "Grognak's Mod Manager v1.4"
-mergelist = None
+if (__name__ == "__main__"):
+    global dir_self
+    locale.setlocale(locale.LC_ALL, "")
 
-class MainWindow:
-    def __init__(self, parent):
-        self.myParent = parent
+    # Get the un-symlinked, absolute path to this module.
+    dir_self = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
+    if (dir_self not in sys.path): sys.path.insert(0, dir_self)
+
+    # Go to this module's dir.
+    os.chdir(dir_self)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    logstream_handler = logging.StreamHandler()
+    logstream_formatter = logging.Formatter("%(levelname)s: %(message)s")
+    logstream_handler.setFormatter(logstream_formatter)
+    logstream_handler.setLevel(logging.INFO)
+    logger.addHandler(logstream_handler)
+
+    logfile_handler = logging.FileHandler(os.path.join(dir_self, "modman-log.txt"), mode="w")
+    logfile_formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s", "%Y-%m-%d %H:%M:%S")
+    logfile_handler.setFormatter(logfile_formatter)
+    logger.addHandler(logfile_handler)
+
+    # __main__ stuff is continued at the end of this file.
+
+
+# Import everything else (tkinter may be absent in some environments).
+try:
+    from ConfigParser import SafeConfigParser
+    import errno
+    import glob
+    import platform
+    import Queue
+    import re
+    import shutil as sh
+    import tempfile as tf
+    import threading
+    import webbrowser
+    import zipfile as zf
+    import Tkinter as tk
+    import tkFileDialog
+    import tkMessageBox as msgbox
+
+    # Modules bundled with this script.
+    from ftldat import FTLDatUnpacker as du
+    from ftldat import FTLDatPacker as dp
+
+except (Exception) as err:
+    logging.exception(err)
+    sys.exit(1)
+
+
+# Declare globals.
+APP_VERSION = "1.6"
+APP_NAME = "Grognak's Mod Manager v%s" % APP_VERSION
+allowzip = False
+dir_mods = None
+dir_res = None
+
+
+class RootWindow(tk.Tk):
+    def __init__(self, master, *args, **kwargs):
+        tk.Tk.__init__(self, master, *args, **kwargs)
+        # Pseudo enum constants.
+        self.ACTIONS = ["ACTION_CONFIG", "ACTION_SHOW_MAIN_WINDOW",
+                        "ACTION_PATCHING_SUCCEEDED", "ACTION_PATCHING_FAILED",
+                        "ACTION_DIE"]
+        for x in self.ACTIONS: setattr(self, x, x)
+
+        self._event_queue = Queue.Queue()
+        self._main_window = None
+
+        self.wm_protocol("WM_DELETE_WINDOW", self._on_delete)
+
+        def poll_queue():
+            self.process_event_queue(None)
+            self._poll_queue_alarm_id = self.after(100, self._poll_queue)
+        self._poll_queue_alarm_id = None
+        self._poll_queue = poll_queue
+
+        self._poll_queue()
+
+    def _on_delete(self):
+        if (self._poll_queue_alarm_id is not None):
+            self.after_cancel(self._poll_queue_alarm_id)
+        self._root().quit()
+
+    def process_event_queue(self, event):
+        """Processes every pending event on the queue."""
+        # With after() polling, always use get_nowait() to avoid blocking.
+        func_or_name, arg_dict = None, None
+        while (True):
+            try:
+                func_or_name, arg_dict = self._event_queue.get_nowait()
+            except (Queue.Empty) as err:
+                break
+            else:
+                self._process_event(func_or_name, arg_dict)
+
+    def _process_event(self, func_or_name, arg_dict):
+        """Processes events queued via invoke_later()."""
+        global APP_NAME
+        global dir_self, dir_res
+
+        def check_args(args):
+            for arg in args:
+                if (arg not in arg_dict):
+                    logging.error("Missing %s arg queued to %s %s." % (arg, self.__class__.__name__, func_or_name))
+                    return False
+            return True
+
+        if (hasattr(func_or_name, "__call__")):
+            func_or_name(arg_dict)
+
+        elif (func_or_name == self.ACTION_CONFIG):
+            check_args(["write_config", "config_parser", "next_func"])
+
+            if (dir_res):
+                if (not msgbox.askyesno(APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % dir_res)):
+                    dir_res = None
+
+            if (not dir_res):
+                logging.debug("FTL dats path was not located automatically. Prompting user for location.")
+                dir_res = prompt_for_ftl_path()
+
+            if (dir_res):
+                arg_dict["config_parser"].set("settings", "ftl_dats_path", dir_res)
+                arg_dict["write_config"] = True
+                logging.info("FTL dats located at: %s" % dir_res)
+
+            if (not dir_res):
+                logging.debug("No FTL dats path found, exiting.")
+                sys.exit(1)
+
+            arg_dict["next_func"]({"write_config":arg_dict["write_config"], "config_parser":arg_dict["config_parser"]})
+
+        elif (func_or_name == self.ACTION_SHOW_MAIN_WINDOW):
+            check_args(["mod_names", "next_func"])
+
+            if (not self._main_window):
+                self._main_window = MainWindow(master=self, title=APP_NAME, mod_names=arg_dict["mod_names"], next_func=arg_dict["next_func"])
+                self._main_window.center_window()
+
+        elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
+            ftl_exe_path = find_ftl_exe()
+            if (ftl_exe_path):
+                if (msgbox.askyesno(APP_NAME, "Patching completed successfully. Run FTL now?")):
+                    os.system("\"%s\"" % ftl_exe_path)
+            else:
+                msgbox.showinfo(APP_NAME, "Patching completed successfully.")
+
+        elif (func_or_name == self.ACTION_PATCHING_FAILED):
+                msgbox.showerror(APP_NAME, "Patching failed. See log for details.")
+
+        elif (func_or_name == self.ACTION_DIE):
+            # Destruction awaits. Nothing more to do.
+            with self._event_queue.mutex:
+                self._event_queue.queue.clear()
+            self._root().destroy()
+
+    def invoke_later(self, func_or_name, arg_dict):
+        """Schedules an action to occur in this thread (thread-safe)."""
+        self._event_queue.put((func_or_name, arg_dict))
+        # The queue will be polled eventually by an after() alarm.
+
+
+class MainWindow(tk.Toplevel):
+    def __init__(self, master, *args, **kwargs):
+        self.custom_args = {"title":None, "mod_names":[], "next_func":None}
+        for k in self.custom_args.keys():
+          if (k in kwargs):
+            self.custom_args[k] = kwargs[k]
+            del kwargs[k]
+        tk.Toplevel.__init__(self, master, *args, **kwargs)
+
+        if (self.custom_args["title"]): self.wm_title(self.custom_args["title"])
 
         self.button_width = 7
-
         self.button_padx = "2m"
         self.button_pady = "1m"
 
-        self.buttons_frame_padx =  "3m"
-        self.buttons_frame_pady =  "2m"
-        self.buttons_frame_ipadx = "3m"
-        self.buttons_frame_ipady = "1m"
+        self._prev_selection = set()
+        self._mouse_press_list_index = None
 
-        self.oldlist = set()
+        self._reordered_mods = None
+        self._pending_mods = None
 
-        self.start()
+        self.resizable(False, False)
 
-    def start(self):
-        parent = self.myParent
-
-        # Our topmost frame is called rootframe
-        self.rootframe = Frame(parent)
+        # Our topmost frame is called rootframe.
+        self.rootframe = tk.Frame(self)
         self.rootframe.pack()
 
-       # Top frame (container)
-        self.top_frame = Frame(self.rootframe)
-        self.top_frame.pack(side=TOP,
-                fill=BOTH,
-                expand=YES,
-                )
+        # Top frame (container).
+        self.top_frame = tk.Frame(self.rootframe)
+        self.top_frame.pack(side="top", fill="both", expand="yes")
 
-        # Top-left frame (mod list)
-        self.left_frame = Frame(self.top_frame, #background="red",
-            borderwidth=1,  relief=RIDGE,
-            height=250,
-            width=50,
-            )
-        self.left_frame.pack(side=LEFT,
-            fill=BOTH,
-            expand=YES,
-            )
+        # Top-left frame (mod list).
+        self.left_frame = tk.Frame(self.top_frame, #background="red",
+            borderwidth=1, relief="ridge",
+            width=50, height=250)
+        self.left_frame.pack(side="left", fill="both", expand="yes")
 
-        # Top-right frame (buttons)
-        self.right_frame = Frame(self.top_frame, width=250)
-        self.right_frame.pack(side=RIGHT,
-            fill=Y,
-            expand=NO,
-            )
+        # Top-right frame (buttons).
+        self.right_frame = tk.Frame(self.top_frame, width=250)
+        self.right_frame.pack(side="right", fill="y", expand="no")
 
-        # Bottom frame (mod descriptions)
-        self.bottom_frame = Frame(self.rootframe,
-            borderwidth=3,  relief=RIDGE,
-            height=50,
-            )
-        self.bottom_frame.pack(side=TOP,
-            fill=BOTH,
-            expand=YES,
-            )
+        # Bottom frame (mod descriptions).
+        self.bottom_frame = tk.Frame(self.rootframe,
+            borderwidth=3, relief="ridge",
+            height=50)
+        self.bottom_frame.pack(side="top", fill="both", expand="yes")
 
-        # add a listbox to hold the mod names
-        self.modlistbox = Listbox(self.left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
-        self.modlistbox.pack(side=LEFT, fill=BOTH, expand=1)
-        self.modscrollbar = Scrollbar(self.left_frame, command=self.modlistbox.yview, orient=VERTICAL)
-        self.modscrollbar.pack(side=RIGHT, fill=Y)
-        self.modlistbox.bind("<<ListboxSelect>>", self.ListboxSelect)
-        self.modlistbox.configure(yscrollcommand=self.modscrollbar.set)
+        # Add a listbox to hold the mod names.
+        self._mod_listbox = tk.Listbox(self.left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
+        self._mod_listbox.pack(side="left", fill="both", expand="yes")
+        self.modscrollbar = tk.Scrollbar(self.left_frame, command=self._mod_listbox.yview, orient="vertical")
+        self.modscrollbar.pack(side="right", fill="y")
+        self._mod_listbox.bind("<<ListboxSelect>>", self._on_listbox_select)
+        self._mod_listbox.bind("<Button-1>", self._on_listbox_mouse_pressed)
+        self._mod_listbox.bind("<B1-Motion>", self._on_listbox_mouse_dragged)
+        self._mod_listbox.configure(yscrollcommand=self.modscrollbar.set)
 
-        # add textbox at bottom to hold mod information
-        self.descbox = Text(self.bottom_frame, width=60, height=10, wrap=WORD)
-        self.descbox.pack(fill=BOTH, expand=1)
+        # Add textbox at bottom to hold mod information.
+        self.descbox = tk.Text(self.bottom_frame, width=60, height=10, wrap="word")
+        self.descbox.pack(fill="both", expand="yes")
 
-        # Set formating tags
+        # Set formating tags.
         self.descbox.tag_configure("title", font="helvetica 24 bold")
 
-        # now we add the buttons to the buttons_frame
-        self.patchbutton = Button(self.right_frame, command=self.patchbuttonClick)
-        self.patchbutton.configure(text="Patch")
-        self.patchbutton.focus_force()
-        self.patchbutton.configure(
-                width=self.button_width,
-                padx=self.button_padx,
-                pady=self.button_pady
-                )
+        # Add the buttons to the buttons frame.
+        self.patch_btn = tk.Button(self.right_frame, command=self._patch)
+        self.patch_btn.configure(text="Patch")
+        self.patch_btn.focus_force()
+        self.patch_btn.configure(
+            width=self.button_width,
+            padx=self.button_padx, pady=self.button_pady)
 
-        self.patchbutton.pack(side=TOP)
-        self.patchbutton.bind("<Return>", self.patchbuttonClick_a)
+        self.patch_btn.pack(side="top")
+        self.patch_btn.bind("<Return>", lambda e: self._patch())
 
-        self.reorderbutton = Button(self.right_frame, command=self.reorderbuttonClick)
-        self.reorderbutton.configure(text="Reorder")
-        self.reorderbutton.configure(
-                width=self.button_width,
-                padx=self.button_padx,
-                pady=self.button_pady,
-                state=DISABLED
-                )
+        self.toggle_all_btn = tk.Button(self.right_frame, command=self._toggle_all)
+        self.toggle_all_btn.configure(text="Toggle All")
+        self.toggle_all_btn.configure(
+            width=self.button_width,
+            padx=self.button_padx, pady=self.button_pady)
 
-        self.reorderbutton.pack(side=TOP)
-        self.reorderbutton.bind("<Return>", self.reorderbuttonClick_a)
+        self.toggle_all_btn.pack(side="top")
+        self.toggle_all_btn.bind("<Return>", lambda e: self._toggle_all())
 
-        self.forumbutton = Button(self.right_frame, command=self.forumbuttonClick)
-        self.forumbutton.configure(text="Forum")
-        self.forumbutton.configure(
-                width=self.button_width,
-                padx=self.button_padx,
-                pady=self.button_pady
-                )
+        self.dummy_b_btn = tk.Button(self.right_frame)
+        self.dummy_b_btn.configure(text="")
+        self.dummy_b_btn.configure(
+            width=self.button_width,
+            padx=self.button_padx, pady=self.button_pady,
+            state="disabled")
 
-        self.forumbutton.pack(side=TOP)
-        self.forumbutton.bind("<Return>", self.forumbuttonClick_a)
+        self.dummy_b_btn.pack(side="top")
 
-        self.exitbutton = Button(self.right_frame, command=self.exitbuttonClick)
-        self.exitbutton.configure(text="Exit")
-        self.exitbutton.configure(
-                width=self.button_width,
-                padx=self.button_padx,
-                pady=self.button_pady
-                )
+        self.forum_btn = tk.Button(self.right_frame, command=self._browse_forum)
+        self.forum_btn.configure(text="Forum")
+        self.forum_btn.configure(
+            width=self.button_width,
+            padx=self.button_padx, pady=self.button_pady)
 
-        self.exitbutton.pack(side=TOP)
-        self.exitbutton.bind("<Return>", self.exitbuttonClick_a)
+        self.forum_btn.pack(side="top")
+        self.forum_btn.bind("<Return>", lambda e: self._browse_forum())
 
-        self.filldata()
+        self._fill_list()
+        self.wm_protocol("WM_DELETE_WINDOW", self._destroy)  # Intercept window manager closing.
 
-    def filldata(self):
-        # Set default description
-        self.changedesc("Grognak's Mod Manager", "Grognak", 1.4, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
+    def _fill_list(self):
+        """Fills the list of all available mods."""
+        global APP_VERSION
 
-        # Gets list of mods the player wants to be patched in
-        for mod in modname_list:
-            self.addmod(mod, False)
+        # Set default description.
+        self._set_description("Grognak's Mod Manager", "Grognak", APP_VERSION, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
 
-    def ListboxSelect(self, event):
-        curlist = self.modlistbox.curselection()
-        newset = [x for x in curlist if x not in self.oldlist]
-        self.oldlist = set(curlist)
+        for mod_name in self.custom_args["mod_names"]:
+            self._add_mod(mod_name, False)
 
-        if len(newset) is not 0:
-            self.changedesc(self.modlistbox.get(newset[0]))
+    def _on_listbox_select(self, event):
+        current_selection = self._mod_listbox.curselection()
+        new_selection = [x for x in current_selection if (x not in self._prev_selection)]
+        self._prev_selection = set(current_selection)
 
-    def addmod(self, modname, selected):
-        # Add a mod name to the list.
-        newitem = self.modlistbox.insert(END, modname)
-        if selected:
-            self.modlistbox.selection_set(newitem)
+        if (len(new_selection) > 0):
+            self._set_description(self._mod_listbox.get(new_selection[0]))
 
-    def changedesc(self, title, author = None, version = None, description = None):
-        # Changes the description of the currently selected mod
-        self.descbox.configure(state=NORMAL)
-        self.descbox.delete('1.0', END)
-        self.descbox.insert(END, title + "\n", "title")
-        if author is not None and version is not None:
-            self.descbox.insert(END, "by " + author + " (version " + str(version) + ")\n\n")
+    def _on_listbox_mouse_pressed(self, event):
+        self._mouse_press_list_index = self._mod_listbox.nearest(event.y)
+
+    def _on_listbox_mouse_dragged(self, event):
+        if (self._mouse_press_list_index is None): return
+
+        current_selection = [int(i) for i in self._mod_listbox.curselection()]
+        n = self._mod_listbox.nearest(event.y)
+        if (n < self._mouse_press_list_index):
+            x = self._mod_listbox.get(n)
+            self._mod_listbox.delete(n)
+            self._mod_listbox.insert(n+1, x)
+            if ((n) in current_selection): self._mod_listbox.selection_set(n+1)
+            self._mouse_press_list_index = n
+        elif (n > self._mouse_press_list_index):
+            x = self._mod_listbox.get(n)
+            self._mod_listbox.delete(n)
+            self._mod_listbox.insert(n-1, x)
+            if ((n) in current_selection): self._mod_listbox.selection_set(n-1)
+            self._mouse_press_list_index = n
+
+    def _add_mod(self, modname, selected):
+        """Add a mod name to the list."""
+        newitem = self._mod_listbox.insert(tk.END, modname)
+        if (selected):
+            self._mod_listbox.selection_set(newitem)
+
+    def _set_description(self, title, author=None, version=None, description=None):
+        """Sets the currently displayed mod description."""
+        self.descbox.configure(state="normal")
+        self.descbox.delete("1.0", tk.END)
+        self.descbox.insert(tk.END, (title +"\n"), "title")
+        if (author is not None and version is not None):
+            self.descbox.insert(tk.END, "by %s (version %s)\n\n" % (author, str(version)))
         else:
-            self.descbox.insert(END, "\n")
-        if description is not None:
-            self.descbox.insert(END, description)
+            self.descbox.insert(tk.END, "\n")
+        if (description):
+            self.descbox.insert(tk.END, description)
         else:
-            self.descbox.insert(END, "No description.")
-        self.descbox.configure(state=DISABLED)
+            self.descbox.insert(tk.END, "No description.")
+        self.descbox.configure(state="disabled")
 
-    def patchbuttonClick(self):
-        global mergelist
-        mergelist = [self.modlistbox.get(modname) for modname in self.modlistbox.curselection()]
-        self.myParent.destroy()
+    def _patch(self):
+        # Remember the names to return in _on_delete().
+        self._reordered_mods = self._mod_listbox.get(0, tk.END)
+        self._pending_mods = [self._mod_listbox.get(n) for n in self._mod_listbox.curselection()]
+        self._destroy()
 
-    def patchbuttonClick_a(self, event):
-        self.patchbuttonClick()
+    def _toggle_all(self):
+        """Select all mods, or none if all are already selected."""
+        current_selection = self._mod_listbox.curselection()
+        if (len(current_selection) == self._mod_listbox.size()):
+            self._mod_listbox.selection_clear(0, tk.END)
+        else:
+            self._mod_listbox.selection_set(0, tk.END)
 
-    def exitbuttonClick(self):
-        sys.exit(0)
-
-    def exitbuttonClick_a(self, event):
-        self.exitbuttonClick()
-
-    def reorderbuttonClick(self):
-        self.myParent.withdraw()
-        root = Tk()
-        root.resizable(False, False)
-        root.wm_title(progname + " - Reorder")
-        ReorderWindow(root)
-        root.mainloop()
-        self.myParent.update()
-        self.myParent.deiconify()
-
-    def reorderbuttonClick_a(self, event):
-        self.reorderbuttonClick()
-
-    def forumbuttonClick(self):
+    def _browse_forum(self):
         webbrowser.open("http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464")
 
-    def forumbuttonClick_a(self, event):
-        self.forumbuttonClick()
+    def center_window(self):
+        """Centers this window on the screen.
+        Mostly. Window manager decoration and the menubar aren't factored in.
+        """
+        # An event-driven call to this would go nuts with plain update().
+        self.update_idletasks()  # Make window width/height methods work.
+        xp = (self.winfo_screenwidth()//2) - (self.winfo_width()//2)
+        yp = (self.winfo_screenheight()//2) - (self.winfo_height()//2)
+        self.geometry("+%d+%d" % (xp, yp))
 
-class ReorderWindow:
-    # Not completely implemented yet, so button is disabled
-    def __init__(self, parent):
-        self.myParent = parent
+    def _on_delete(self):
+        # The window manager closed this window.
+        self._destroy()
 
-        self.rootframe = Frame(parent)
-        self.rootframe.pack()
+    def _destroy(self):
+        """Destroys this window, but triggers a callback first."""
+        # If patch was clicked, names will be returned. Otherwise None.
+        if (self.custom_args["next_func"]):
+            self._root().invoke_later(self.custom_args["next_func"], {"all_mods":self._reordered_mods, "selected_mods":self._pending_mods})
+        self.destroy()
 
-        button_width = 7
-
-        button_padx = "2m"
-        button_pady = "1m"
-
-        buttons_frame_padx =  "3m"
-        buttons_frame_pady =  "2m"
-        buttons_frame_ipadx = "3m"
-        buttons_frame_ipady = "1m"
-
-        # top frame
-        self.top_frame = Frame(self.rootframe)
-        self.top_frame.pack(side=TOP,
-                fill=BOTH,
-                expand=YES,
-                )
-
-        # left_frame
-        self.left_frame = Frame(self.top_frame, #background="red",
-            borderwidth=1,  relief=RIDGE,
-            height=250,
-            width=50,
-            )
-        self.left_frame.pack(side=LEFT,
-            fill=BOTH,
-            expand=YES,
-            )
-
-        ### right_frame
-        self.right_frame = Frame(self.top_frame,
-            width=250,
-            )
-        self.right_frame.pack(side=RIGHT,
-            fill=Y,
-            expand=NO,
-            )
-
-        # add a listbox to hold the mod names
-        self.modlistbox = Listbox(self.left_frame, width=30, height=1) # Height readjusts itself for the button frame
-        self.modlistbox.pack(side=LEFT, fill=BOTH, expand=1)
-        self.modlistbox.bind("<<ListboxSelect>>", self.ListboxSelect)
-        self.modscrollbar = Scrollbar(self.left_frame, command=self.modlistbox.yview, orient=VERTICAL)
-        self.modscrollbar.pack(side=RIGHT, fill=Y)
-        self.modlistbox.configure(yscrollcommand=self.modscrollbar.set)
-
-
-        # now we add the buttons to the buttons_frame
-        self.okbutton = Button(self.right_frame, command=self.okbuttonClick)
-        self.okbutton.configure(text="OK")
-        self.okbutton.focus_force()
-        self.okbutton.configure(
-                width=button_width,
-                padx=button_padx,
-                pady=button_pady
-                )
-
-        self.okbutton.pack(side=TOP)
-        self.okbutton.bind("<Return>", self.okbuttonClick_a)
-
-        self.upbutton = Button(self.right_frame, command=self.upbuttonClick)
-        self.upbutton.configure(text="Move Up")
-        self.upbutton.configure(
-                width=button_width,
-                padx=button_padx,
-                pady=button_pady,
-                state=DISABLED,
-                )
-
-        self.upbutton.pack(side=TOP)
-        self.upbutton.bind("<Return>", self.upbuttonClick_a)
-
-        self.downbutton = Button(self.right_frame, command=self.downbuttonClick)
-        self.downbutton.configure(text="Move Down")
-        self.downbutton.configure(
-                width=button_width,
-                padx=button_padx,
-                pady=button_pady,
-                state=DISABLED,
-                )
-
-        self.downbutton.pack(side=TOP)
-        self.downbutton.bind("<Return>", self.downbuttonClick_a)
-
-    def adjustPosition(self, index, amount):
-        newindex = index + amount
-        if newindex >= 0 and newindex < self.modlistbox.size():
-            item = self.modlistbox.get(index)
-            self.modlistbox.delete(index)
-            self.modlistbox.insert(newindex, item)
-            self.modlistbox.selection_set(newindex)
-            scrollfraction = float(newindex-3)/float(self.modlistbox.size())
-            self.modlistbox.yview_moveto(scrollfraction)
-            self.handleButtons(newindex)
-
-    def ListboxSelect(self, event):
-        cursel = int(self.modlistbox.curselection()[0])
-        self.handleButtons(cursel)
-
-    def handleButtons(self, cursel):
-        if cursel is 0:
-            self.upbutton['state'] = DISABLED
-            self.downbutton['state'] = ACTIVE
-        elif cursel is self.modlistbox.size()-1:
-            self.upbutton['state'] = ACTIVE
-            self.downbutton['state'] = DISABLED
-        else:
-            self.upbutton['state'] = ACTIVE
-            self.downbutton['state'] = ACTIVE
-
-    def okbuttonClick(self):
-        self.myParent.destroy()
-
-    def okbuttonClick_a(self, event):
-        self.okbuttonClick()
-
-    def upbuttonClick(self):
-        self.adjustPosition(int(self.modlistbox.curselection()[0]), -1)
-
-    def upbuttonClick_a(self, event):
-        self.upbuttonClick()
-
-    def downbuttonClick(self):
-        self.adjustPosition(int(self.modlistbox.curselection()[0]), 1)
-
-    def downbuttonClick_a(self, event):
-        self.downbuttonClick()
 
 def ftl_path_join(*args):
     """ Joins paths in the way FTL expects them to be in .dat files.
         That is: the UNIX way. """
-    return '/'.join(args)
+    return "/".join(args)
 
 def appendfile(src, dst):
     source = open(src, "r")
     target = open(dst, "a")
 
-    target.write(source.read() + "\n")
+    target.write(source.read() +"\n")
 
     source.close()
     target.close()
@@ -367,243 +396,441 @@ def appendfile(src, dst):
 def mergefile(src, dst):
     pass
 
-def packdat(datafolder, datfile):
-    print "\nRepacking " + datfile
-    print 'Listing files to pack ...'
+def packdat(unpack_dir, dat_path):
+    logging.info("")
+    logging.info("Repacking %s" % os.path.basename(dat_path))
+    logging.info("Listing files to pack...")
     s = [()]
     files = []
     while s:
         current = s.pop()
-        for child in os.listdir(os.path.join(datafolder, *current)):
-            full_path = os.path.join(datafolder,
-                                        *(current + (child,)))
-            if os.path.isfile(full_path):
+        for child in os.listdir(os.path.join(unpack_dir, *current)):
+            full_path = os.path.join(unpack_dir, *(current + (child,)))
+            if (os.path.isfile(full_path)):
                 files.append(current + (child,))
-            elif os.path.isdir(full_path):
+            elif (os.path.isdir(full_path)):
                 s.append(current + (child,))
-    print 'Create datfile ...'
-    indexSize = len(files)
-    packer = dp(open(datfile, "wb"), indexSize)
-    print 'Packing ...'
+    logging.info("Creating datfile...")
+    index_size = len(files)
+    packer = dp(open(dat_path, "wb"), index_size)
+    logging.info("Packing...")
     for _file in files:
-        full_path = os.path.join(datafolder, *_file)
+        full_path = os.path.join(unpack_dir, *_file)
         size = os.stat(full_path).st_size
-        with open(full_path, 'rb') as f:
+        with open(full_path, "rb") as f:
             packer.add(ftl_path_join(*_file), f, size)
 
-def unpackdat(datafile):
-    print "Unpacking %s..." % datafile
-    unpacker = du(open(datafile, "rb"))
+def unpackdat(dat_path, unpack_dir):
+    logging.info("Unpacking %s..." % os.path.basename(dat_path))
+    unpacker = du(open(dat_path, "rb"))
 
     for i, filename, size, offset in unpacker:
-        target = os.path.join(datafile + "-unpacked", filename)
-        if not os.path.exists(os.path.dirname(target)):
+        target = os.path.join(unpack_dir, filename)
+        if (not os.path.exists(os.path.dirname(target))):
             os.makedirs(os.path.dirname(target))
-        with open(target, 'wb') as f:
+        with open(target, "wb") as f:
             unpacker.extract_to(filename, f)
 
-# Set relative locations
-realpath = os.path.realpath(__file__)
-dir_root = os.path.dirname(realpath)
-dir_mods = os.path.join(dir_root, "mods")
-dir_res = os.path.join(dir_root, "resources")
+def is_dats_path_valid(dats_path):
+    """Returns True if the path exists and contains data.dat."""
+    return (os.path.isdir(dats_path) and os.path.isfile(os.path.join(dats_path, "data.dat")))
 
-print dir_root + "\n"
+def find_ftl_path():
+    """Returns a valid guessed path to FTL resources, or None."""
+    steam_chunks = ["Steam","steamapps","common","FTL Faster Than Light","resources"];
+    gog_chunks = ["GOG.com","Faster Than Light","resources"];
 
-# Load up config file values
-cfg = SafeConfigParser()
-cfg.read(os.path.join(dir_root, "modman.ini"))
+    home_path = os.path.expanduser("~")
 
-allowzip = cfg.getboolean("settings", "allowzip")
+    xdg_data_home = os.getenv("XDG_DATA_HOME")
+    if (not xdg_data_home):
+        xdg_data_home = os.path.join(home_path, *[".local","share"])
 
-# Verify that the user put GMM in the right location
-if platform.system() == "Windows":
-    if not os.path.isfile(os.path.join(dir_root, "FTLGame.exe")):
-        msgbox.showerror(progname, "This executable must be in the same folder as FTLGame.exe")
-        sys.exit(0)
-elif platform.system() == "Linux":
-    if not os.path.isfile(os.path.join(dir_root, "FTL")):
-        msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the FTL folder")
-        sys.exit(0)
-elif platform.system() == "Darwin":
-    steam = msgbox.askyesno(progname, "Did you purchase FTL through Steam?")
-    if steam == True:
-        dir_res = os.path.join(os.environ['HOME'], 'Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app/Contents/Resources')
-    if steam == False or steam == None:
-        if not os.path.isfile(os.path.join(dir_root, "MacOS", "FTL")):
-            msgbox.showerror(progname, "Grognak's Mod Manager must be located directly above the MacOS folder in FTL.dat")
-            sys.exit(0)
-        dir_res = os.path.join(dir_root, 'Resources')
-    os.chdir(dir_root)
-    dir_mods = cfg.get("settings", "macmodsdir")
-    dir_mods = os.path.expanduser(dir_mods)
-    if not os.path.exists(dir_mods):
-       os.makedirs(dir_mods)
-       copy(os.path.join(dir_root, "mods/Beginning Scrap Advantage.ftl"), dir_mods)
-       msgbox.showinfo(progname, "A folder has been created in " + dir_mods + ". Please place any FTL mods there.")
-else:
-    msgbox.showwarning(progname, "Unsupported platform; unexpected behavior may occur.")
+    candidates = []
+    # Windows - Steam
+    candidates.append(os.path.join(os.getenv("ProgramFiles(x86)", ""), *steam_chunks))
+    candidates.append(os.path.join(os.getenv("ProgramFiles", ""), *steam_chunks))
+    # Windows - GOG
+    candidates.append(os.path.join(os.getenv("ProgramFiles(x86)", ""), *gog_chunks))
+    candidates.append(os.path.join(os.getenv("ProgramFiles", ""), *gog_chunks))
+    # Linux - Steam
+    candidates.append(os.path.join(xdg_data_home, *["Steam","SteamApps","common","FTL Faster Than Light","data","resources"]))
+    # OSX - Steam
+    candidates.append(os.path.join(home_path, *["Library","Application Support","Steam","SteamApps","common","FTL Faster Than Light","FTL.app","Contents","Resources"]))
+    # OSX
+    candidates.append(os.path.join("/", *["Applications","FTL.app","Contents","Resources"]))
 
-# Loop through the .ftl files, check if on mod list.
-os.chdir(dir_mods)
-modorder = open("modorder.txt", "a+")
-modorder.seek(0)
-modorder_read = modorder.readlines()
+    result = None
+    for c in candidates:
+        if (is_dats_path_valid(c)):
+            result = c
+    return result
 
-modorder_read = [word.strip() for word in modorder_read]
+def prompt_for_ftl_path():
+    """Returns a path to FTL resources chosen by the user, or None.
+    This should be called from a tkinter gui mainloop.
+    """
+    global APP_NAME
 
-for f in glob.glob("*.ftl"):
-    if not f in modorder_read:
-        modorder.write(f + "\n")
-        print "Added "+f
+    message = ""
+    message += "The path to FTL's resources could not be guessed.\n\n";
+    message += "You will now be prompted to locate FTL manually.\n";
+    message += "Select '(FTL dir)/resources/data.dat'.\n";
+    message += "Or 'FTL.app', if you're on OSX.";
+    msgbox.showinfo(APP_NAME, message)
 
-if allowzip:
-    for f in glob.glob("*.zip"):
-        if not f in modorder_read:
-            modorder.write(f + "\n")
+    result = tkFileDialog.askopenfilename(title="Find data.dat or FTL.app",
+        filetypes=[("data.dat or OSX Bundle", "data.dat;FTL.app")])
 
+    if (result):
+        if (os.path.basename(result) == "data.dat"):
+            result = os.path.split(result)[0]
+        elif (os.path.splitext(result)[1] == ".app" and os.path.isdir(result)):
+            if (os.path.isdir(os.path.join(result, *["Contents","Resources"]))):
+                result = os.path.join(result, *["Contents","Resources"])
+        if (result and is_dats_path_valid(result)):
+            return result
 
-# Check if any mods have beed deleted(are in modorder but not in the mods folder)
-modorder.seek(0)
-modorder_read = modorder.readlines()
-modorder_read = [word.strip() for word in modorder_read]
-for f in modorder_read:
-    if f not in glob.glob('*.ftl'):
-        modorder_read.remove(f)
-        print "Removed "+f
+    return None
 
-if allowzip:
-    for f in modorder_read:
-        if not f in glob.glob("*.zip"):
-            modorder_read.remove(f)
+def find_mod(mod_name):
+    """Returns the full path to a mod file, or None."""
+    global allowzip
+    global dir_mods
 
-modorder.close()
-modorder = open('modorder.txt','w')
-modorder.write('\n'.join(modorder_read)+'\n')
-modorder.close()
-modorder = open("modorder.txt", "a+")
+    suffixes = ["", ".ftl"]
+    if (allowzip): suffixes.append(".zip")
 
+    for suffix in suffixes:
+        tmp_path = os.path.join(dir_mods, mod_name + suffix)
+        if (os.path.isfile(tmp_path)):
+            return tmp_path
 
-# Refresh the list
-modorder.seek(0)
-modorder_read = modorder.readlines()
-modorder_read = [word.strip() for word in modorder_read]
+    logging.debug("Failed to find mod file by name: %s" % mod_name)
+    return None
 
-# Mod list sans the .ftl extention
-if allowzip:
-    modname_list = modorder_read
-else:
-    modname_list = [word[:-4] for word in modorder_read]
+def load_modorder():
+    """Reads the modorder, syncs it with existing files, and returns it."""
+    global allowzip
+    global dir_mods
 
-# Start the GUI
-root = Tk()
-root.resizable(False, False)
-root.wm_title(progname)
-MainWindow(root)
-root.mainloop()
+    modorder_lines = []
+    try:
+        # Translate mod names to full filenames, temporarily.
+        with open(os.path.join(dir_mods, "modorder.txt"), "r") as modorder_file:
+            modorder_lines = modorder_file.readlines()
+            modorder_lines = [line.strip() for line in modorder_lines]
+            modorder_lines = [find_mod(line) for line in modorder_lines]
+            modorder_lines = [line for line in modorder_lines if (line is not None)]
+            modorder_lines = [os.path.basename(line) for line in modorder_lines]
+    except (IOError) as err:
+        # Ignore "No such file/dir."
+        if (err.errno == errno.ENOENT): pass
+        else: raise
 
-# User hit the X button
-if (mergelist == None):
-    sys.exit(0)
+    mod_exts = ["ftl"]
+    if (allowzip): mod_exts.append("zip")
 
-# Create data file backups, if necessary
-os.chdir(dir_res)
+    # Get a list of full filenames.
+    mod_filenames = []
+    for ext in mod_exts:
+        ext_filenames = glob.glob(os.path.join(dir_mods, "*."+ext))
+        ext_filenames = [os.path.basename(f) for f in ext_filenames]
+        mod_filenames.extend(ext_filenames)
 
-if not os.path.isfile("data.dat.bak"):
-    print "Backing up data.dat"
-    sh.copy2("data.dat", "data.dat.bak")
+    # Purge modorder lines that have no corresponding filename.
+    dead_mods = [f for f in modorder_lines if (f not in mod_filenames)]
+    for f in dead_mods:
+        modorder_lines.remove(f)
+        logging.info("Removed %s" % f)
 
-if not os.path.isfile("resource.dat.bak"):
-    print "Backing up resource.dat\n"
-    sh.copy2("resource.dat", "resource.dat.bak")
+    # Append filenames not mentioned in the modorder.
+    new_mods = [f for f in mod_filenames if (f not in modorder_lines)]
+    for f in new_mods:
+        modorder_lines.append(f)
+        logging.info("Added %s" % f)
 
-# Overwrite old data files with their respective backups
-sh.copy2("data.dat.bak", "data.dat")
-sh.copy2("resource.dat.bak", "resource.dat")
+    # Strip extensions to get mod_names.
+    ext_ptn = "[.](?:"+ ("|".join(mod_exts)) +")$"
+    modorder_lines = [re.sub(ext_ptn, "", f, flags=re.I) for f in modorder_lines]
 
-# Extract both of the backup files
-unpackdat("data.dat")
-unpackdat("resource.dat")
+    return modorder_lines
 
-# Go through each .ftl archive and apply changes
-tmp = tf.mkdtemp()
-if allowzip:
-    modlist = mergelist
-else:
-    modlist = [word + ".ftl" for word in mergelist]
+def save_modorder(modorder_lines):
+    global dir_mods
+    with open(os.path.join(dir_mods, "modorder.txt"), "w") as modorder_file:
+        modorder_file.write("\n".join(modorder_lines) +"\n")
 
-for filename in modlist:
-    os.chdir(dir_mods)
-    ftl = zf.ZipFile(filename, 'r')
+def patch_dats(selected_mods):
+    """Backs up, clobbers, unpacks, merges, and finally packs dats.
 
-    print "\nInstalling " + filename
+    :param selected_mods: A list of mod names to install.
+    :return: True if successful, False otherwise.
+    """
+    global allowzip
+    global dir_self, dir_mods, dir_res
 
-    # Unzip everything into a temporary folder
-    for item in ftl.namelist():
-        if item.endswith('/'):
-            path = os.path.join(tmp, item)
-            if not os.path.exists(path):
-                os.makedirs(path)
-        else:
-            ftl.extract(item, tmp)
+    # Get full paths from mod names.
+    mod_list = [find_mod(mod_name) for mod_name in selected_mods]
+    mod_list = [mod_path for mod_path in mod_list if (mod_path is not None)]
 
-    # Go through each directory in the .ftl file
-    for directory in os.listdir(tmp):
-        if directory == "data":
-            print " - Merging " + directory + " folder"
-            for root, dirs, files in os.walk(os.path.join(tmp, directory)):
-                for d in dirs:
-                    path = os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], d)
-                    if not os.path.exists(path):
-                        os.makedirs(path)
-                for f in files:
-                    if f.endswith(".append"):
-                        appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
-                    elif f.endswith(".append.xml"):
-                        appendfile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
-                    elif f.endswith(".merge"):
-                        mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".merge")]))
-                    elif f.endswith("merge.xml"):
-                        mergefile(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
+    data_dat_path = os.path.join(dir_res, "data.dat")
+    resource_dat_path = os.path.join(dir_res, "resource.dat")
+
+    data_bak_path = os.path.join(dir_res, "data.dat.bak")
+    resource_bak_path = os.path.join(dir_res, "resource.dat.bak")
+
+    data_unp_path = None
+    resource_unp_path = None
+    tmp = None
+
+    try:
+        # Create backup dats, if necessary.
+        for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
+            if (not os.path.isfile(bak_path)):
+                logging.info("Backing up %s" % os.path.basename(dat_path))
+                sh.copy2(dat_path, bak_path)
+
+        # Clobber current dat files with their respective backups.
+        for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
+            sh.copy2(bak_path, dat_path)
+
+        if (len(mod_list) == 0):
+            return True  # No mods. Skip the repacking.
+
+        # Use temp folders for unpacking.
+        data_unp_path = tf.mkdtemp()
+        resource_unp_path = tf.mkdtemp()
+
+        unp_map = {}
+        for x in ["data"]:
+            unp_map[x] = data_unp_path
+        for x in ["audio", "fonts", "img"]:
+            unp_map[x] = resource_unp_path
+
+        # Extract both of the dats.
+        unpackdat(data_dat_path, data_unp_path)
+        unpackdat(resource_dat_path, resource_unp_path)
+
+        # Extract each mod into a temp dir and merge into unpacked dat dirs.
+        for mod_path in mod_list:
+            try:
+                logging.info("")
+                logging.info("Installing mod: %s" % os.path.basename(mod_path))
+                tmp = tf.mkdtemp()
+                with zf.ZipFile(mod_path, "r") as mod_zip:
+                    # Unzip everything into a temporary folder.
+                    for item in mod_zip.namelist():
+                        if (item.endswith("/")):
+                            path = os.path.join(tmp, item)
+                            if (not os.path.exists(path)):
+                                os.makedirs(path)
+                        else:
+                            mod_zip.extract(item, tmp)
+
+                # Go through each directory in the mod.
+                for directory in os.listdir(tmp):
+                    if (directory in unp_map):
+                        logging.info("Merging folder: %s" % directory)
+                        unpack_dir = unp_map[directory]
+                        for root, dirs, files in os.walk(os.path.join(tmp, directory)):
+                            for d in dirs:
+                                path = os.path.join(unpack_dir, root[len(tmp)+1:], d)
+                                if (not os.path.exists(path)):
+                                    os.makedirs(path)
+                            for f in files:
+                                if (f.endswith(".append")):
+                                    appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
+                                elif (f.endswith(".append.xml")):
+                                    appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
+                                elif (f.endswith(".merge")):
+                                    mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge")]))
+                                elif (f.endswith("merge.xml")):
+                                    mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
+                                else:
+                                    sh.copy2(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f))
+
                     else:
-                        sh.copy2(os.path.join(root, f), os.path.join(dir_res, "data.dat-unpacked", root[len(tmp)+1:], f))
+                        logging.warning("Unsupported folder: %s" % directory)
 
-        elif directory in ("audio", "fonts", "img"):
-            print " - Merging " + directory + " folder"
-            for root, dirs, files in os.walk(os.path.join(tmp, directory)):
-                for d in dirs:
-                    path = os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], d)
-                    if not os.path.exists(path):
-                        os.makedirs(path)
-                for f in files:
-                    if f.endswith(".append"):
-                        appendfile(os.path.join(root, f), os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], f[:-len(".append")]))
-                    else:
-                        sh.copy2(os.path.join(root, f), os.path.join(dir_res, "resource.dat-unpacked", root[len(tmp)+1:], f))
+            finally:
+                # Clean up temporary mod folder's contents.
+                if (tmp is not None):
+                    sh.rmtree(tmp, ignore_errors=True)
+                    tmp = None
 
+        # All the mods are installed, so repack the files.
+        packdat(data_unp_path, data_dat_path)
+        packdat(resource_unp_path, resource_dat_path)
+
+        return True  # The finally block will still run.
+
+    finally:
+        # Delete unpack folders.
+        for unpack_dir in [data_unp_path, resource_unp_path]:
+            if (not unpack_dir): continue
+
+            sh.rmtree(unpack_dir, ignore_errors=True)
+            if (os.path.exists(unpack_dir)):
+                logging.warning("Failed to delete unpack folder: %s" % unpack_dir)
+
+    return False
+
+def find_ftl_exe():
+    """Returns the FTL executable's path, or None."""
+    global dir_res
+
+    if (platform.system() == "Windows"):
+        exe_path = os.path.normpath(os.path.join(dir_res, *["..", "FTLGame.exe"]))
+        if (os.path.isfile(exe_path)):
+            return exe_path
+
+    return None
+
+
+class LogicObj(object):
+    def __init__(self, root_window):
+        self._mygui = root_window
+
+    def run(self):
+        self.load_config({})
+
+    def load_config(self, arg_dict):
+        global allowzip
+        global dir_self, dir_res
+
+        cfg = SafeConfigParser()
+        cfg.add_section("settings")
+
+        # Set defaults.
+        cfg.set("settings", "allowzip", ("1" if (allowzip is True) else "0"))
+
+        write_config = False
+        try:
+            with open(os.path.join(dir_self, "modman.ini"), "r") as cfg_file:
+                cfg.readfp(cfg_file)
+        except (Exception) as err:
+            write_config = True
+
+        if (cfg.has_option("settings", "allowzip")):
+            allowzip = cfg.getboolean("settings", "allowzip")
+
+        if (cfg.has_option("settings", "ftl_dats_path")):
+            dir_res = cfg.get("settings", "ftl_dats_path")
+
+        if (cfg.has_option("settings", "macmodsdir")):  # Deprecated.
+            cfg.remove_option("settings", "macmodsdir")
+
+        if (dir_res):
+            logging.info("Using FTL dats path from config: %s" % dir_res)
+            if (not is_dats_path_valid(dir_res)):
+                logging.error("The config's ftlDatsPath does not exist, or it lacks data.dat.")
         else:
-            print " - WARNING: Unsupported folder " + directory
+            logging.debug("No FTL dats path previously set.")
 
-    # Clean up temporary folder's contents
-    for root, dirs, files in os.walk(tmp):
-        for f in files:
-            os.unlink(os.path.join(root, f))
-        for d in dirs:
-            sh.rmtree(os.path.join(root, d))
+        # Find/prompt for the path to set in the config.
+        if (not dir_res):
+            dir_res = find_ftl_path()
+            self._mygui.invoke_later(self._mygui.ACTION_CONFIG, {"write_config":write_config, "config_parser":cfg, "next_func":self.config_loaded})
+        else:
+            self.config_loaded({"write_config":write_config, "config_parser":cfg})
 
-# All the mods are installed, so repack the files.
-os.chdir(dir_res)
-packdat("data.dat-unpacked", "data.dat")
-packdat("resource.dat-unpacked", "resource.dat")
+    def config_loaded(self, arg_dict):
+        global dir_self
 
-# All done!
-if platform.system() == "Windows":
-    if msgbox.askyesno(progname, "Patching completed successfully. Run FTL now?"):
-        os.system("\"" + os.path.join(dir_root, "FTLGame.exe") + "\"")
-else:
-    msgbox.showinfo(progname, "Patching completed successfully.")
+        for arg in ["write_config", "config_parser"]:
+            if (arg not in arg_dict):
+                logging.error("Missing arg %s for config_loaded callback." % arg)
+                return
+
+        if (arg_dict["write_config"]):
+            with open(os.path.join(dir_self, "modman.ini"), "w") as cfg_file:
+                cfg_file.write("#\n")
+                cfg_file.write("# allowzip - Sets whether to treat .zip files as .ftl files. Default: 0 (false).\n")
+                cfg_file.write("# ftl_dats_path - The path to FTL's resources folder. If invalid, you'll be prompted.\n")
+                cfg_file.write("#\n")
+                cfg_file.write("# macmodsdir - Deprecated. Each OS keeps mods in GMM/mods/ now.\n")
+                cfg_file.write("#\n")
+                cfg_file.write("\n")
+                arg_dict["config_parser"].write(cfg_file)
+
+        all_mod_names = load_modorder()
+        save_modorder(all_mod_names)
+
+        self._mygui.invoke_later(self._mygui.ACTION_SHOW_MAIN_WINDOW, {"mod_names":all_mod_names, "next_func":self.main_window_closed})
+
+    def main_window_closed(self, arg_dict):
+        for arg in ["all_mods", "selected_mods"]:
+            if (arg not in arg_dict):
+                logging.error("Missing arg %s for main_window_closed callback." % arg)
+                return
+
+        if (arg_dict["selected_mods"] is None):
+            logging.debug("User didn't click the \"Patch\" button. Exiting.")
+            self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
+            return
+
+        save_modorder(arg_dict["all_mods"])
+
+        def payload():
+            logging.info("")
+            logging.info("Patching...")
+            logging.info("")
+            result = patch_dats(arg_dict["selected_mods"])
+
+            self.patching_finished({"result":result})
+
+        t = threading.Thread(target=payload)
+        t.start()
+
+    def patching_finished(self, arg_dict):
+        for arg in ["result"]:
+            if (arg not in arg_dict):
+                logging.error("Missing arg %s for patching_finished callback." % arg)
+                return
+
+        logging.info("")
+        if (arg_dict["result"] is True):
+            logging.info("Patching succeeded.")
+            self._mygui.invoke_later(self._mygui.ACTION_PATCHING_SUCCEEDED, {})
+        else:
+            logging.info("Patching failed.")
+            self._mygui.invoke_later(self._mygui.ACTION_PATCHING_FAILED, {})
+
+        self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
 
 
+def main():
+    global APP_NAME
+    global allowzip
+    global dir_self, dir_mods, dir_res
+
+    # dir_self was set earlier.
+    dir_mods = os.path.join(dir_self, "mods")
+    dir_res = None  # Set this later.
+
+    try:
+        logging.info("%s (on %s)" % (APP_NAME, platform.platform(aliased=True, terse=False)))
+        logging.info("Rooting at: %s\n" % dir_self)
+
+        # Start the GUI.
+        mygui = RootWindow(None)
+        mygui.withdraw()
+
+        # Tkinter mainloop doesn't normally die and let its exceptions be caught.
+        def tk_error_func(exc, val, tb):
+            logging.exception("%s" % exc)
+            mygui.destroy()
+        mygui.report_callback_exception = tk_error_func
+
+        logic_obj = LogicObj(mygui)
+        logic_obj.run()
+
+        mygui.mainloop()
+
+    except (Exception) as err:
+        logging.exception(err)
 
 
-
+if (__name__ == "__main__"):
+    main()
