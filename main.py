@@ -562,65 +562,80 @@ def patch_dats():
         for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
             sh.copy2(bak_path, dat_path)
 
+        if (len(mod_list) == 0):
+            return True  # No mods. Skip the repacking.
+
+        # Delete old unpack dirs from previous patching.
+        for unpack_dir in (data_unp_path, resource_unp_path):
+            sh.rmtree(unpack_dir, ignore_errors=True)
+            if (os.path.exists(unpack_dir)):
+                logging.warning("Failed to delete existing unpack folder: %s" % unpack_dir)
+
         # Extract both of the dats.
-        sh.rmtree(data_unp_path)
-        sh.rmtree(resource_unp_path)
         unpackdat(data_dat_path, data_unp_path)
         unpackdat(resource_dat_path, resource_unp_path)
 
-        # Go through each .ftl archive and apply changes.
-        tmp = tf.mkdtemp()
-
+        # Extract each mod into a temp dir and merge into unpacked dat dirs.
         for mod_path in mod_list:
-            logging.info("")
-            logging.info("Installing mod: %s" % os.path.basename(mod_path))
-            with zf.ZipFile(mod_path, "r") as mod_zip:
-                # Unzip everything into a temporary folder.
-                for item in mod_zip.namelist():
-                    if (item.endswith("/")):
-                        path = os.path.join(tmp, item)
-                        if (not os.path.exists(path)):
-                            os.makedirs(path)
-                    else:
-                        mod_zip.extract(item, tmp)
-
-            # Go through each directory in the .ftl file.
-            for directory in os.listdir(tmp):
-                if (directory in unp_map):
-                    logging.info("Merging folder: %s" % directory)
-                    unpack_dir = unp_map[directory]
-                    for root, dirs, files in os.walk(os.path.join(tmp, directory)):
-                        for d in dirs:
-                            path = os.path.join(unpack_dir, root[len(tmp)+1:], d)
+            try:
+                logging.info("")
+                logging.info("Installing mod: %s" % os.path.basename(mod_path))
+                tmp = tf.mkdtemp()
+                with zf.ZipFile(mod_path, "r") as mod_zip:
+                    # Unzip everything into a temporary folder.
+                    for item in mod_zip.namelist():
+                        if (item.endswith("/")):
+                            path = os.path.join(tmp, item)
                             if (not os.path.exists(path)):
                                 os.makedirs(path)
-                        for f in files:
-                            if (f.endswith(".append")):
-                                appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
-                            elif (f.endswith(".append.xml")):
-                                appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
-                            elif (f.endswith(".merge")):
-                                mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge")]))
-                            elif (f.endswith("merge.xml")):
-                                mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
-                            else:
-                                sh.copy2(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f))
+                        else:
+                            mod_zip.extract(item, tmp)
 
-                else:
-                    logging.warning("Unsupported folder: %s" % directory)
+                # Go through each directory in the mod.
+                for directory in os.listdir(tmp):
+                    if (directory in unp_map):
+                        logging.info("Merging folder: %s" % directory)
+                        unpack_dir = unp_map[directory]
+                        for root, dirs, files in os.walk(os.path.join(tmp, directory)):
+                            for d in dirs:
+                                path = os.path.join(unpack_dir, root[len(tmp)+1:], d)
+                                if (not os.path.exists(path)):
+                                    os.makedirs(path)
+                            for f in files:
+                                if (f.endswith(".append")):
+                                    appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
+                                elif (f.endswith(".append.xml")):
+                                    appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
+                                elif (f.endswith(".merge")):
+                                    mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge")]))
+                                elif (f.endswith("merge.xml")):
+                                    mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
+                                else:
+                                    sh.copy2(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f))
 
-            # All the mods are installed, so repack the files.
-            packdat(data_unp_path, data_dat_path)
-            packdat(resource_unp_path, resource_dat_path)
+                    else:
+                        logging.warning("Unsupported folder: %s" % directory)
+
+            finally:
+                # Clean up temporary folder's contents.
+                if (tmp is not None):
+                    sh.rmtree(tmp, ignore_errors=True)
+                    tmp = None
+
+        # All the mods are installed, so repack the files.
+        packdat(data_unp_path, data_dat_path)
+        packdat(resource_unp_path, resource_dat_path)
+
+        return True  # The finally block will still run.
 
     finally:
-        # Clean up temporary folder's contents.
-        if (tmp is not None):
-            sh.rmtree(tmp, ignore_errors=True)
-
         # Delete unpack folders.
-        sh.rmtree(data_unp_path, ignore_errors=True)
-        sh.rmtree(resource_unp_path, ignore_errors=True)
+        for unpack_dir in (data_unp_path, resource_unp_path):
+            sh.rmtree(unpack_dir, ignore_errors=True)
+            if (os.path.exists(unpack_dir)):
+                logging.warning("Failed to delete unpack folder: %s" % unpack_dir)
+
+    return False
 
 
 def main():
