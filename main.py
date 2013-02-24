@@ -57,20 +57,12 @@ try:
     # Modules bundled with this script.
     from lib.ftldat import FTLDatUnpacker
     from lib.ftldat import FTLDatPacker
+    from lib import global_config
     from lib import killable_threading
 
 except (Exception) as err:
     logging.exception(err)
     sys.exit(1)
-
-
-# Declare globals.
-APP_VERSION = "1.6.1"
-APP_NAME = "Grognak's Mod Manager v%s" % APP_VERSION
-allowzip = False
-never_run_ftl = False
-dir_mods = None
-dir_res = None
 
 
 class RootWindow(tk.Tk):
@@ -115,8 +107,6 @@ class RootWindow(tk.Tk):
 
     def _process_event(self, func_or_name, arg_dict):
         """Processes events queued via invoke_later()."""
-        global APP_NAME
-        global dir_self, dir_res
 
         def check_args(args):
             for arg in args:
@@ -131,20 +121,20 @@ class RootWindow(tk.Tk):
         elif (func_or_name == self.ACTION_CONFIG):
             check_args(["write_config", "config_parser", "next_func"])
 
-            if (dir_res):
-                if (not msgbox.askyesno(APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % dir_res)):
-                    dir_res = None
+            if (global_config.dir_res):
+                if (not msgbox.askyesno(global_config.APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % global_config.dir_res)):
+                    global_config.dir_res = None
 
-            if (not dir_res):
+            if (not global_config.dir_res):
                 logging.debug("FTL dats path was not located automatically. Prompting user for location.")
-                dir_res = prompt_for_ftl_path()
+                global_config.dir_res = prompt_for_ftl_path()
 
-            if (dir_res):
-                arg_dict["config_parser"].set("settings", "ftl_dats_path", dir_res)
+            if (global_config.dir_res):
+                arg_dict["config_parser"].set("settings", "ftl_dats_path", global_config.dir_res)
                 arg_dict["write_config"] = True
-                logging.info("FTL dats located at: %s" % dir_res)
+                logging.info("FTL dats located at: %s" % global_config.dir_res)
 
-            if (not dir_res):
+            if (not global_config.dir_res):
                 logging.debug("No FTL dats path found, exiting.")
                 sys.exit(1)
 
@@ -154,21 +144,21 @@ class RootWindow(tk.Tk):
             check_args(["mod_names", "next_func"])
 
             if (not self._main_window):
-                self._main_window = MainWindow(master=self, title=APP_NAME, mod_names=arg_dict["mod_names"], next_func=arg_dict["next_func"])
+                self._main_window = MainWindow(master=self, title=global_config.APP_NAME, mod_names=arg_dict["mod_names"], next_func=arg_dict["next_func"])
                 self._main_window.center_window()
 
         elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
             check_args(["ftl_exe_path"])
 
             if (arg_dict["ftl_exe_path"]):
-                if (msgbox.askyesno(APP_NAME, "Patching completed successfully. Run FTL now?")):
+                if (msgbox.askyesno(global_config.APP_NAME, "Patching completed successfully. Run FTL now?")):
                     logging.info("Running FTL...")
                     subprocess.Popen([arg_dict["ftl_exe_path"]])
             else:
-                msgbox.showinfo(APP_NAME, "Patching completed successfully.")
+                msgbox.showinfo(global_config.APP_NAME, "Patching completed successfully.")
 
         elif (func_or_name == self.ACTION_PATCHING_FAILED):
-                msgbox.showerror(APP_NAME, "Patching failed. See log for details.")
+                msgbox.showerror(global_config.APP_NAME, "Patching failed. See log for details.")
 
         elif (func_or_name == self.ACTION_DIE):
             # Destruction awaits. Nothing more to do.
@@ -289,10 +279,9 @@ class MainWindow(tk.Toplevel):
 
     def _fill_list(self):
         """Fills the list of all available mods."""
-        global APP_VERSION
 
         # Set default description.
-        self._set_description("Grognak's Mod Manager", "Grognak", APP_VERSION, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
+        self._set_description("Grognak's Mod Manager", "Grognak", global_config.APP_VERSION, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
 
         for mod_name in self.custom_args["mod_names"]:
             self._add_mod(mod_name, False)
@@ -477,14 +466,12 @@ def prompt_for_ftl_path():
     """Returns a path to FTL resources chosen by the user, or None.
     This should be called from a tkinter gui mainloop.
     """
-    global APP_NAME
-
     message = ""
     message += "The path to FTL's resources could not be guessed.\n\n";
     message += "You will now be prompted to locate FTL manually.\n";
     message += "Select '(FTL dir)/resources/data.dat'.\n";
     message += "Or 'FTL.app', if you're on OSX.";
-    msgbox.showinfo(APP_NAME, message)
+    msgbox.showinfo(global_config.APP_NAME, message)
 
     result = tkFileDialog.askopenfilename(title="Find data.dat or FTL.app",
         filetypes=[("data.dat or OSX Bundle", "data.dat;FTL.app")])
@@ -502,14 +489,12 @@ def prompt_for_ftl_path():
 
 def find_mod(mod_name):
     """Returns the full path to a mod file, or None."""
-    global allowzip
-    global dir_mods
 
     suffixes = ["", ".ftl"]
-    if (allowzip): suffixes.append(".zip")
+    if (global_config.allowzip): suffixes.append(".zip")
 
     for suffix in suffixes:
-        tmp_path = os.path.join(dir_mods, mod_name + suffix)
+        tmp_path = os.path.join(global_config.dir_mods, mod_name + suffix)
         if (os.path.isfile(tmp_path)):
             return tmp_path
 
@@ -518,13 +503,11 @@ def find_mod(mod_name):
 
 def load_modorder():
     """Reads the modorder, syncs it with existing files, and returns it."""
-    global allowzip
-    global dir_mods
 
     modorder_lines = []
     try:
         # Translate mod names to full filenames, temporarily.
-        with open(os.path.join(dir_mods, "modorder.txt"), "r") as modorder_file:
+        with open(os.path.join(global_config.dir_mods, "modorder.txt"), "r") as modorder_file:
             modorder_lines = modorder_file.readlines()
             modorder_lines = [line.strip() for line in modorder_lines]
             modorder_lines = [find_mod(line) for line in modorder_lines]
@@ -536,12 +519,12 @@ def load_modorder():
         else: raise
 
     mod_exts = ["ftl"]
-    if (allowzip): mod_exts.append("zip")
+    if (global_config.allowzip): mod_exts.append("zip")
 
     # Get a list of full filenames.
     mod_filenames = []
     for ext in mod_exts:
-        ext_filenames = glob.glob(os.path.join(dir_mods, "*."+ext))
+        ext_filenames = glob.glob(os.path.join(global_config.dir_mods, "*."+ext))
         ext_filenames = [os.path.basename(f) for f in ext_filenames]
         mod_filenames.extend(ext_filenames)
 
@@ -564,8 +547,7 @@ def load_modorder():
     return modorder_lines
 
 def save_modorder(modorder_lines):
-    global dir_mods
-    with open(os.path.join(dir_mods, "modorder.txt"), "w") as modorder_file:
+    with open(os.path.join(global_config.dir_mods, "modorder.txt"), "w") as modorder_file:
         modorder_file.write("\n".join(modorder_lines) +"\n")
 
 def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
@@ -576,9 +558,6 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     :param sleep_func: Optional replacement to sleep N seconds.
     :return: True if successful, False otherwise.
     """
-    global allowzip
-    global dir_self, dir_mods, dir_res
-
     if (keep_alive_func is None): keep_alive_func = lambda : True
     if (sleep_func is None): sleep_func = time.sleep
 
@@ -586,11 +565,11 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     mod_list = [find_mod(mod_name) for mod_name in selected_mods]
     mod_list = [mod_path for mod_path in mod_list if (mod_path is not None)]
 
-    data_dat_path = os.path.join(dir_res, "data.dat")
-    resource_dat_path = os.path.join(dir_res, "resource.dat")
+    data_dat_path = os.path.join(global_config.dir_res, "data.dat")
+    resource_dat_path = os.path.join(global_config.dir_res, "resource.dat")
 
-    data_bak_path = os.path.join(dir_res, "data.dat.bak")
-    resource_bak_path = os.path.join(dir_res, "resource.dat.bak")
+    data_bak_path = os.path.join(global_config.dir_res, "data.dat.bak")
+    resource_bak_path = os.path.join(global_config.dir_res, "resource.dat.bak")
 
     data_unp_path = None
     resource_unp_path = None
@@ -697,10 +676,9 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
 
 def find_ftl_exe():
     """Returns the FTL executable's path, or None."""
-    global dir_res
 
     if (platform.system() == "Windows"):
-        exe_path = os.path.normpath(os.path.join(dir_res, *["..", "FTLGame.exe"]))
+        exe_path = os.path.normpath(os.path.join(global_config.dir_res, *["..", "FTLGame.exe"]))
         if (os.path.isfile(exe_path)):
             return exe_path
 
@@ -781,49 +759,46 @@ class LogicThread(killable_threading.KillableThread):
             self._patching_finished(arg_dict)
 
     def _load_config(self, arg_dict):
-        global allowzip, never_run_ftl
-        global dir_self, dir_res
-
         cfg = SafeConfigParser()
         cfg.add_section("settings")
 
         # Set defaults.
-        cfg.set("settings", "allowzip", ("1" if (allowzip is True) else "0"))
+        cfg.set("settings", "allowzip", ("1" if (global_config.allowzip is True) else "0"))
         cfg.set("settings", "ftl_dats_path", "")
-        cfg.set("settings", "never_run_ftl", ("1" if (never_run_ftl is True) else "0"))
+        cfg.set("settings", "never_run_ftl", ("1" if (global_config.never_run_ftl is True) else "0"))
 
         write_config = False
         try:
-            with open(os.path.join(dir_self, "modman.ini"), "r") as cfg_file:
+            with open(os.path.join(global_config.dir_self, "modman.ini"), "r") as cfg_file:
                 cfg.readfp(cfg_file)
         except (Exception) as err:
             write_config = True
 
         if (cfg.has_option("settings", "allowzip")):
-            allowzip = cfg.getboolean("settings", "allowzip")
+            global_config.allowzip = cfg.getboolean("settings", "allowzip")
 
         if (cfg.has_option("settings", "ftl_dats_path")):
-            dir_res = cfg.get("settings", "ftl_dats_path")
+            global_config.dir_res = cfg.get("settings", "ftl_dats_path")
 
         if (cfg.has_option("settings", "never_run_ftl")):
-            never_run_ftl = cfg.getboolean("settings", "never_run_ftl")
+            global_config.never_run_ftl = cfg.getboolean("settings", "never_run_ftl")
 
         # Remove deprecated settings.
         for x in ["macmodsdir", "highlightall"]:
           if (cfg.has_option("settings", x)):
             cfg.remove_option("settings", x)
 
-        if (dir_res):
-            logging.info("Using FTL dats path from config: %s" % dir_res)
-            if (not is_dats_path_valid(dir_res)):
+        if (global_config.dir_res):
+            logging.info("Using FTL dats path from config: %s" % global_config.dir_res)
+            if (not is_dats_path_valid(global_config.dir_res)):
                 logging.error("The config's FTL dats path does not exist, or it lacks data.dat.")
-                dir_res = None
+                global_config.dir_res = None
         else:
             logging.debug("No FTL dats path previously set.")
 
-        if (not dir_res):
+        if (not global_config.dir_res):
             # Find/prompt for the path to set in the config.
-            dir_res = find_ftl_path()
+            global_config.dir_res = find_ftl_path()
 
             def next_func(arg_dict):
                 self.invoke_later(self.ACTION_CONFIG_LOADED, arg_dict)
@@ -834,15 +809,13 @@ class LogicThread(killable_threading.KillableThread):
             self.invoke_later(self.ACTION_CONFIG_LOADED, {"write_config":write_config, "config_parser":cfg})
 
     def _config_loaded(self, arg_dict):
-        global dir_self
-
         for arg in ["write_config", "config_parser"]:
             if (arg not in arg_dict):
                 logging.error("Missing arg %s for %s.%s()." % (arg, self.__class__.__name__, inspect.stack()[0][3]))
                 return
 
         if (arg_dict["write_config"]):
-            with open(os.path.join(dir_self, "modman.ini"), "w") as cfg_file:
+            with open(os.path.join(global_config.dir_self, "modman.ini"), "w") as cfg_file:
                 cfg_file.write("#\n")
                 cfg_file.write("# allowzip - Sets whether to treat .zip files as .ftl files. Default: 0 (false).\n")
                 cfg_file.write("# ftl_dats_path - The path to FTL's resources folder. If invalid, you'll be prompted.\n")
@@ -893,8 +866,6 @@ class LogicThread(killable_threading.KillableThread):
         self._patch_thread.start()
 
     def _patching_finished(self, arg_dict):
-        global never_run_ftl
-
         for arg in ["result"]:
             if (arg not in arg_dict):
                 logging.error("Missing arg %s for %s.%s()." % (arg, self.__class__.__name__, inspect.stack()[0][3]))
@@ -905,7 +876,7 @@ class LogicThread(killable_threading.KillableThread):
             logging.info("Patching succeeded.")
 
             ftl_exe_path = None
-            if (never_run_ftl is False):
+            if (global_config.never_run_ftl is False):
                 ftl_exe_path = find_ftl_exe()
 
             self._mygui.invoke_later(self._mygui.ACTION_PATCHING_SUCCEEDED, {"ftl_exe_path":ftl_exe_path})
@@ -921,16 +892,15 @@ class LogicThread(killable_threading.KillableThread):
 
 
 def main():
-    global APP_NAME
-    global dir_self, dir_mods, dir_res
+    global dir_self  # dir_self was set earlier.
 
-    # dir_self was set earlier.
-    dir_mods = os.path.join(dir_self, "mods")
-    dir_res = None  # Set this later.
+    global_config.dir_self = dir_self
+    global_config.dir_mods = os.path.join(global_config.dir_self, "mods")
+    # Set dir_res later.
 
     try:
-        logging.info("%s (on %s)" % (APP_NAME, platform.platform(aliased=True, terse=False)))
-        logging.info("Rooting at: %s\n" % dir_self)
+        logging.info("%s (on %s)" % (global_config.APP_NAME, platform.platform(aliased=True, terse=False)))
+        logging.info("Rooting at: %s\n" % global_config.dir_self)
 
         # Start the GUI.
         mygui = RootWindow(None)
