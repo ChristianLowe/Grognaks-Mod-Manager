@@ -54,8 +54,8 @@ try:
     import tkMessageBox as msgbox
 
     # Modules bundled with this script.
-    from ftldat import FTLDatUnpacker as du
-    from ftldat import FTLDatPacker as dp
+    from lib.ftldat import FTLDatUnpacker
+    from lib.ftldat import FTLDatPacker
 
 except (Exception) as err:
     logging.exception(err)
@@ -416,7 +416,7 @@ def packdat(unpack_dir, dat_path):
                 s.append(current + (child,))
     logging.info("Creating datfile...")
     index_size = len(files)
-    packer = dp(open(dat_path, "wb"), index_size)
+    packer = FTLDatPacker(open(dat_path, "wb"), index_size)
     logging.info("Packing...")
     for _file in files:
         full_path = os.path.join(unpack_dir, *_file)
@@ -426,7 +426,7 @@ def packdat(unpack_dir, dat_path):
 
 def unpackdat(dat_path, unpack_dir):
     logging.info("Unpacking %s..." % os.path.basename(dat_path))
-    unpacker = du(open(dat_path, "rb"))
+    unpacker = FTLDatUnpacker(open(dat_path, "rb"))
 
     for i, filename, size, offset in unpacker:
         target = os.path.join(unpack_dir, filename)
