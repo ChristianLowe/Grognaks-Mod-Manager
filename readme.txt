@@ -77,6 +77,7 @@ Changelog
 1.6.1:
 - Added ini setting: never_run_ftl
 - The ini's ftl_dats_path is ignored if it's invalid
+- Added graceful exit on ctrl-c or Windows terminal closing
 
 1.6:
 - GMM no longer needs to be placed in the FTL directory

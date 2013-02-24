@@ -47,7 +47,6 @@ try:
     import subprocess
     import tempfile as tf
     import threading
-    import time
     import webbrowser
     import zipfile as zf
     import Tkinter as tk
@@ -57,6 +56,7 @@ try:
     # Modules bundled with this script.
     from lib.ftldat import FTLDatUnpacker
     from lib.ftldat import FTLDatPacker
+    from lib import cleanup
     from lib import global_config
     from lib import killable_threading
 
@@ -558,8 +558,8 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     :param sleep_func: Optional replacement to sleep N seconds.
     :return: True if successful, False otherwise.
     """
-    if (keep_alive_func is None): keep_alive_func = lambda : True
-    if (sleep_func is None): sleep_func = time.sleep
+    if (keep_alive_func is None): keep_alive_func = global_config.keeping_alive
+    if (sleep_func is None): sleep_func = global_config.nap
 
     # Get full paths from mod names.
     mod_list = [find_mod(mod_name) for mod_name in selected_mods]
@@ -720,9 +720,7 @@ class LogicThread(killable_threading.KillableThread):
 
         # This thread is done.
         self.keep_alive = False
-        self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
-        if (self._patch_thread):
-            self._patch_thread.stop_living()
+        global_config.get_cleanup_handler().cleanup()
 
     def _process_event_queue(self, queue_timeout=None):
         """Processes every pending event on the queue.
@@ -863,7 +861,9 @@ class LogicThread(killable_threading.KillableThread):
         self._patch_thread.set_payload(patch_dats, arg_dict["selected_mods"])
         self._patch_thread.set_success_func(wrapper_finished_func)
         self._patch_thread.set_failure_func(wrapper_exception_func)
+        self._patch_thread.name = "PatchWorker"
         self._patch_thread.start()
+        global_config.get_cleanup_handler().add_thread(self._patch_thread)
 
     def _patching_finished(self, arg_dict):
         for arg in ["result"]:
@@ -898,9 +898,17 @@ def main():
     global_config.dir_mods = os.path.join(global_config.dir_self, "mods")
     # Set dir_res later.
 
+    cleanup_handler = None
+
     try:
         logging.info("%s (on %s)" % (global_config.APP_NAME, platform.platform(aliased=True, terse=False)))
         logging.info("Rooting at: %s\n" % global_config.dir_self)
+
+        logging.info("Registering ctrl-c handler.")
+        cleanup_handler = cleanup.CustomCleanupHandler()
+        cleanup_handler.register()  # Must be called from main thread.
+        global_config.set_cleanup_handler(cleanup_handler)
+        # Warning: If the main thread gets totally blocked, it'll never notice sigint.
 
         # Start the GUI.
         mygui = RootWindow(None)
@@ -912,8 +920,11 @@ def main():
             mygui.destroy()
         mygui.report_callback_exception = tk_error_func
 
+        cleanup_handler.add_gui(mygui)
+
         logic_thread = LogicThread(mygui)
         logic_thread.start()
+        cleanup_handler.add_thread(logic_thread)
 
         try:
             mygui.mainloop()
@@ -922,6 +933,9 @@ def main():
 
     except (Exception) as err:
         logging.exception(err)
+
+    finally:
+        if (cleanup_handler is not None): cleanup_handler.cleanup()
 
 
 if (__name__ == "__main__"):
