@@ -65,6 +65,7 @@ except (Exception) as err:
 APP_VERSION = "1.6"
 APP_NAME = "Grognak's Mod Manager v%s" % APP_VERSION
 allowzip = False
+never_run_ftl = False
 dir_mods = None
 dir_res = None
 
@@ -153,10 +154,11 @@ class RootWindow(tk.Tk):
                 self._main_window.center_window()
 
         elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
-            ftl_exe_path = find_ftl_exe()
-            if (ftl_exe_path):
+            check_args(["ftl_exe_path"])
+
+            if (arg_dict["ftl_exe_path"]):
                 if (msgbox.askyesno(APP_NAME, "Patching completed successfully. Run FTL now?")):
-                    os.system("\"%s\"" % ftl_exe_path)
+                    os.system("\"%s\"" % arg_dict["ftl_exe_path"])
             else:
                 msgbox.showinfo(APP_NAME, "Patching completed successfully.")
 
@@ -696,7 +698,7 @@ class LogicObj(object):
         self.load_config({})
 
     def load_config(self, arg_dict):
-        global allowzip
+        global allowzip, never_run_ftl
         global dir_self, dir_res
 
         cfg = SafeConfigParser()
@@ -704,6 +706,8 @@ class LogicObj(object):
 
         # Set defaults.
         cfg.set("settings", "allowzip", ("1" if (allowzip is True) else "0"))
+        cfg.set("settings", "ftl_dats_path", "")
+        cfg.set("settings", "never_run_ftl", ("1" if (never_run_ftl is True) else "0"))
 
         write_config = False
         try:
@@ -717,6 +721,9 @@ class LogicObj(object):
 
         if (cfg.has_option("settings", "ftl_dats_path")):
             dir_res = cfg.get("settings", "ftl_dats_path")
+
+        if (cfg.has_option("settings", "never_run_ftl")):
+            never_run_ftl = cfg.getboolean("settings", "never_run_ftl")
 
         # Remove deprecated settings.
         for x in ["macmodsdir", "highlightall"]:
@@ -751,6 +758,7 @@ class LogicObj(object):
                 cfg_file.write("#\n")
                 cfg_file.write("# allowzip - Sets whether to treat .zip files as .ftl files. Default: 0 (false).\n")
                 cfg_file.write("# ftl_dats_path - The path to FTL's resources folder. If invalid, you'll be prompted.\n")
+                cfg_file.write("# never_run_ftl - If true, there will be no offer to run FTL after patching. Default: 0 (false).\n")
                 cfg_file.write("#\n")
                 cfg_file.write("# highlightall - Deprecated.\n")
                 cfg_file.write("# macmodsdir - Deprecated. Each OS keeps mods in GMM/mods/ now.\n")
@@ -788,6 +796,8 @@ class LogicObj(object):
         t.start()
 
     def patching_finished(self, arg_dict):
+        global never_run_ftl
+
         for arg in ["result"]:
             if (arg not in arg_dict):
                 logging.error("Missing arg %s for patching_finished callback." % arg)
@@ -796,7 +806,12 @@ class LogicObj(object):
         logging.info("")
         if (arg_dict["result"] is True):
             logging.info("Patching succeeded.")
-            self._mygui.invoke_later(self._mygui.ACTION_PATCHING_SUCCEEDED, {})
+
+            ftl_exe_path = None
+            if (never_run_ftl is False):
+                ftl_exe_path = find_ftl_exe()
+
+            self._mygui.invoke_later(self._mygui.ACTION_PATCHING_SUCCEEDED, {"ftl_exe_path":ftl_exe_path})
         else:
             logging.info("Patching failed.")
             self._mygui.invoke_later(self._mygui.ACTION_PATCHING_FAILED, {})
