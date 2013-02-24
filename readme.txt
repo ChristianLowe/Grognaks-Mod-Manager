@@ -74,13 +74,16 @@ Troubleshooting
 
 Changelog
 
+1.6.1:
+- Added ini setting: never_run_ftl
+- The ini's ftl_dats_path is ignored if it's invalid
+
 1.6:
 - GMM no longer needs to be placed in the FTL directory
 - Added ini setting: ftl_dats_path
-- Added ini setting: never_run_ftl
 - Added drag-and-drop mod reordering
 - Added "Toggle All" button
-- Dats are unpacked to temp folders and deleted after patching.
+- Dats are unpacked to temp folders and deleted after patching
 - Added logging
 - Deprecated ini setting: macmodsdir
 - Deprecated ini setting: highlightall
