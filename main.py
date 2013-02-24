@@ -202,87 +202,87 @@ class MainWindow(tk.Toplevel):
 
         self.resizable(False, False)
 
-        # Our topmost frame is called rootframe.
-        self.rootframe = tk.Frame(self)
-        self.rootframe.pack()
+        # Our topmost frame is called root_frame.
+        root_frame = tk.Frame(self)
+        root_frame.pack()
 
         # Top frame (container).
-        self.top_frame = tk.Frame(self.rootframe)
-        self.top_frame.pack(side="top", fill="both", expand="yes")
+        top_frame = tk.Frame(root_frame)
+        top_frame.pack(side="top", fill="both", expand="yes")
 
         # Top-left frame (mod list).
-        self.left_frame = tk.Frame(self.top_frame, #background="red",
+        left_frame = tk.Frame(top_frame, #background="red",
             borderwidth=1, relief="ridge",
             width=50, height=250)
-        self.left_frame.pack(side="left", fill="both", expand="yes")
+        left_frame.pack(side="left", fill="both", expand="yes")
 
         # Top-right frame (buttons).
-        self.right_frame = tk.Frame(self.top_frame, width=250)
-        self.right_frame.pack(side="right", fill="y", expand="no")
+        right_frame = tk.Frame(top_frame, width=250)
+        right_frame.pack(side="right", fill="y", expand="no")
 
         # Bottom frame (mod descriptions).
-        self.bottom_frame = tk.Frame(self.rootframe,
+        bottom_frame = tk.Frame(root_frame,
             borderwidth=3, relief="ridge",
             height=50)
-        self.bottom_frame.pack(side="top", fill="both", expand="yes")
+        bottom_frame.pack(side="top", fill="both", expand="yes")
 
         # Add a listbox to hold the mod names.
-        self._mod_listbox = tk.Listbox(self.left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
+        self._mod_listbox = tk.Listbox(left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
         self._mod_listbox.pack(side="left", fill="both", expand="yes")
-        self.modscrollbar = tk.Scrollbar(self.left_frame, command=self._mod_listbox.yview, orient="vertical")
-        self.modscrollbar.pack(side="right", fill="y")
+        self._mod_scrollbar = tk.Scrollbar(left_frame, command=self._mod_listbox.yview, orient="vertical")
+        self._mod_scrollbar.pack(side="right", fill="y")
         self._mod_listbox.bind("<<ListboxSelect>>", self._on_listbox_select)
         self._mod_listbox.bind("<Button-1>", self._on_listbox_mouse_pressed)
         self._mod_listbox.bind("<B1-Motion>", self._on_listbox_mouse_dragged)
-        self._mod_listbox.configure(yscrollcommand=self.modscrollbar.set)
+        self._mod_listbox.configure(yscrollcommand=self._mod_scrollbar.set)
 
         # Add textbox at bottom to hold mod information.
-        self.descbox = tk.Text(self.bottom_frame, width=60, height=10, wrap="word")
-        self.descbox.pack(fill="both", expand="yes")
+        self._desc_area = tk.Text(bottom_frame, width=60, height=10, wrap="word")
+        self._desc_area.pack(fill="both", expand="yes")
 
         # Set formating tags.
-        self.descbox.tag_configure("title", font="helvetica 24 bold")
+        self._desc_area.tag_configure("title", font="helvetica 24 bold")
 
         # Add the buttons to the buttons frame.
-        self.patch_btn = tk.Button(self.right_frame, command=self._patch)
-        self.patch_btn.configure(text="Patch")
-        self.patch_btn.focus_force()
-        self.patch_btn.configure(
+        self._patch_btn = tk.Button(right_frame, text="Patch")
+        self._patch_btn.configure(
             width=self.button_width,
             padx=self.button_padx, pady=self.button_pady)
 
-        self.patch_btn.pack(side="top")
-        self.patch_btn.bind("<Return>", lambda e: self._patch())
+        self._patch_btn.pack(side="top")
+        self._patch_btn.configure(command=self._patch)
+        self._patch_btn.bind("<Return>", lambda e: self._patch())
 
-        self.toggle_all_btn = tk.Button(self.right_frame, command=self._toggle_all)
-        self.toggle_all_btn.configure(text="Toggle All")
-        self.toggle_all_btn.configure(
+        self._toggle_all_btn = tk.Button(right_frame, text="Toggle All")
+        self._toggle_all_btn.configure(
             width=self.button_width,
             padx=self.button_padx, pady=self.button_pady)
 
-        self.toggle_all_btn.pack(side="top")
-        self.toggle_all_btn.bind("<Return>", lambda e: self._toggle_all())
+        self._toggle_all_btn.pack(side="top")
+        self._toggle_all_btn.configure(command=self._toggle_all)
+        self._toggle_all_btn.bind("<Return>", lambda e: self._toggle_all())
 
-        self.dummy_b_btn = tk.Button(self.right_frame)
-        self.dummy_b_btn.configure(text="")
-        self.dummy_b_btn.configure(
+        self._dummy_a_btn = tk.Button(right_frame, text="")
+        self._dummy_a_btn.configure(
             width=self.button_width,
             padx=self.button_padx, pady=self.button_pady,
             state="disabled")
 
-        self.dummy_b_btn.pack(side="top")
+        self._dummy_a_btn.pack(side="top")
 
-        self.forum_btn = tk.Button(self.right_frame, command=self._browse_forum)
-        self.forum_btn.configure(text="Forum")
-        self.forum_btn.configure(
+        self._forum_btn = tk.Button(right_frame, text="Forum")
+        self._forum_btn.configure(
             width=self.button_width,
             padx=self.button_padx, pady=self.button_pady)
 
-        self.forum_btn.pack(side="top")
-        self.forum_btn.bind("<Return>", lambda e: self._browse_forum())
+        self._forum_btn.pack(side="top")
+        self._forum_btn.configure(command=self._browse_forum)
+        self._forum_btn.bind("<Return>", lambda e: self._browse_forum())
 
         self._fill_list()
         self.wm_protocol("WM_DELETE_WINDOW", self._destroy)  # Intercept window manager closing.
+
+        self._patch_btn.focus_force()
 
     def _fill_list(self):
         """Fills the list of all available mods."""
@@ -331,18 +331,18 @@ class MainWindow(tk.Toplevel):
 
     def _set_description(self, title, author=None, version=None, description=None):
         """Sets the currently displayed mod description."""
-        self.descbox.configure(state="normal")
-        self.descbox.delete("1.0", tk.END)
-        self.descbox.insert(tk.END, (title +"\n"), "title")
+        self._desc_area.configure(state="normal")
+        self._desc_area.delete("1.0", tk.END)
+        self._desc_area.insert(tk.END, (title +"\n"), "title")
         if (author is not None and version is not None):
-            self.descbox.insert(tk.END, "by %s (version %s)\n\n" % (author, str(version)))
+            self._desc_area.insert(tk.END, "by %s (version %s)\n\n" % (author, str(version)))
         else:
-            self.descbox.insert(tk.END, "\n")
+            self._desc_area.insert(tk.END, "\n")
         if (description):
-            self.descbox.insert(tk.END, description)
+            self._desc_area.insert(tk.END, description)
         else:
-            self.descbox.insert(tk.END, "No description.")
-        self.descbox.configure(state="disabled")
+            self._desc_area.insert(tk.END, "No description.")
+        self._desc_area.configure(state="disabled")
 
     def _patch(self):
         # Remember the names to return in _on_delete().
@@ -823,7 +823,6 @@ class LogicObj(object):
 
 def main():
     global APP_NAME
-    global allowzip
     global dir_self, dir_mods, dir_res
 
     # dir_self was set earlier.
