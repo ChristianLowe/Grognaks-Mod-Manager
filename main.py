@@ -56,6 +56,7 @@ try:
     # Modules bundled with this script.
     from lib.ftldat import FTLDatUnpacker
     from lib.ftldat import FTLDatPacker
+    from lib import killable_threading
 
 except (Exception) as err:
     logging.exception(err)
@@ -81,12 +82,13 @@ class RootWindow(tk.Tk):
         for x in self.ACTIONS: setattr(self, x, x)
 
         self._event_queue = Queue.Queue()
+        self.done = False  # Indicates to other threads that mainloop() ended.
         self._main_window = None
 
         self.wm_protocol("WM_DELETE_WINDOW", self._on_delete)
 
         def poll_queue():
-            self.process_event_queue(None)
+            self._process_event_queue(None)
             self._poll_queue_alarm_id = self.after(100, self._poll_queue)
         self._poll_queue_alarm_id = None
         self._poll_queue = poll_queue
@@ -98,7 +100,7 @@ class RootWindow(tk.Tk):
             self.after_cancel(self._poll_queue_alarm_id)
         self._root().quit()
 
-    def process_event_queue(self, event):
+    def _process_event_queue(self, event):
         """Processes every pending event on the queue."""
         # With after() polling, always use get_nowait() to avoid blocking.
         func_or_name, arg_dict = None, None
@@ -174,7 +176,7 @@ class RootWindow(tk.Tk):
             self._root().destroy()
 
     def invoke_later(self, func_or_name, arg_dict):
-        """Schedules an action to occur in this thread (thread-safe)."""
+        """Schedules an action to occur in this thread. (thread-safe)"""
         self._event_queue.put((func_or_name, arg_dict))
         # The queue will be polled eventually by an after() alarm.
 
@@ -692,14 +694,78 @@ def find_ftl_exe():
     return None
 
 
-class LogicObj(object):
+class LogicThread(killable_threading.KillableThread):
+    """One thread to rule them all.
+
+    Thanks to invoke_later(), there is no ambiguity concerning what
+    thread is running the methods here. Any member variables on this
+    class will be safe to reference in its methods.
+
+    Globals should only be used if they're constants, or at least not
+    changed while multiple threads are simultaneously looking at them.
+    """
+
     def __init__(self, root_window):
+        killable_threading.KillableThread.__init__(self)
+        self.ACTIONS = ["ACTION_LOAD_CONFIG", "ACTION_CONFIG_LOADED",
+                        "ACTION_MAIN_WINDOW_CLOSED", "ACTION_PATCHING_FINISHED"]
+        for x in self.ACTIONS: setattr(self, x, x)
+
         self._mygui = root_window
 
-    def run(self):
-        self.load_config({})
+        self._event_queue = Queue.Queue()
 
-    def load_config(self, arg_dict):
+    def run(self):
+        try:
+            self.invoke_later(self.ACTION_LOAD_CONFIG, {})
+
+            while (self.keep_alive):
+                self._process_event_queue(0.5)  # Includes some blocking.
+                if (not self.keep_alive): break
+                if (self._mygui.done is True): break
+
+        except (Exception) as err:
+            logging.exception("Unexpected exception in %s." % self.__class__.__name__)
+
+        # This thread is done.
+        self.keep_alive = False
+        self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
+
+    def _process_event_queue(self, queue_timeout=None):
+        """Processes every pending event on the queue.
+
+        :param queue_timeout: Optionally block up to N seconds in the initial check.
+        """
+        action_name, arg_dict = None, None
+        first_pass = True
+        while(True):
+            try:
+                if (first_pass):
+                    queue_block = True if (queue_timeout is not None and queue_timeout > 0) else False
+                    action_name, arg_dict = self._event_queue.get(queue_block, queue_timeout)
+                else:
+                    first_pass = False
+                    action_name, arg_dict = self._event_queue.get_nowait()
+            except (Queue.Empty):
+                break
+            else:
+                self._process_event(action_name, arg_dict)
+
+    def _process_event(self, action_name, arg_dict):
+        """Processes events queued via invoke_later()."""
+        if (action_name == self.ACTION_LOAD_CONFIG):
+            self._load_config(arg_dict)
+
+        elif (action_name == self.ACTION_CONFIG_LOADED):
+            self._config_loaded(arg_dict)
+
+        elif (action_name == self.ACTION_MAIN_WINDOW_CLOSED):
+            self._main_window_closed(arg_dict)
+
+        elif (action_name == self.ACTION_PATCHING_FINISHED):
+            self._patching_finished(arg_dict)
+
+    def _load_config(self, arg_dict):
         global allowzip, never_run_ftl
         global dir_self, dir_res
 
@@ -740,19 +806,24 @@ class LogicObj(object):
         else:
             logging.debug("No FTL dats path previously set.")
 
-        # Find/prompt for the path to set in the config.
         if (not dir_res):
+            # Find/prompt for the path to set in the config.
             dir_res = find_ftl_path()
-            self._mygui.invoke_later(self._mygui.ACTION_CONFIG, {"write_config":write_config, "config_parser":cfg, "next_func":self.config_loaded})
-        else:
-            self.config_loaded({"write_config":write_config, "config_parser":cfg})
 
-    def config_loaded(self, arg_dict):
+            def next_func(arg_dict):
+                self.invoke_later(self.ACTION_CONFIG_LOADED, arg_dict)
+
+            self._mygui.invoke_later(self._mygui.ACTION_CONFIG, {"write_config":write_config, "config_parser":cfg, "next_func":next_func})
+        else:
+            # Skip to the next phase.
+            self.invoke_later(self.ACTION_CONFIG_LOADED, {"write_config":write_config, "config_parser":cfg})
+
+    def _config_loaded(self, arg_dict):
         global dir_self
 
         for arg in ["write_config", "config_parser"]:
             if (arg not in arg_dict):
-                logging.error("Missing arg %s for config_loaded callback." % arg)
+                logging.error("Missing arg %s for %s.%s()." % (arg, self.__class__.__name__, inspect.stack()[0][3]))
                 return
 
         if (arg_dict["write_config"]):
@@ -771,12 +842,15 @@ class LogicObj(object):
         all_mod_names = load_modorder()
         save_modorder(all_mod_names)
 
-        self._mygui.invoke_later(self._mygui.ACTION_SHOW_MAIN_WINDOW, {"mod_names":all_mod_names, "next_func":self.main_window_closed})
+        def next_func(arg_dict):
+            self.invoke_later(self.ACTION_MAIN_WINDOW_CLOSED, arg_dict)
 
-    def main_window_closed(self, arg_dict):
+        self._mygui.invoke_later(self._mygui.ACTION_SHOW_MAIN_WINDOW, {"mod_names":all_mod_names, "next_func":next_func})
+
+    def _main_window_closed(self, arg_dict):
         for arg in ["all_mods", "selected_mods"]:
             if (arg not in arg_dict):
-                logging.error("Missing arg %s for main_window_closed callback." % arg)
+                logging.error("Missing arg %s for %s.%s()." % (arg, self.__class__.__name__, inspect.stack()[0][3]))
                 return
 
         if (arg_dict["selected_mods"] is None):
@@ -792,17 +866,17 @@ class LogicObj(object):
             logging.info("")
             result = patch_dats(arg_dict["selected_mods"])
 
-            self.patching_finished({"result":result})
+            self.invoke_later(self.ACTION_PATCHING_FINISHED, {"result":result})
 
         t = threading.Thread(target=payload)
         t.start()
 
-    def patching_finished(self, arg_dict):
+    def _patching_finished(self, arg_dict):
         global never_run_ftl
 
         for arg in ["result"]:
             if (arg not in arg_dict):
-                logging.error("Missing arg %s for patching_finished callback." % arg)
+                logging.error("Missing arg %s for %s.%s()." % (arg, self.__class__.__name__, inspect.stack()[0][3]))
                 return
 
         logging.info("")
@@ -819,6 +893,10 @@ class LogicObj(object):
             self._mygui.invoke_later(self._mygui.ACTION_PATCHING_FAILED, {})
 
         self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
+
+    def invoke_later(self, action_name, arg_dict):
+        """Schedules an action to occur in this thread. (thread-safe)"""
+        self._event_queue.put((action_name, arg_dict))
 
 
 def main():
@@ -843,10 +921,13 @@ def main():
             mygui.destroy()
         mygui.report_callback_exception = tk_error_func
 
-        logic_obj = LogicObj(mygui)
-        logic_obj.run()
+        logic_thread = LogicThread(mygui)
+        logic_thread.start()
 
-        mygui.mainloop()
+        try:
+            mygui.mainloop()
+        finally:
+            mygui.done = True
 
     except (Exception) as err:
         logging.exception(err)
