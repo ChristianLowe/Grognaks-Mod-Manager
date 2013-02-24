@@ -752,6 +752,7 @@ class LogicObj(object):
                 cfg_file.write("# allowzip - Sets whether to treat .zip files as .ftl files. Default: 0 (false).\n")
                 cfg_file.write("# ftl_dats_path - The path to FTL's resources folder. If invalid, you'll be prompted.\n")
                 cfg_file.write("#\n")
+                cfg_file.write("# highlightall - Deprecated.\n")
                 cfg_file.write("# macmodsdir - Deprecated. Each OS keeps mods in GMM/mods/ now.\n")
                 cfg_file.write("#\n")
                 cfg_file.write("\n")
