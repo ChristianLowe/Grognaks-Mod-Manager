@@ -48,6 +48,17 @@ class CleanupHandler(object):
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
 
+        # Linux/OSX? terminal closing.
+        # Don't use until confirmed not to leave the app
+        # running as a headless zombie process. SIGEXIT maybe?
+        #
+        # Closing the terminal shouldn't be encouraged unless
+        # it's universally supported.
+        #
+        #if (hasattr(signal, "SIGHUP")):
+        #    signal.signal(signal.SIGHUP, self.signal_handler)
+
+        # Windows terminal closing.
         if (re.search("Windows", platform.system(), re.IGNORECASE)):
             ctypes.windll.kernel32.SetConsoleCtrlHandler(self.win_ctrlhandler, 1)
 
