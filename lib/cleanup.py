@@ -50,10 +50,11 @@ class CleanupHandler(object):
 
         # Linux/OSX? terminal closing.
         # Don't use until confirmed not to leave the app
-        # running as a headless zombie process. SIGEXIT maybe?
+        # running as a headless zombie process or end
+        # abruptly without triggering this handler.
         #
         # Closing the terminal shouldn't be encouraged unless
-        # it's universally supported.
+        # it's universally supported. SIGEXIT maybe?
         #
         #if (hasattr(signal, "SIGHUP")):
         #    signal.signal(signal.SIGHUP, self.signal_handler)
