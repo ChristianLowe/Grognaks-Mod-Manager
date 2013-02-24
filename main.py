@@ -474,7 +474,7 @@ def prompt_for_ftl_path():
     msgbox.showinfo(global_config.APP_NAME, message)
 
     result = tkFileDialog.askopenfilename(title="Find data.dat or FTL.app",
-        filetypes=[("data.dat or OSX Bundle", "data.dat;FTL.app")])
+        filetypes=[("data.dat or OSX Bundle", ("*.dat","*.app")), ("All Files", "*.*")])
 
     if (result):
         if (os.path.basename(result) == "data.dat"):
