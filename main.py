@@ -464,11 +464,11 @@ def find_ftl_path():
     # OSX
     candidates.append(os.path.join("/", *["Applications","FTL.app","Contents","Resources"]))
 
-    result = None
     for c in candidates:
         if (is_dats_path_valid(c)):
-            result = c
-    return result
+            return c
+
+    return None
 
 def prompt_for_ftl_path():
     """Returns a path to FTL resources chosen by the user, or None.
