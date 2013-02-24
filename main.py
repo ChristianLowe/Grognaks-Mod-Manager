@@ -44,6 +44,7 @@ try:
     import Queue
     import re
     import shutil as sh
+    import subprocess
     import tempfile as tf
     import threading
     import webbrowser
@@ -53,20 +54,15 @@ try:
     import tkMessageBox as msgbox
 
     # Modules bundled with this script.
-    from ftldat import FTLDatUnpacker as du
-    from ftldat import FTLDatPacker as dp
+    from lib.ftldat import FTLDatUnpacker
+    from lib.ftldat import FTLDatPacker
+    from lib import cleanup
+    from lib import global_config
+    from lib import killable_threading
 
 except (Exception) as err:
     logging.exception(err)
     sys.exit(1)
-
-
-# Declare globals.
-APP_VERSION = "1.6"
-APP_NAME = "Grognak's Mod Manager v%s" % APP_VERSION
-allowzip = False
-dir_mods = None
-dir_res = None
 
 
 class RootWindow(tk.Tk):
@@ -79,12 +75,13 @@ class RootWindow(tk.Tk):
         for x in self.ACTIONS: setattr(self, x, x)
 
         self._event_queue = Queue.Queue()
+        self.done = False  # Indicates to other threads that mainloop() ended.
         self._main_window = None
 
         self.wm_protocol("WM_DELETE_WINDOW", self._on_delete)
 
         def poll_queue():
-            self.process_event_queue(None)
+            self._process_event_queue(None)
             self._poll_queue_alarm_id = self.after(100, self._poll_queue)
         self._poll_queue_alarm_id = None
         self._poll_queue = poll_queue
@@ -96,7 +93,7 @@ class RootWindow(tk.Tk):
             self.after_cancel(self._poll_queue_alarm_id)
         self._root().quit()
 
-    def process_event_queue(self, event):
+    def _process_event_queue(self, event):
         """Processes every pending event on the queue."""
         # With after() polling, always use get_nowait() to avoid blocking.
         func_or_name, arg_dict = None, None
@@ -110,8 +107,6 @@ class RootWindow(tk.Tk):
 
     def _process_event(self, func_or_name, arg_dict):
         """Processes events queued via invoke_later()."""
-        global APP_NAME
-        global dir_self, dir_res
 
         def check_args(args):
             for arg in args:
@@ -126,20 +121,20 @@ class RootWindow(tk.Tk):
         elif (func_or_name == self.ACTION_CONFIG):
             check_args(["write_config", "config_parser", "next_func"])
 
-            if (dir_res):
-                if (not msgbox.askyesno(APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % dir_res)):
-                    dir_res = None
+            if (global_config.dir_res):
+                if (not msgbox.askyesno(global_config.APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % global_config.dir_res)):
+                    global_config.dir_res = None
 
-            if (not dir_res):
+            if (not global_config.dir_res):
                 logging.debug("FTL dats path was not located automatically. Prompting user for location.")
-                dir_res = prompt_for_ftl_path()
+                global_config.dir_res = prompt_for_ftl_path()
 
-            if (dir_res):
-                arg_dict["config_parser"].set("settings", "ftl_dats_path", dir_res)
+            if (global_config.dir_res):
+                arg_dict["config_parser"].set("settings", "ftl_dats_path", global_config.dir_res)
                 arg_dict["write_config"] = True
-                logging.info("FTL dats located at: %s" % dir_res)
+                logging.info("FTL dats located at: %s" % global_config.dir_res)
 
-            if (not dir_res):
+            if (not global_config.dir_res):
                 logging.debug("No FTL dats path found, exiting.")
                 sys.exit(1)
 
@@ -149,19 +144,21 @@ class RootWindow(tk.Tk):
             check_args(["mod_names", "next_func"])
 
             if (not self._main_window):
-                self._main_window = MainWindow(master=self, title=APP_NAME, mod_names=arg_dict["mod_names"], next_func=arg_dict["next_func"])
+                self._main_window = MainWindow(master=self, title=global_config.APP_NAME, mod_names=arg_dict["mod_names"], next_func=arg_dict["next_func"])
                 self._main_window.center_window()
 
         elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
-            ftl_exe_path = find_ftl_exe()
-            if (ftl_exe_path):
-                if (msgbox.askyesno(APP_NAME, "Patching completed successfully. Run FTL now?")):
-                    os.system("\"%s\"" % ftl_exe_path)
+            check_args(["ftl_exe_path"])
+
+            if (arg_dict["ftl_exe_path"]):
+                if (msgbox.askyesno(global_config.APP_NAME, "Patching completed successfully. Run FTL now?")):
+                    logging.info("Running FTL...")
+                    subprocess.Popen([arg_dict["ftl_exe_path"]])
             else:
-                msgbox.showinfo(APP_NAME, "Patching completed successfully.")
+                msgbox.showinfo(global_config.APP_NAME, "Patching completed successfully.")
 
         elif (func_or_name == self.ACTION_PATCHING_FAILED):
-                msgbox.showerror(APP_NAME, "Patching failed. See log for details.")
+                msgbox.showerror(global_config.APP_NAME, "Patching failed. See log for details.")
 
         elif (func_or_name == self.ACTION_DIE):
             # Destruction awaits. Nothing more to do.
@@ -170,7 +167,7 @@ class RootWindow(tk.Tk):
             self._root().destroy()
 
     def invoke_later(self, func_or_name, arg_dict):
-        """Schedules an action to occur in this thread (thread-safe)."""
+        """Schedules an action to occur in this thread. (thread-safe)"""
         self._event_queue.put((func_or_name, arg_dict))
         # The queue will be polled eventually by an after() alarm.
 
@@ -198,94 +195,93 @@ class MainWindow(tk.Toplevel):
 
         self.resizable(False, False)
 
-        # Our topmost frame is called rootframe.
-        self.rootframe = tk.Frame(self)
-        self.rootframe.pack()
+        # Our topmost frame is called root_frame.
+        root_frame = tk.Frame(self)
+        root_frame.pack()
 
         # Top frame (container).
-        self.top_frame = tk.Frame(self.rootframe)
-        self.top_frame.pack(side="top", fill="both", expand="yes")
+        top_frame = tk.Frame(root_frame)
+        top_frame.pack(side="top", fill="both", expand="yes")
 
         # Top-left frame (mod list).
-        self.left_frame = tk.Frame(self.top_frame, #background="red",
+        left_frame = tk.Frame(top_frame, #background="red",
             borderwidth=1, relief="ridge",
             width=50, height=250)
-        self.left_frame.pack(side="left", fill="both", expand="yes")
+        left_frame.pack(side="left", fill="both", expand="yes")
 
         # Top-right frame (buttons).
-        self.right_frame = tk.Frame(self.top_frame, width=250)
-        self.right_frame.pack(side="right", fill="y", expand="no")
+        right_frame = tk.Frame(top_frame, width=250)
+        right_frame.pack(side="right", fill="y", expand="no")
 
         # Bottom frame (mod descriptions).
-        self.bottom_frame = tk.Frame(self.rootframe,
+        bottom_frame = tk.Frame(root_frame,
             borderwidth=3, relief="ridge",
             height=50)
-        self.bottom_frame.pack(side="top", fill="both", expand="yes")
+        bottom_frame.pack(side="top", fill="both", expand="yes")
 
         # Add a listbox to hold the mod names.
-        self._mod_listbox = tk.Listbox(self.left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
+        self._mod_listbox = tk.Listbox(left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
         self._mod_listbox.pack(side="left", fill="both", expand="yes")
-        self.modscrollbar = tk.Scrollbar(self.left_frame, command=self._mod_listbox.yview, orient="vertical")
-        self.modscrollbar.pack(side="right", fill="y")
+        self._mod_scrollbar = tk.Scrollbar(left_frame, command=self._mod_listbox.yview, orient="vertical")
+        self._mod_scrollbar.pack(side="right", fill="y")
         self._mod_listbox.bind("<<ListboxSelect>>", self._on_listbox_select)
         self._mod_listbox.bind("<Button-1>", self._on_listbox_mouse_pressed)
         self._mod_listbox.bind("<B1-Motion>", self._on_listbox_mouse_dragged)
-        self._mod_listbox.configure(yscrollcommand=self.modscrollbar.set)
+        self._mod_listbox.configure(yscrollcommand=self._mod_scrollbar.set)
 
         # Add textbox at bottom to hold mod information.
-        self.descbox = tk.Text(self.bottom_frame, width=60, height=10, wrap="word")
-        self.descbox.pack(fill="both", expand="yes")
+        self._desc_area = tk.Text(bottom_frame, width=60, height=10, wrap="word")
+        self._desc_area.pack(fill="both", expand="yes")
 
         # Set formating tags.
-        self.descbox.tag_configure("title", font="helvetica 24 bold")
+        self._desc_area.tag_configure("title", font="helvetica 24 bold")
 
         # Add the buttons to the buttons frame.
-        self.patch_btn = tk.Button(self.right_frame, command=self._patch)
-        self.patch_btn.configure(text="Patch")
-        self.patch_btn.focus_force()
-        self.patch_btn.configure(
+        self._patch_btn = tk.Button(right_frame, text="Patch")
+        self._patch_btn.configure(
             width=self.button_width,
             padx=self.button_padx, pady=self.button_pady)
 
-        self.patch_btn.pack(side="top")
-        self.patch_btn.bind("<Return>", lambda e: self._patch())
+        self._patch_btn.pack(side="top")
+        self._patch_btn.configure(command=self._patch)
+        self._patch_btn.bind("<Return>", lambda e: self._patch())
 
-        self.toggle_all_btn = tk.Button(self.right_frame, command=self._toggle_all)
-        self.toggle_all_btn.configure(text="Toggle All")
-        self.toggle_all_btn.configure(
+        self._toggle_all_btn = tk.Button(right_frame, text="Toggle All")
+        self._toggle_all_btn.configure(
             width=self.button_width,
             padx=self.button_padx, pady=self.button_pady)
 
-        self.toggle_all_btn.pack(side="top")
-        self.toggle_all_btn.bind("<Return>", lambda e: self._toggle_all())
+        self._toggle_all_btn.pack(side="top")
+        self._toggle_all_btn.configure(command=self._toggle_all)
+        self._toggle_all_btn.bind("<Return>", lambda e: self._toggle_all())
 
-        self.dummy_b_btn = tk.Button(self.right_frame)
-        self.dummy_b_btn.configure(text="")
-        self.dummy_b_btn.configure(
+        self._dummy_a_btn = tk.Button(right_frame, text="")
+        self._dummy_a_btn.configure(
             width=self.button_width,
             padx=self.button_padx, pady=self.button_pady,
             state="disabled")
 
-        self.dummy_b_btn.pack(side="top")
+        self._dummy_a_btn.pack(side="top")
 
-        self.forum_btn = tk.Button(self.right_frame, command=self._browse_forum)
-        self.forum_btn.configure(text="Forum")
-        self.forum_btn.configure(
+        self._forum_btn = tk.Button(right_frame, text="Forum")
+        self._forum_btn.configure(
             width=self.button_width,
             padx=self.button_padx, pady=self.button_pady)
 
-        self.forum_btn.pack(side="top")
-        self.forum_btn.bind("<Return>", lambda e: self._browse_forum())
+        self._forum_btn.pack(side="top")
+        self._forum_btn.configure(command=self._browse_forum)
+        self._forum_btn.bind("<Return>", lambda e: self._browse_forum())
 
         self._fill_list()
         self.wm_protocol("WM_DELETE_WINDOW", self._destroy)  # Intercept window manager closing.
 
+        self._patch_btn.focus_force()
+
     def _fill_list(self):
         """Fills the list of all available mods."""
-        global APP_VERSION
 
         # Set default description.
-        self._set_description("Grognak's Mod Manager", "Grognak", APP_VERSION, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
+        self._set_description("Grognak's Mod Manager", "Grognak", global_config.APP_VERSION, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
 
         for mod_name in self.custom_args["mod_names"]:
             self._add_mod(mod_name, False)
@@ -327,18 +323,18 @@ class MainWindow(tk.Toplevel):
 
     def _set_description(self, title, author=None, version=None, description=None):
         """Sets the currently displayed mod description."""
-        self.descbox.configure(state="normal")
-        self.descbox.delete("1.0", tk.END)
-        self.descbox.insert(tk.END, (title +"\n"), "title")
+        self._desc_area.configure(state="normal")
+        self._desc_area.delete("1.0", tk.END)
+        self._desc_area.insert(tk.END, (title +"\n"), "title")
         if (author is not None and version is not None):
-            self.descbox.insert(tk.END, "by %s (version %s)\n\n" % (author, str(version)))
+            self._desc_area.insert(tk.END, "by %s (version %s)\n\n" % (author, str(version)))
         else:
-            self.descbox.insert(tk.END, "\n")
+            self._desc_area.insert(tk.END, "\n")
         if (description):
-            self.descbox.insert(tk.END, description)
+            self._desc_area.insert(tk.END, description)
         else:
-            self.descbox.insert(tk.END, "No description.")
-        self.descbox.configure(state="disabled")
+            self._desc_area.insert(tk.END, "No description.")
+        self._desc_area.configure(state="disabled")
 
     def _patch(self):
         # Remember the names to return in _on_delete().
@@ -412,7 +408,7 @@ def packdat(unpack_dir, dat_path):
                 s.append(current + (child,))
     logging.info("Creating datfile...")
     index_size = len(files)
-    packer = dp(open(dat_path, "wb"), index_size)
+    packer = FTLDatPacker(open(dat_path, "wb"), index_size)
     logging.info("Packing...")
     for _file in files:
         full_path = os.path.join(unpack_dir, *_file)
@@ -422,7 +418,7 @@ def packdat(unpack_dir, dat_path):
 
 def unpackdat(dat_path, unpack_dir):
     logging.info("Unpacking %s..." % os.path.basename(dat_path))
-    unpacker = du(open(dat_path, "rb"))
+    unpacker = FTLDatUnpacker(open(dat_path, "rb"))
 
     for i, filename, size, offset in unpacker:
         target = os.path.join(unpack_dir, filename)
@@ -460,27 +456,25 @@ def find_ftl_path():
     # OSX
     candidates.append(os.path.join("/", *["Applications","FTL.app","Contents","Resources"]))
 
-    result = None
     for c in candidates:
         if (is_dats_path_valid(c)):
-            result = c
-    return result
+            return c
+
+    return None
 
 def prompt_for_ftl_path():
     """Returns a path to FTL resources chosen by the user, or None.
     This should be called from a tkinter gui mainloop.
     """
-    global APP_NAME
-
     message = ""
     message += "The path to FTL's resources could not be guessed.\n\n";
     message += "You will now be prompted to locate FTL manually.\n";
     message += "Select '(FTL dir)/resources/data.dat'.\n";
     message += "Or 'FTL.app', if you're on OSX.";
-    msgbox.showinfo(APP_NAME, message)
+    msgbox.showinfo(global_config.APP_NAME, message)
 
     result = tkFileDialog.askopenfilename(title="Find data.dat or FTL.app",
-        filetypes=[("data.dat or OSX Bundle", "data.dat;FTL.app")])
+        filetypes=[("data.dat or OSX Bundle", ("*.dat","*.app")), ("All Files", "*.*")])
 
     if (result):
         if (os.path.basename(result) == "data.dat"):
@@ -495,14 +489,12 @@ def prompt_for_ftl_path():
 
 def find_mod(mod_name):
     """Returns the full path to a mod file, or None."""
-    global allowzip
-    global dir_mods
 
     suffixes = ["", ".ftl"]
-    if (allowzip): suffixes.append(".zip")
+    if (global_config.allowzip): suffixes.append(".zip")
 
     for suffix in suffixes:
-        tmp_path = os.path.join(dir_mods, mod_name + suffix)
+        tmp_path = os.path.join(global_config.dir_mods, mod_name + suffix)
         if (os.path.isfile(tmp_path)):
             return tmp_path
 
@@ -511,13 +503,11 @@ def find_mod(mod_name):
 
 def load_modorder():
     """Reads the modorder, syncs it with existing files, and returns it."""
-    global allowzip
-    global dir_mods
 
     modorder_lines = []
     try:
         # Translate mod names to full filenames, temporarily.
-        with open(os.path.join(dir_mods, "modorder.txt"), "r") as modorder_file:
+        with open(os.path.join(global_config.dir_mods, "modorder.txt"), "r") as modorder_file:
             modorder_lines = modorder_file.readlines()
             modorder_lines = [line.strip() for line in modorder_lines]
             modorder_lines = [find_mod(line) for line in modorder_lines]
@@ -529,12 +519,12 @@ def load_modorder():
         else: raise
 
     mod_exts = ["ftl"]
-    if (allowzip): mod_exts.append("zip")
+    if (global_config.allowzip): mod_exts.append("zip")
 
     # Get a list of full filenames.
     mod_filenames = []
     for ext in mod_exts:
-        ext_filenames = glob.glob(os.path.join(dir_mods, "*."+ext))
+        ext_filenames = glob.glob(os.path.join(global_config.dir_mods, "*."+ext))
         ext_filenames = [os.path.basename(f) for f in ext_filenames]
         mod_filenames.extend(ext_filenames)
 
@@ -557,28 +547,29 @@ def load_modorder():
     return modorder_lines
 
 def save_modorder(modorder_lines):
-    global dir_mods
-    with open(os.path.join(dir_mods, "modorder.txt"), "w") as modorder_file:
+    with open(os.path.join(global_config.dir_mods, "modorder.txt"), "w") as modorder_file:
         modorder_file.write("\n".join(modorder_lines) +"\n")
 
-def patch_dats(selected_mods):
+def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     """Backs up, clobbers, unpacks, merges, and finally packs dats.
 
     :param selected_mods: A list of mod names to install.
+    :param keep_alive_func: Optional replacement to get an abort boolean.
+    :param sleep_func: Optional replacement to sleep N seconds.
     :return: True if successful, False otherwise.
     """
-    global allowzip
-    global dir_self, dir_mods, dir_res
+    if (keep_alive_func is None): keep_alive_func = global_config.keeping_alive
+    if (sleep_func is None): sleep_func = global_config.nap
 
     # Get full paths from mod names.
     mod_list = [find_mod(mod_name) for mod_name in selected_mods]
     mod_list = [mod_path for mod_path in mod_list if (mod_path is not None)]
 
-    data_dat_path = os.path.join(dir_res, "data.dat")
-    resource_dat_path = os.path.join(dir_res, "resource.dat")
+    data_dat_path = os.path.join(global_config.dir_res, "data.dat")
+    resource_dat_path = os.path.join(global_config.dir_res, "resource.dat")
 
-    data_bak_path = os.path.join(dir_res, "data.dat.bak")
-    resource_bak_path = os.path.join(dir_res, "resource.dat.bak")
+    data_bak_path = os.path.join(global_config.dir_res, "data.dat.bak")
+    resource_bak_path = os.path.join(global_config.dir_res, "resource.dat.bak")
 
     data_unp_path = None
     resource_unp_path = None
@@ -591,9 +582,13 @@ def patch_dats(selected_mods):
                 logging.info("Backing up %s" % os.path.basename(dat_path))
                 sh.copy2(dat_path, bak_path)
 
+        if (not keep_alive_func()): return False
+
         # Clobber current dat files with their respective backups.
         for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
             sh.copy2(bak_path, dat_path)
+
+        if (not keep_alive_func()): return False
 
         if (len(mod_list) == 0):
             return True  # No mods. Skip the repacking.
@@ -614,6 +609,7 @@ def patch_dats(selected_mods):
 
         # Extract each mod into a temp dir and merge into unpacked dat dirs.
         for mod_path in mod_list:
+            if (not keep_alive_func()): return False
             try:
                 logging.info("")
                 logging.info("Installing mod: %s" % os.path.basename(mod_path))
@@ -659,6 +655,8 @@ def patch_dats(selected_mods):
                     sh.rmtree(tmp, ignore_errors=True)
                     tmp = None
 
+        if (not keep_alive_func()): return False
+
         # All the mods are installed, so repack the files.
         packdat(data_unp_path, data_dat_path)
         packdat(resource_unp_path, resource_dat_path)
@@ -678,77 +676,150 @@ def patch_dats(selected_mods):
 
 def find_ftl_exe():
     """Returns the FTL executable's path, or None."""
-    global dir_res
 
     if (platform.system() == "Windows"):
-        exe_path = os.path.normpath(os.path.join(dir_res, *["..", "FTLGame.exe"]))
+        exe_path = os.path.normpath(os.path.join(global_config.dir_res, *["..", "FTLGame.exe"]))
         if (os.path.isfile(exe_path)):
             return exe_path
 
     return None
 
 
-class LogicObj(object):
+class LogicThread(killable_threading.KillableThread):
+    """One thread to rule them all.
+
+    Thanks to invoke_later(), there is no ambiguity concerning what
+    thread is running the methods here. Any member variables on this
+    class will be safe to reference in its methods.
+
+    Globals should only be used if they're constants, or at least not
+    changed while multiple threads are simultaneously looking at them.
+    """
+
     def __init__(self, root_window):
+        killable_threading.KillableThread.__init__(self)
+        self.ACTIONS = ["ACTION_LOAD_CONFIG", "ACTION_CONFIG_LOADED",
+                        "ACTION_MAIN_WINDOW_CLOSED", "ACTION_PATCHING_FINISHED"]
+        for x in self.ACTIONS: setattr(self, x, x)
+
         self._mygui = root_window
+        self._patch_thread = None
+        self._event_queue = Queue.Queue()
 
     def run(self):
-        self.load_config({})
+        try:
+            self.invoke_later(self.ACTION_LOAD_CONFIG, {})
 
-    def load_config(self, arg_dict):
-        global allowzip
-        global dir_self, dir_res
+            while (self.keep_alive):
+                self._process_event_queue(0.5)  # Includes some blocking.
+                if (not self.keep_alive): break
+                if (self._mygui.done is True): break
 
+        except (Exception) as err:
+            logging.exception("Unexpected exception in %s." % self.__class__.__name__)
+
+        # This thread is done.
+        self.keep_alive = False
+        global_config.get_cleanup_handler().cleanup()
+
+    def _process_event_queue(self, queue_timeout=None):
+        """Processes every pending event on the queue.
+
+        :param queue_timeout: Optionally block up to N seconds in the initial check.
+        """
+        action_name, arg_dict = None, None
+        first_pass = True
+        while(True):
+            try:
+                if (first_pass):
+                    queue_block = True if (queue_timeout is not None and queue_timeout > 0) else False
+                    action_name, arg_dict = self._event_queue.get(queue_block, queue_timeout)
+                else:
+                    first_pass = False
+                    action_name, arg_dict = self._event_queue.get_nowait()
+            except (Queue.Empty):
+                break
+            else:
+                self._process_event(action_name, arg_dict)
+
+    def _process_event(self, action_name, arg_dict):
+        """Processes events queued via invoke_later()."""
+        if (action_name == self.ACTION_LOAD_CONFIG):
+            self._load_config(arg_dict)
+
+        elif (action_name == self.ACTION_CONFIG_LOADED):
+            self._config_loaded(arg_dict)
+
+        elif (action_name == self.ACTION_MAIN_WINDOW_CLOSED):
+            self._main_window_closed(arg_dict)
+
+        elif (action_name == self.ACTION_PATCHING_FINISHED):
+            self._patching_finished(arg_dict)
+
+    def _load_config(self, arg_dict):
         cfg = SafeConfigParser()
         cfg.add_section("settings")
 
         # Set defaults.
-        cfg.set("settings", "allowzip", ("1" if (allowzip is True) else "0"))
+        cfg.set("settings", "allowzip", ("1" if (global_config.allowzip is True) else "0"))
+        cfg.set("settings", "ftl_dats_path", "")
+        cfg.set("settings", "never_run_ftl", ("1" if (global_config.never_run_ftl is True) else "0"))
 
         write_config = False
         try:
-            with open(os.path.join(dir_self, "modman.ini"), "r") as cfg_file:
+            with open(os.path.join(global_config.dir_self, "modman.ini"), "r") as cfg_file:
                 cfg.readfp(cfg_file)
         except (Exception) as err:
             write_config = True
 
         if (cfg.has_option("settings", "allowzip")):
-            allowzip = cfg.getboolean("settings", "allowzip")
+            global_config.allowzip = cfg.getboolean("settings", "allowzip")
 
         if (cfg.has_option("settings", "ftl_dats_path")):
-            dir_res = cfg.get("settings", "ftl_dats_path")
+            global_config.dir_res = cfg.get("settings", "ftl_dats_path")
 
-        if (cfg.has_option("settings", "macmodsdir")):  # Deprecated.
-            cfg.remove_option("settings", "macmodsdir")
+        if (cfg.has_option("settings", "never_run_ftl")):
+            global_config.never_run_ftl = cfg.getboolean("settings", "never_run_ftl")
 
-        if (dir_res):
-            logging.info("Using FTL dats path from config: %s" % dir_res)
-            if (not is_dats_path_valid(dir_res)):
-                logging.error("The config's ftlDatsPath does not exist, or it lacks data.dat.")
+        # Remove deprecated settings.
+        for x in ["macmodsdir", "highlightall"]:
+          if (cfg.has_option("settings", x)):
+            cfg.remove_option("settings", x)
+
+        if (global_config.dir_res):
+            logging.info("Using FTL dats path from config: %s" % global_config.dir_res)
+            if (not is_dats_path_valid(global_config.dir_res)):
+                logging.error("The config's FTL dats path does not exist, or it lacks data.dat.")
+                global_config.dir_res = None
         else:
             logging.debug("No FTL dats path previously set.")
 
-        # Find/prompt for the path to set in the config.
-        if (not dir_res):
-            dir_res = find_ftl_path()
-            self._mygui.invoke_later(self._mygui.ACTION_CONFIG, {"write_config":write_config, "config_parser":cfg, "next_func":self.config_loaded})
+        if (not global_config.dir_res):
+            # Find/prompt for the path to set in the config.
+            global_config.dir_res = find_ftl_path()
+
+            def next_func(arg_dict):
+                self.invoke_later(self.ACTION_CONFIG_LOADED, arg_dict)
+
+            self._mygui.invoke_later(self._mygui.ACTION_CONFIG, {"write_config":write_config, "config_parser":cfg, "next_func":next_func})
         else:
-            self.config_loaded({"write_config":write_config, "config_parser":cfg})
+            # Skip to the next phase.
+            self.invoke_later(self.ACTION_CONFIG_LOADED, {"write_config":write_config, "config_parser":cfg})
 
-    def config_loaded(self, arg_dict):
-        global dir_self
-
+    def _config_loaded(self, arg_dict):
         for arg in ["write_config", "config_parser"]:
             if (arg not in arg_dict):
-                logging.error("Missing arg %s for config_loaded callback." % arg)
+                logging.error("Missing arg %s for %s.%s()." % (arg, self.__class__.__name__, inspect.stack()[0][3]))
                 return
 
         if (arg_dict["write_config"]):
-            with open(os.path.join(dir_self, "modman.ini"), "w") as cfg_file:
+            with open(os.path.join(global_config.dir_self, "modman.ini"), "w") as cfg_file:
                 cfg_file.write("#\n")
                 cfg_file.write("# allowzip - Sets whether to treat .zip files as .ftl files. Default: 0 (false).\n")
                 cfg_file.write("# ftl_dats_path - The path to FTL's resources folder. If invalid, you'll be prompted.\n")
+                cfg_file.write("# never_run_ftl - If true, there will be no offer to run FTL after patching. Default: 0 (false).\n")
                 cfg_file.write("#\n")
+                cfg_file.write("# highlightall - Deprecated.\n")
                 cfg_file.write("# macmodsdir - Deprecated. Each OS keeps mods in GMM/mods/ now.\n")
                 cfg_file.write("#\n")
                 cfg_file.write("\n")
@@ -757,12 +828,15 @@ class LogicObj(object):
         all_mod_names = load_modorder()
         save_modorder(all_mod_names)
 
-        self._mygui.invoke_later(self._mygui.ACTION_SHOW_MAIN_WINDOW, {"mod_names":all_mod_names, "next_func":self.main_window_closed})
+        def next_func(arg_dict):
+            self.invoke_later(self.ACTION_MAIN_WINDOW_CLOSED, arg_dict)
 
-    def main_window_closed(self, arg_dict):
+        self._mygui.invoke_later(self._mygui.ACTION_SHOW_MAIN_WINDOW, {"mod_names":all_mod_names, "next_func":next_func})
+
+    def _main_window_closed(self, arg_dict):
         for arg in ["all_mods", "selected_mods"]:
             if (arg not in arg_dict):
-                logging.error("Missing arg %s for main_window_closed callback." % arg)
+                logging.error("Missing arg %s for %s.%s()." % (arg, self.__class__.__name__, inspect.stack()[0][3]))
                 return
 
         if (arg_dict["selected_mods"] is None):
@@ -772,46 +846,69 @@ class LogicObj(object):
 
         save_modorder(arg_dict["all_mods"])
 
-        def payload():
-            logging.info("")
-            logging.info("Patching...")
-            logging.info("")
-            result = patch_dats(arg_dict["selected_mods"])
+        logging.info("")
+        logging.info("Patching...")
+        logging.info("")
 
-            self.patching_finished({"result":result})
+        def wrapper_finished_func(payload_result):
+            self.invoke_later(self.ACTION_PATCHING_FINISHED, {"result":payload_result})
 
-        t = threading.Thread(target=payload)
-        t.start()
+        def wrapper_exception_func(err):
+            logging.exception(err)
+            self.invoke_later(self.ACTION_PATCHING_FINISHED, {"result":False})
 
-    def patching_finished(self, arg_dict):
+        self._patch_thread = killable_threading.WrapperThread()
+        self._patch_thread.set_payload(patch_dats, arg_dict["selected_mods"])
+        self._patch_thread.set_success_func(wrapper_finished_func)
+        self._patch_thread.set_failure_func(wrapper_exception_func)
+        self._patch_thread.name = "PatchWorker"
+        self._patch_thread.start()
+        global_config.get_cleanup_handler().add_thread(self._patch_thread)
+
+    def _patching_finished(self, arg_dict):
         for arg in ["result"]:
             if (arg not in arg_dict):
-                logging.error("Missing arg %s for patching_finished callback." % arg)
+                logging.error("Missing arg %s for %s.%s()." % (arg, self.__class__.__name__, inspect.stack()[0][3]))
                 return
 
         logging.info("")
         if (arg_dict["result"] is True):
             logging.info("Patching succeeded.")
-            self._mygui.invoke_later(self._mygui.ACTION_PATCHING_SUCCEEDED, {})
+
+            ftl_exe_path = None
+            if (global_config.never_run_ftl is False):
+                ftl_exe_path = find_ftl_exe()
+
+            self._mygui.invoke_later(self._mygui.ACTION_PATCHING_SUCCEEDED, {"ftl_exe_path":ftl_exe_path})
         else:
             logging.info("Patching failed.")
             self._mygui.invoke_later(self._mygui.ACTION_PATCHING_FAILED, {})
 
         self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
 
+    def invoke_later(self, action_name, arg_dict):
+        """Schedules an action to occur in this thread. (thread-safe)"""
+        self._event_queue.put((action_name, arg_dict))
+
 
 def main():
-    global APP_NAME
-    global allowzip
-    global dir_self, dir_mods, dir_res
+    global dir_self  # dir_self was set earlier.
 
-    # dir_self was set earlier.
-    dir_mods = os.path.join(dir_self, "mods")
-    dir_res = None  # Set this later.
+    global_config.dir_self = dir_self
+    global_config.dir_mods = os.path.join(global_config.dir_self, "mods")
+    # Set dir_res later.
+
+    cleanup_handler = None
 
     try:
-        logging.info("%s (on %s)" % (APP_NAME, platform.platform(aliased=True, terse=False)))
-        logging.info("Rooting at: %s\n" % dir_self)
+        logging.info("%s (on %s)" % (global_config.APP_NAME, platform.platform(aliased=True, terse=False)))
+        logging.info("Rooting at: %s\n" % global_config.dir_self)
+
+        logging.info("Registering ctrl-c handler.")
+        cleanup_handler = cleanup.CustomCleanupHandler()
+        cleanup_handler.register()  # Must be called from main thread.
+        global_config.set_cleanup_handler(cleanup_handler)
+        # Warning: If the main thread gets totally blocked, it'll never notice sigint.
 
         # Start the GUI.
         mygui = RootWindow(None)
@@ -823,13 +920,22 @@ def main():
             mygui.destroy()
         mygui.report_callback_exception = tk_error_func
 
-        logic_obj = LogicObj(mygui)
-        logic_obj.run()
+        cleanup_handler.add_gui(mygui)
 
-        mygui.mainloop()
+        logic_thread = LogicThread(mygui)
+        logic_thread.start()
+        cleanup_handler.add_thread(logic_thread)
+
+        try:
+            mygui.mainloop()
+        finally:
+            mygui.done = True
 
     except (Exception) as err:
         logging.exception(err)
+
+    finally:
+        if (cleanup_handler is not None): cleanup_handler.cleanup()
 
 
 if (__name__ == "__main__"):
