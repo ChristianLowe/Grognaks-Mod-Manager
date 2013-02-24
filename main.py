@@ -44,6 +44,7 @@ try:
     import Queue
     import re
     import shutil as sh
+    import subprocess
     import tempfile as tf
     import threading
     import webbrowser
@@ -158,7 +159,8 @@ class RootWindow(tk.Tk):
 
             if (arg_dict["ftl_exe_path"]):
                 if (msgbox.askyesno(APP_NAME, "Patching completed successfully. Run FTL now?")):
-                    os.system("\"%s\"" % arg_dict["ftl_exe_path"])
+                    logging.info("Running FTL...")
+                    subprocess.Popen([arg_dict["ftl_exe_path"]])
             else:
                 msgbox.showinfo(APP_NAME, "Patching completed successfully.")
 
