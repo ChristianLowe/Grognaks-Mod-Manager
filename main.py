@@ -47,6 +47,7 @@ try:
     import subprocess
     import tempfile as tf
     import threading
+    import time
     import webbrowser
     import zipfile as zf
     import Tkinter as tk
@@ -567,14 +568,19 @@ def save_modorder(modorder_lines):
     with open(os.path.join(dir_mods, "modorder.txt"), "w") as modorder_file:
         modorder_file.write("\n".join(modorder_lines) +"\n")
 
-def patch_dats(selected_mods):
+def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     """Backs up, clobbers, unpacks, merges, and finally packs dats.
 
     :param selected_mods: A list of mod names to install.
+    :param keep_alive_func: Optional replacement to get an abort boolean.
+    :param sleep_func: Optional replacement to sleep N seconds.
     :return: True if successful, False otherwise.
     """
     global allowzip
     global dir_self, dir_mods, dir_res
+
+    if (keep_alive_func is None): keep_alive_func = lambda : True
+    if (sleep_func is None): sleep_func = time.sleep
 
     # Get full paths from mod names.
     mod_list = [find_mod(mod_name) for mod_name in selected_mods]
@@ -597,9 +603,13 @@ def patch_dats(selected_mods):
                 logging.info("Backing up %s" % os.path.basename(dat_path))
                 sh.copy2(dat_path, bak_path)
 
+        if (not keep_alive_func()): return False
+
         # Clobber current dat files with their respective backups.
         for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
             sh.copy2(bak_path, dat_path)
+
+        if (not keep_alive_func()): return False
 
         if (len(mod_list) == 0):
             return True  # No mods. Skip the repacking.
@@ -620,6 +630,7 @@ def patch_dats(selected_mods):
 
         # Extract each mod into a temp dir and merge into unpacked dat dirs.
         for mod_path in mod_list:
+            if (not keep_alive_func()): return False
             try:
                 logging.info("")
                 logging.info("Installing mod: %s" % os.path.basename(mod_path))
@@ -664,6 +675,8 @@ def patch_dats(selected_mods):
                 if (tmp is not None):
                     sh.rmtree(tmp, ignore_errors=True)
                     tmp = None
+
+        if (not keep_alive_func()): return False
 
         # All the mods are installed, so repack the files.
         packdat(data_unp_path, data_dat_path)
@@ -712,7 +725,7 @@ class LogicThread(killable_threading.KillableThread):
         for x in self.ACTIONS: setattr(self, x, x)
 
         self._mygui = root_window
-
+        self._patch_thread = None
         self._event_queue = Queue.Queue()
 
     def run(self):
@@ -730,6 +743,8 @@ class LogicThread(killable_threading.KillableThread):
         # This thread is done.
         self.keep_alive = False
         self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
+        if (self._patch_thread):
+            self._patch_thread.stop_living()
 
     def _process_event_queue(self, queue_timeout=None):
         """Processes every pending event on the queue.
@@ -860,16 +875,22 @@ class LogicThread(killable_threading.KillableThread):
 
         save_modorder(arg_dict["all_mods"])
 
-        def payload():
-            logging.info("")
-            logging.info("Patching...")
-            logging.info("")
-            result = patch_dats(arg_dict["selected_mods"])
+        logging.info("")
+        logging.info("Patching...")
+        logging.info("")
 
-            self.invoke_later(self.ACTION_PATCHING_FINISHED, {"result":result})
+        def wrapper_finished_func(payload_result):
+            self.invoke_later(self.ACTION_PATCHING_FINISHED, {"result":payload_result})
 
-        t = threading.Thread(target=payload)
-        t.start()
+        def wrapper_exception_func(err):
+            logging.exception(err)
+            self.invoke_later(self.ACTION_PATCHING_FINISHED, {"result":False})
+
+        self._patch_thread = killable_threading.WrapperThread()
+        self._patch_thread.set_payload(patch_dats, arg_dict["selected_mods"])
+        self._patch_thread.set_success_func(wrapper_finished_func)
+        self._patch_thread.set_failure_func(wrapper_exception_func)
+        self._patch_thread.start()
 
     def _patching_finished(self, arg_dict):
         global never_run_ftl
