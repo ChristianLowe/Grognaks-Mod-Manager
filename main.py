@@ -718,8 +718,10 @@ class LogicObj(object):
         if (cfg.has_option("settings", "ftl_dats_path")):
             dir_res = cfg.get("settings", "ftl_dats_path")
 
-        if (cfg.has_option("settings", "macmodsdir")):  # Deprecated.
-            cfg.remove_option("settings", "macmodsdir")
+        # Remove deprecated settings.
+        for x in ["macmodsdir", "highlightall"]:
+          if (cfg.has_option("settings", x)):
+            cfg.remove_option("settings", x)
 
         if (dir_res):
             logging.info("Using FTL dats path from config: %s" % dir_res)
