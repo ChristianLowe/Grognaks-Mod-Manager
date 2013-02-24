@@ -724,7 +724,8 @@ class LogicObj(object):
         if (dir_res):
             logging.info("Using FTL dats path from config: %s" % dir_res)
             if (not is_dats_path_valid(dir_res)):
-                logging.error("The config's ftlDatsPath does not exist, or it lacks data.dat.")
+                logging.error("The config's FTL dats path does not exist, or it lacks data.dat.")
+                dir_res = None
         else:
             logging.debug("No FTL dats path previously set.")
 
