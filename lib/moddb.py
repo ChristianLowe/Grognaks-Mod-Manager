@@ -320,8 +320,4 @@ def main():
 
 
 if (__name__ == "__main__"):
-    #main()
-    known_db = create_default_db()
-
-    with open("./new_mod_db.txt", "w") as f:
-        known_db.write_as_code(f)
+    main()
