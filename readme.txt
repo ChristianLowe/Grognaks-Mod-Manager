@@ -74,6 +74,9 @@ Troubleshooting
 
 Changelog
 
+1.7.0:
+- Added forum-scraped metadata for most mod files (based on their md5)
+
 1.6.1:
 - Added ini setting: never_run_ftl
 - The ini's ftl_dats_path is ignored if it's invalid

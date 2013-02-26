@@ -41,6 +41,7 @@ try:
     from ConfigParser import SafeConfigParser
     import errno
     import glob
+    import hashlib
     import platform
     import Queue
     import re
@@ -60,6 +61,7 @@ try:
     from lib import cleanup
     from lib import global_config
     from lib import killable_threading
+    from lib import moddb
 
 except (Exception) as err:
     logging.exception(err)
@@ -71,13 +73,16 @@ class RootWindow(tk.Tk):
         tk.Tk.__init__(self, master, *args, **kwargs)
         # Pseudo enum constants.
         self.ACTIONS = ["ACTION_CONFIG", "ACTION_SHOW_MAIN_WINDOW",
+                        "ACTION_ADD_MOD_HASH",
                         "ACTION_PATCHING_SUCCEEDED", "ACTION_PATCHING_FAILED",
                         "ACTION_DIE"]
         for x in self.ACTIONS: setattr(self, x, x)
 
         self._event_queue = Queue.Queue()
-        self.done = False  # Indicates to other threads that mainloop() ended.
+        self.done = False     # Indicates to other threads that mainloop() ended.
         self._main_window = None
+        self.mod_hashes = {}  # Map mod_name to mod_hash for db lookups.
+        self.mod_db = moddb.create_default_db()
 
         self.wm_protocol("WM_DELETE_WINDOW", self._on_delete)
 
@@ -147,6 +152,10 @@ class RootWindow(tk.Tk):
             if (not self._main_window):
                 self._main_window = MainWindow(master=self, title=global_config.APP_NAME, mod_names=arg_dict["mod_names"], next_func=arg_dict["next_func"])
                 self._main_window.center_window()
+
+        elif (func_or_name == self.ACTION_ADD_MOD_HASH):
+            check_args(["mod_name", "mod_hash"])
+            self.mod_hashes[arg_dict["mod_name"]] = arg_dict["mod_hash"]
 
         elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
             check_args(["ftl_exe_path"])
@@ -298,7 +307,26 @@ class MainWindow(tk.Toplevel):
         self._prev_selection = set(current_selection)
 
         if (len(new_selection) > 0):
-            self._set_description(self._mod_listbox.get(new_selection[0]))
+            mod_name = self._mod_listbox.get(new_selection[0])
+            if (mod_name in self._root().mod_hashes):
+                mod_hash = self._root().mod_hashes[mod_name]
+                mod_info = self._root().mod_db.get_mod_info(hash=mod_hash)
+                if (mod_info is not None):
+                    # Don't assume solely hash searching today will guarantee
+                    # the hash in among results' versions tomorrow.
+                    mod_ver = mod_info.get_version(mod_hash)
+                    if (mod_ver is None):
+                        mod_ver = "???"
+                    self._set_description(mod_info.get_title(), author=mod_info.get_author(), version=mod_ver, description=mod_info.get_desc())
+                else:
+                    desc = "No info is available for the selected mod.\n\n"
+                    desc += "If it's stable, please let the GMM devs know\n"
+                    desc += "where you found it and include this md5 hash:\n"
+                    desc += str(mod_hash) +"\n"
+                    self._set_description(mod_name, description=desc)
+                    logging.info("No info for selected mod: %s (%s)." % (mod_name, mod_hash))
+            else:
+                self._set_description(mod_name, description="The selected mod has not been identified by its hash yet.\nTry again in a few seconds.")
 
     def _on_listbox_mouse_pressed(self, event):
         self._mouse_press_list_index = self._mod_listbox.nearest(event.y)
@@ -555,6 +583,17 @@ def load_modorder():
 def save_modorder(modorder_lines):
     with open(os.path.join(global_config.dir_mods, "modorder.txt"), "w") as modorder_file:
         modorder_file.write("\n".join(modorder_lines) +"\n")
+
+def hash_file(path, blocksize=65536):
+    """Returns an md5 hash string based on a file's contents."""
+    hasher = hashlib.md5()
+    with open(path, "rb") as f:
+        buf = f.read(blocksize)
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = f.read(blocksize)
+
+    return hasher.hexdigest()
 
 def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     """Backs up, clobbers, unpacks, merges, and finally packs dats.
@@ -839,6 +878,30 @@ class LogicThread(killable_threading.KillableThread):
             self.invoke_later(self.ACTION_MAIN_WINDOW_CLOSED, arg_dict)
 
         self._mygui.invoke_later(self._mygui.ACTION_SHOW_MAIN_WINDOW, {"mod_names":all_mod_names, "next_func":next_func})
+
+        # Collect hashes of mod files in the background.
+        def hashing_payload(mod_names, mygui, keep_alive_func=None, sleep_func=None):
+            for mod_name in mod_names:
+                if (not keep_alive_func()): break
+                mod_path = find_mod(mod_name)
+                if (mod_path):
+                  mod_hash = hash_file(mod_path)
+                  mygui.invoke_later(mygui.ACTION_ADD_MOD_HASH, {"mod_name":mod_name, "mod_hash":mod_hash})
+
+        def wrapper_finished_func(payload_result):
+            logging.info("Background hashing finished.")
+
+        def wrapper_exception_func(err):
+            logging.exception(err)
+            logging.error("Background hashing failed.")
+
+        self._hashing_thread = killable_threading.WrapperThread()
+        self._hashing_thread.set_payload(hashing_payload, all_mod_names, self._mygui)
+        self._hashing_thread.set_success_func(wrapper_finished_func)
+        self._hashing_thread.set_failure_func(wrapper_exception_func)
+        self._hashing_thread.name = "HashWorker"
+        self._hashing_thread.start()
+        global_config.get_cleanup_handler().add_thread(self._hashing_thread)
 
     def _main_window_closed(self, arg_dict):
         for arg in ["all_mods", "selected_mods"]:
