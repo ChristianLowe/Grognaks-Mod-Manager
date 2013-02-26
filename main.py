@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 
+
 if (__name__ == "__main__"):
     global dir_self
     locale.setlocale(locale.LC_ALL, "")
@@ -222,19 +223,24 @@ class MainWindow(tk.Toplevel):
         # Add a listbox to hold the mod names.
         self._mod_listbox = tk.Listbox(left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
         self._mod_listbox.pack(side="left", fill="both", expand="yes")
-        self._mod_scrollbar = tk.Scrollbar(left_frame, command=self._mod_listbox.yview, orient="vertical")
-        self._mod_scrollbar.pack(side="right", fill="y")
+        self._mod_list_scroll = tk.Scrollbar(left_frame, orient="vertical")
+        self._mod_list_scroll.pack(side="right", fill="y")
         self._mod_listbox.bind("<<ListboxSelect>>", self._on_listbox_select)
         self._mod_listbox.bind("<Button-1>", self._on_listbox_mouse_pressed)
         self._mod_listbox.bind("<B1-Motion>", self._on_listbox_mouse_dragged)
-        self._mod_listbox.configure(yscrollcommand=self._mod_scrollbar.set)
+        self._mod_listbox.configure(yscrollcommand=self._mod_list_scroll.set)
+        self._mod_list_scroll.configure(command=self._mod_listbox.yview)
 
         # Add textbox at bottom to hold mod information.
+        self._desc_scroll = tk.Scrollbar(bottom_frame, orient="vertical")
+        self._desc_scroll.pack(side="right", fill="y")
         self._desc_area = tk.Text(bottom_frame, width=60, height=10, wrap="word")
         self._desc_area.pack(fill="both", expand="yes")
+        self._desc_area.configure(yscrollcommand=self._desc_scroll.set)
+        self._desc_scroll.configure(command=self._desc_area.yview)
 
         # Set formating tags.
-        self._desc_area.tag_configure("title", font="helvetica 24 bold")
+        self._desc_area.tag_configure("title", font="helvetica 20 bold")
 
         # Add the buttons to the buttons frame.
         self._patch_btn = tk.Button(right_frame, text="Patch")
@@ -281,7 +287,7 @@ class MainWindow(tk.Toplevel):
         """Fills the list of all available mods."""
 
         # Set default description.
-        self._set_description("Grognak's Mod Manager", "Grognak", global_config.APP_VERSION, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
+        self._set_description("Grognak's Mod Manager", "Grognak", global_config.APP_VERSION, "Thanks for using GMM.\nMake sure to periodically check the forum for updates!")
 
         for mod_name in self.custom_args["mod_names"]:
             self._add_mod(mod_name, False)
@@ -828,6 +834,7 @@ class LogicThread(killable_threading.KillableThread):
         all_mod_names = load_modorder()
         save_modorder(all_mod_names)
 
+        # Show the main window.
         def next_func(arg_dict):
             self.invoke_later(self.ACTION_MAIN_WINDOW_CLOSED, arg_dict)
 
