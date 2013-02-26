@@ -62,6 +62,7 @@ try:
     from lib import global_config
     from lib import killable_threading
     from lib import moddb
+    from lib import tkHyperlinkManager
 
 except (Exception) as err:
     logging.exception(err)
@@ -197,6 +198,7 @@ class MainWindow(tk.Toplevel):
         self.button_padx = "2m"
         self.button_pady = "1m"
 
+        self._hyperman = None
         self._prev_selection = set()
         self._mouse_press_list_index = None
 
@@ -243,13 +245,14 @@ class MainWindow(tk.Toplevel):
         # Add textbox at bottom to hold mod information.
         self._desc_scroll = tk.Scrollbar(bottom_frame, orient="vertical")
         self._desc_scroll.pack(side="right", fill="y")
-        self._desc_area = tk.Text(bottom_frame, width=60, height=10, wrap="word")
+        self._desc_area = tk.Text(bottom_frame, width=60, height=11, wrap="word")
         self._desc_area.pack(fill="both", expand="yes")
         self._desc_area.configure(yscrollcommand=self._desc_scroll.set)
         self._desc_scroll.configure(command=self._desc_area.yview)
 
         # Set formating tags.
         self._desc_area.tag_configure("title", font="helvetica 20 bold")
+        self._hyperman = tkHyperlinkManager.HyperlinkManager(self._desc_area)
 
         # Add the buttons to the buttons frame.
         self._patch_btn = tk.Button(right_frame, text="Patch")
@@ -287,16 +290,16 @@ class MainWindow(tk.Toplevel):
         self._forum_btn.configure(command=self._browse_forum)
         self._forum_btn.bind("<Return>", lambda e: self._browse_forum())
 
-        self._fill_list()
         self.wm_protocol("WM_DELETE_WINDOW", self._destroy)  # Intercept window manager closing.
 
+        self._fill_list()
         self._patch_btn.focus_force()
 
     def _fill_list(self):
         """Fills the list of all available mods."""
 
         # Set default description.
-        self._set_description("Grognak's Mod Manager", "Grognak", global_config.APP_VERSION, "Thanks for using GMM.\nMake sure to periodically check the forum for updates!")
+        self._set_description("Grognak's Mod Manager", author="Grognak", version=global_config.APP_VERSION, url=global_config.APP_URL, description="Thanks for using GMM.\nMake sure to periodically check the forum for updates!")
 
         for mod_name in self.custom_args["mod_names"]:
             self._add_mod(mod_name, False)
@@ -317,7 +320,7 @@ class MainWindow(tk.Toplevel):
                     mod_ver = mod_info.get_version(mod_hash)
                     if (mod_ver is None):
                         mod_ver = "???"
-                    self._set_description(mod_info.get_title(), author=mod_info.get_author(), version=mod_ver, description=mod_info.get_desc())
+                    self._set_description(mod_info.get_title(), author=mod_info.get_author(), version=mod_ver, url=mod_info.get_url(), description=mod_info.get_desc())
                 else:
                     desc = "No info is available for the selected mod.\n\n"
                     desc += "If it's stable, please let the GMM devs know\n"
@@ -355,15 +358,33 @@ class MainWindow(tk.Toplevel):
         if (selected):
             self._mod_listbox.selection_set(newitem)
 
-    def _set_description(self, title, author=None, version=None, description=None):
+    def _set_description(self, title, author=None, version=None, url=None, description=None):
         """Sets the currently displayed mod description."""
         self._desc_area.configure(state="normal")
         self._desc_area.delete("1.0", tk.END)
+        self._hyperman.reset()
         self._desc_area.insert(tk.END, (title +"\n"), "title")
-        if (author is not None and version is not None):
-            self._desc_area.insert(tk.END, "by %s (version %s)\n\n" % (author, str(version)))
-        else:
+
+        first = True
+        if (author):
+            self._desc_area.insert(tk.END, "%sby %s" % (("" if (first) else " "), author))
+            first = False
+        if (version):
+            self._desc_area.insert(tk.END, "%s(version %s)" % (("" if (first) else " "), str(version)))
+            first = False
+        if (not first):
             self._desc_area.insert(tk.END, "\n")
+
+        if (url):
+            self._desc_area.insert(tk.END, "Website: ")
+            if (re.match("^(?:https?|ftp)://", url)):
+                link_callback = lambda : webbrowser.open(url, new=2)
+                self._desc_area.insert(tk.END, "Link", self._hyperman.add(link_callback))
+            else:
+                self._desc_area.insert(tk.END, "%s" % url)
+            self._desc_area.insert(tk.END, "\n")
+
+        self._desc_area.insert(tk.END, "\n")
         if (description):
             self._desc_area.insert(tk.END, description)
         else:
@@ -385,7 +406,7 @@ class MainWindow(tk.Toplevel):
             self._mod_listbox.selection_set(0, tk.END)
 
     def _browse_forum(self):
-        webbrowser.open("http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464")
+        webbrowser.open(global_config.APP_URL, new=2)
 
     def center_window(self):
         """Centers this window on the screen.
