@@ -1,6 +1,11 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
+# These always have LF line endings on checkout (for bash/sh shebangs).
+*.command text eol=lf
+*.sh      text eol=lf
+*.py      text eol=lf
+
 # Custom for Visual Studio
 *.cs     diff=csharp
 *.sln    merge=union
