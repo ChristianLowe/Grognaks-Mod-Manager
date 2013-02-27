@@ -85,6 +85,26 @@ class RootWindow(tk.Tk):
         self.mod_hashes = {}  # Map mod_name to mod_hash for db lookups.
         self.mod_db = moddb.create_default_db()
 
+        # Add a right-click clipboard menu to
+        # all text fields and text areas.
+        self._clpbrd_menu = tk.Menu(self, tearoff=0)
+        self._clpbrd_menu.add_command(label="Cut")
+        self._clpbrd_menu.add_command(label="Copy")
+        self._clpbrd_menu.add_command(label="Paste")
+        def show_clpbrd_menu(e):
+            w = e.widget
+            edit_choice_state = "normal"
+            try:
+                if (w.cget("state") == "disabled"): edit_choice_state = "disabled"
+            except (Exception) as err:
+                pass
+            self._clpbrd_menu.entryconfigure("Cut", command=lambda: w.event_generate("<<Cut>>"), state=edit_choice_state)
+            self._clpbrd_menu.entryconfigure("Copy", command=lambda: w.event_generate("<<Copy>>"))
+            self._clpbrd_menu.entryconfigure("Paste", command=lambda: w.event_generate("<<Paste>>"), state=edit_choice_state)
+            self._clpbrd_menu.tk.call("tk_popup", self._clpbrd_menu, e.x_root, e.y_root)
+        self.bind_class("Entry", "<Button-3><ButtonRelease-3>", show_clpbrd_menu)
+        self.bind_class("Text", "<Button-3><ButtonRelease-3>", show_clpbrd_menu)
+
         self.wm_protocol("WM_DELETE_WINDOW", self._on_delete)
 
         def poll_queue():

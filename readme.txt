@@ -76,6 +76,7 @@ Changelog
 
 1.7:
 - Added forum-scraped metadata for most mod files (based on their md5)
+- Added a right-click clipboard menu to the text area.
 - Added ini setting: never_run_ftl
 - The ini's ftl_dats_path is ignored if it's invalid
 - Added graceful exit on ctrl-c or Windows terminal closing
