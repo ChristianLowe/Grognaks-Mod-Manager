@@ -30,7 +30,7 @@ Setup
   Mac/Linux:
     Open a terminal.
     Type "chmod +x " with the space.
-    Type the path to main.py (or drag it onto the terminal).
+    Type the path to modman.command (or drag it onto the terminal).
     Hit enter.
 
   On the first run, you may be prompted to locate your
@@ -47,8 +47,7 @@ Usage
 
   To Start GMM:
     Windows: Double-click modman.exe.
-    Mac/Linux:
-      Drag main.py onto a terminal and hit enter.
+    Mac/Linux: Double-click modman.command.
 
   To install mods:
     Select the mods you want to install.
@@ -122,7 +121,8 @@ Developer Notes
 Changelog
 
 1.7:
-- Lowered the required Python version to 2.6.
+- Lowered the required Python version to 2.6
+- Added a Linux/Mac launcher (modman.command) to guarantee a terminal
 - Added forum-scraped metadata for most mod files (based on their md5)
 - Added a right-click clipboard menu to the text area.
 - Added ini setting: never_run_ftl
