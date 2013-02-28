@@ -27,6 +27,12 @@ Setup
 
   Unzip the files from this archive anywhere.
 
+  Mac/Linux:
+    Open a terminal.
+    Type "chmod +x " with the space.
+    Type the path to main.py (or drag it onto the terminal).
+    Hit enter.
+
   On the first run, you may be prompted to locate your
   FTL resources. Specifically "data.dat" in the "resources"
   directory under your FTL install (Mac users can select FTL.app).
@@ -40,15 +46,15 @@ Usage
     Put it in the GMM/mods/ folder.
 
   To Start GMM:
-    Windows: Run modman.exe.
-    Mac/Linux: Run main.py via python.
+    Windows: Double-click modman.exe.
+    Mac/Linux:
+      Drag main.py onto a terminal and hit enter.
 
   To install mods:
     Select the mods you want to install.
     Mods at the top get clobbered by ones below. Drag names to reorder.
     Click the "Patch" button.
     (Any unselected mods will be omitted/uninstalled.)
-
 
   To uninstall all mods:
     Click "Patch" with none selected.
