@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import itertools
-import argparse
+#import argparse  # Python 2.6 didn't have argparse.
 import hashlib
 import os.path
 import struct
@@ -185,6 +185,9 @@ class Program(object):
             with open(target, 'wb') as f:
                 print ' %s' % filename
                 unpacker.extract_to(filename, f)
+
+# Python 2.6 didn't have argparse.
+"""
     def main(self):
         self.parse_args()
         return self.args.func()
@@ -237,3 +240,4 @@ if __name__ == '__main__':
     sys.exit(main())
     
 # vim: et:sw=4:ts=4:bs=2
+"""

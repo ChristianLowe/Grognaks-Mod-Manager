@@ -616,8 +616,8 @@ def load_modorder():
         logging.info("Added %s" % f)
 
     # Strip extensions to get mod_names.
-    ext_ptn = "[.](?:"+ ("|".join(mod_exts)) +")$"
-    modorder_lines = [re.sub(ext_ptn, "", f, flags=re.I) for f in modorder_lines]
+    ext_ptn = re.compile("[.](?:"+ ("|".join(mod_exts)) +")$", flags=re.I)
+    modorder_lines = [ext_ptn.sub("", f) for f in modorder_lines]
 
     return modorder_lines
 
@@ -700,7 +700,10 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                 logging.info("")
                 logging.info("Installing mod: %s" % os.path.basename(mod_path))
                 tmp = tf.mkdtemp()
-                with zf.ZipFile(mod_path, "r") as mod_zip:
+
+                # Python 2.6 didn't support with+ZipFile. :/
+                mod_zip = zf.ZipFile(mod_path, "r")
+                try:
                     # Unzip everything into a temporary folder.
                     for item in mod_zip.namelist():
                         if (item.endswith("/")):
@@ -709,6 +712,8 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                                 os.makedirs(path)
                         else:
                             mod_zip.extract(item, tmp)
+                finally:
+                    mod_zip.close()
 
                 # Go through each directory in the mod.
                 for directory in os.listdir(tmp):

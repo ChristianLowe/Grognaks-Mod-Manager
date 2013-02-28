@@ -12,7 +12,7 @@ About
 
 Requirements
 
-  Python 2.7 or higher, but not 3.x.
+  Python 2.6 or higher, but not 3.x.
     http://www.python.org/getit/
 
   FTL (1.01-1.03.1, Windows/OSX/Linux, Steam/GOG/Standalone).
@@ -122,6 +122,7 @@ Developer Notes
 Changelog
 
 1.7:
+- Lowered the required Python version to 2.6.
 - Added forum-scraped metadata for most mod files (based on their md5)
 - Added a right-click clipboard menu to the text area.
 - Added ini setting: never_run_ftl
