@@ -59,6 +59,10 @@ Usage
   To uninstall all mods:
     Click "Patch" with none selected.
 
+  If you upgrade FTL:
+    Delete the outdated files in GMM/Backup/
+    If you don't, the game's resources will get corrupted.
+
 
 Troubleshooting
 
@@ -124,6 +128,7 @@ Changelog
 - The ini's ftl_dats_path is ignored if it's invalid
 - Added graceful exit on ctrl-c or Windows terminal closing
 - Fixed data.dat/FTL.app file chooser, which sometimes left files hidden
+- Moved dat backups to GMM/backup/ (bak's in the old location will be deleted)
 
 1.6:
 - GMM no longer needs to be placed in the FTL directory

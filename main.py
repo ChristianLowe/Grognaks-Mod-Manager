@@ -654,8 +654,8 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     data_dat_path = os.path.join(global_config.dir_res, "data.dat")
     resource_dat_path = os.path.join(global_config.dir_res, "resource.dat")
 
-    data_bak_path = os.path.join(global_config.dir_res, "data.dat.bak")
-    resource_bak_path = os.path.join(global_config.dir_res, "resource.dat.bak")
+    data_bak_path = os.path.join(global_config.dir_backup, "data.dat.bak")
+    resource_bak_path = os.path.join(global_config.dir_backup, "resource.dat.bak")
 
     data_unp_path = None
     resource_unp_path = None
@@ -911,6 +911,21 @@ class LogicThread(killable_threading.KillableThread):
                 cfg_file.write("\n")
                 arg_dict["config_parser"].write(cfg_file)
 
+        # Delete backups in the old location.
+        old_data_bak_path = os.path.join(global_config.dir_res, "data.dat.bak")
+        old_resource_bak_path = os.path.join(global_config.dir_res, "resource.dat.bak")
+
+        for bak_path in [old_data_bak_path, old_resource_bak_path]:
+            if (not os.path.isfile(bak_path)): continue
+            logging.debug("Deleting old backup: %s" % bak_path)
+            try:
+                os.unlink(bak_path)
+            except (Exception) as err:
+                logging.exception(err)
+
+            if (os.path.exists(bak_path)):
+                logging.warning("Failed to delete old backup: %s" % bak_path)
+
         all_mod_names = load_modorder()
         save_modorder(all_mod_names)
 
@@ -1006,6 +1021,7 @@ def main():
     global dir_self  # dir_self was set earlier.
 
     global_config.dir_self = dir_self
+    global_config.dir_backup = os.path.join(global_config.dir_self, "backup")
     global_config.dir_mods = os.path.join(global_config.dir_self, "mods")
     # Set dir_res later.
 
