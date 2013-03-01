@@ -1,3 +1,7 @@
+# -*- coding: ascii -*-
+# ^ Ascii chars are the norm in Python 2.x source code.
+# This'll make a 3.x interpreter panic when any unicode sneaks in.
+
 from lib import moddb
 
 
