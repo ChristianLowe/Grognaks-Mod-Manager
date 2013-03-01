@@ -138,7 +138,7 @@ Desktop.ini
 #############
 
 *.py[co]
-
+__pycache__
 # Packages
 *.egg
 *.egg-info
