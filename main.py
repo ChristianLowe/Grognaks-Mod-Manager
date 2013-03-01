@@ -1044,8 +1044,12 @@ def main():
     cleanup_handler = None
 
     try:
-        logging.info("%s (on %s)" % (global_config.APP_NAME, platform.platform(aliased=True, terse=False)))
-        logging.info("Rooting at: %s\n" % global_config.dir_self)
+        logging.info("%s" % global_config.APP_NAME)
+        logging.info("Platform:    %s" % platform.platform(aliased=True, terse=False))
+        logging.info("Interpreter: %s %s (%s)" % (platform.python_implementation(), platform.python_version(), ("64bit" if (sys.maxsize > 2**32) else "32bit")))
+        logging.info("")
+        logging.info("Rooting at: %s" % global_config.dir_self)
+        logging.info("")
 
         logging.info("Registering ctrl-c handler.")
         cleanup_handler = cleanup.CustomCleanupHandler()
