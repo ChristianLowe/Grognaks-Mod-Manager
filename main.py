@@ -16,7 +16,7 @@ if (__name__ == "__main__"):
     #   http://bugs.python.org/issue10647
     #   Fixed in Python 3.2.
     #
-    locale.setlocale(locale.LC_NUMERIC, 'C')  # Use period for numbers.
+    locale.setlocale(locale.LC_NUMERIC, "C")  # Use period for numbers.
 
     # Get the un-symlinked, absolute path to this module.
     dir_self = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
