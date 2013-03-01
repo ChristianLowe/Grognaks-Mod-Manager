@@ -12,6 +12,12 @@ if (__name__ == "__main__"):
     global dir_self
     locale.setlocale(locale.LC_ALL, "")
 
+    # Tkinter chokes on non-US locales with commas for decimal points.
+    #   http://bugs.python.org/issue10647
+    #   Fixed in Python 3.2.
+    #
+    locale.setlocale(locale.LC_NUMERIC, 'C')  # Use period for numbers.
+
     # Get the un-symlinked, absolute path to this module.
     dir_self = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
     if (dir_self not in sys.path): sys.path.insert(0, dir_self)

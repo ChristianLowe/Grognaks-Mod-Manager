@@ -129,6 +129,7 @@ Changelog
 - The ini's ftl_dats_path is ignored if it's invalid
 - Added graceful exit on ctrl-c or Windows terminal closing
 - Fixed data.dat/FTL.app file chooser, which sometimes left files hidden
+- Fixed TclError for non-US locales with commas for decimal points
 - Moved dat backups to GMM/backup/ (bak's in the old location will be deleted)
 - Made the code tolerable by Python 3.x (hopefully without new 2.x bugs)
 - Made the Patch/Toggle/Forum buttons expand to accomodate their text
