@@ -12,7 +12,7 @@ About
 
 Requirements
 
-  Python 2.6 or higher, but not 3.x.
+  Python 2.6 or higher. With 3.x, there may be bugs.
     http://www.python.org/getit/
 
   FTL (1.01-1.03.1, Windows/OSX/Linux, Steam/GOG/Standalone).
@@ -130,6 +130,7 @@ Changelog
 - Added graceful exit on ctrl-c or Windows terminal closing
 - Fixed data.dat/FTL.app file chooser, which sometimes left files hidden
 - Moved dat backups to GMM/backup/ (bak's in the old location will be deleted)
+- Made the code tolerable by Python 3.x (hopefully without new 2.x bugs)
 
 1.6:
 - GMM no longer needs to be placed in the FTL directory

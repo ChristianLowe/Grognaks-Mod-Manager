@@ -1,10 +1,19 @@
 import hashlib
 import os
-import random  # For debugging.
 import re
 import sys
 import time
-import urllib2
+
+# Modules that changed in Python 3.x.
+try:
+    from urllib.request import urlopen
+except (ImportError) as err:
+    from urllib2 import urlopen
+
+try:
+    from urllib.error import HTTPError, URLError
+except (ImportError) as err:
+    from urllib2 import HTTPError, URLError
 
 
 class ModDB(object):
@@ -30,31 +39,41 @@ class ModDB(object):
     def write_as_code(self, f):
         """Serializes the catalog as a python function.
 
-        :param f: A file-like object to write to.
+        :param f: A file-like object to write to (binary mode).
         """
         def slash(s):
             for c in ["\\","\""]:
                 s = s.replace(c, "\\" + c)
             return s
 
-        f.write("from lib import moddb\n")
-        f.write("\n\n")
-        f.write("def populate_catalog(mod_db):\n")
+        enc_type = "ascii"
+        buf = ""
+        buf += "# -*- coding: %s -*-\n" % enc_type
+        buf += "# ^ Ascii chars are the norm in Python 2.x source code.\n"
+        buf += "# This'll make a 3.x interpreter panic when any unicode sneaks in.\n"
+        buf += "\n"
+        buf += "from lib import moddb\n"
+        buf += "\n\n"
+        buf += "def populate_catalog(mod_db):\n"
+        f.write(buf.encode(enc_type, errors="xmlcharrefreplace"))
 
         for mod_info in self.catalog:
-            f.write("    mod_info = moddb.ModInfo()\n")
-            f.write("    mod_info.set_title( \"%s\" )\n" % slash(mod_info.get_title()))
-            f.write("    mod_info.set_author( \"%s\" )\n" % slash(mod_info.get_author()))
-            f.write("    mod_info.set_url( \"%s\" )\n" % slash(mod_info.get_url()))
+            buf = ""
+            buf += "    mod_info = moddb.ModInfo()\n"
+            buf += "    mod_info.set_title( \"%s\" )\n" % slash(mod_info.get_title())
+            buf += "    mod_info.set_author( \"%s\" )\n" % slash(mod_info.get_author())
+            buf += "    mod_info.set_url( \"%s\" )\n" % slash(mod_info.get_url())
 
             for (h, v) in mod_info.get_versions().items():
-                f.write("    mod_info.put_version( \"%s\", \"%s\" )\n" % (slash(h), slash(v)))
+                buf += "    mod_info.put_version( \"%s\", \"%s\" )\n" % (slash(h), slash(v))
 
-            f.write("    mod_info.set_thread_hash( \"%s\" )\n" % slash(mod_info.get_thread_hash()))
-            f.write("\n")
-            f.write("    mod_info.set_desc(r\"\"\"%s\"\"\")\n" % mod_info.get_desc())
-            f.write("    mod_db.add_mod(mod_info)\n")
-            f.write("\n\n")
+            buf += "    mod_info.set_thread_hash( \"%s\" )\n" % slash(mod_info.get_thread_hash())
+            buf += "\n"
+            buf += "    mod_info.set_desc(r\"\"\"%s\"\"\")\n" % mod_info.get_desc()
+            buf += "    mod_db.add_mod(mod_info)\n"
+            buf += "\n\n"
+            f.write(buf.encode(enc_type, errors="xmlcharrefreplace"))
+
 
 class ModInfo(object):
     def __init__(self):
@@ -121,29 +140,40 @@ def create_default_db():
 #       Or select it in GMM to copy the hash reported by the gui/log.
 
 
+# Make both Python 3.x and 2.x use unicode.
+if (sys.version < "3"):
+    import codecs
+    def u(x):
+        return codecs.unicode_escape_decode(x)[0]
+else:
+    def u(x):
+        return x
+
+
 def _get_first_post(url):
     """Extracts the html content of the first post in a forum thread."""
-    response = urllib2.urlopen(url, timeout=10)
-    html_src = response.read()
+    # Download and decode bytes as unicode.
+    response = urlopen(url, timeout=10)
+    html_src = response.read().decode("utf-8")
 
-    first_post_ptn = re.compile("<div class=\"postbody\"[^>]*>.*?<div class=\"content\"[^>]*>(.*?)</div>\\s*<dl class=\"postprofile\"[^>]*>", flags=re.DOTALL)
+    first_post_ptn = re.compile("(?u)<div class=\"postbody\"[^>]*>.*?<div class=\"content\"[^>]*>(.*?)</div>\\s*<dl class=\"postprofile\"[^>]*>", flags=re.DOTALL)
 
     post_content = ""
     m = first_post_ptn.search(html_src)
     if (m):
         post_content = m.group(1)
-        post_content = re.sub("\r?\n", "", post_content)
+        post_content = re.sub("(?u)\r?\n", "", post_content)
 
         # Within content, but it counts clicks/views, which throws off hashing.
-        post_content = re.sub("(?s)<div class=\"inline-attachment\">.*?</div>", "", post_content)
+        post_content = re.sub("(?su)<div class=\"inline-attachment\">.*?</div>", "", post_content)
 
         # Footer junk.
-        post_content = re.sub("(?s)<dl class=\"attachbox\">.*?<dl class=\"file\">.*?</dl>.*?</dl>", "", post_content)
-        post_content = re.sub("(?s)<div (?:[^>]+ )?class=\"notice\">.*?</div>", "", post_content)
-        post_content = re.sub("(?s)<div (?:[^>]+ )?class=\"signature\">.*?</div>", "", post_content)
-        post_content = re.sub("</div>\\s*\\Z", "", post_content)  # From the content div (now that the others are gone).
-        post_content = re.sub("\\A\\s+", "", post_content)
-        post_content = re.sub("\\s+\\Z", "", post_content)
+        post_content = re.sub("(?su)<dl class=\"attachbox\">.*?<dl class=\"file\">.*?</dl>.*?</dl>", "", post_content)
+        post_content = re.sub("(?su)<div (?:[^>]+ )?class=\"notice\">.*?</div>", "", post_content)
+        post_content = re.sub("(?su)<div (?:[^>]+ )?class=\"signature\">.*?</div>", "", post_content)
+        post_content = re.sub("(?u)</div>\\s*\\Z", "", post_content)  # From the content div (now that the others are gone).
+        post_content = re.sub("(?u)\\A\\s+", "", post_content)
+        post_content = re.sub("(?u)\\s+\\Z", "", post_content)
 
     return post_content
 
@@ -160,7 +190,7 @@ def _scrape_master_list(known_db=None, ignored_urls=None):
 
     mods_header_ptn = re.compile(re.escape("<span style=\"font-weight: bold\"><span style=\"text-decoration: underline\"><span style=\"font-size: 150%; line-height: 116%;\">Mods</span></span></span>"))
 
-    mod_ptn = re.compile("^<a href=\"([^\"]+)\"[^>]*>([^>]+)</a>(?: *\\[[A-Za-z0-9 ]+\\])?[ -]*?Author: <a href=\"[^\"]+\"[^>]*>([^<]+?)</a> *((?:\\[WIP\\])?)")
+    mod_ptn = re.compile("(?u)^<a href=\"([^\"]+)\"[^>]*>([^>]+)</a>(?: *\\[[A-Za-z0-9 ]+\\])?[ -]*?Author: <a href=\"[^\"]+\"[^>]*>([^<]+?)</a> *((?:\\[WIP\\])?)")
 
     forum_url_fragment = "http://www.ftlgame.com/forum/viewtopic.php"
 
@@ -220,7 +250,6 @@ def _scrape_master_list(known_db=None, ignored_urls=None):
 
     # Fetch and hash each thread url.
     for i in range(len(results)):
-        #if (random.randint(0,10) < 10): continue  # For debugging.
         if (forum_url_fragment not in results[i]["thread_url"]):
             continue  # Don't bother scraping and hashing non-forum urls.
 
@@ -230,11 +259,12 @@ def _scrape_master_list(known_db=None, ignored_urls=None):
         while (True):
             try:
                 results[i]["raw_desc"] = _get_first_post(results[i]["thread_url"])
-                results[i]["thread_hash"] = hashlib.md5(results[i]["raw_desc"]).hexdigest()
+                # Encode the str/unicode string to bytes.
+                results[i]["thread_hash"] = hashlib.md5(results[i]["raw_desc"].encode("utf-8")).hexdigest()
                 break
-            except (urllib2.HTTPError) as err:
+            except (HTTPError) as err:
                 sys.stderr.write("Request failed: %s\n" % err.code)
-            except (urllib2.URLError) as err:
+            except (URLError) as err:
                 sys.stderr.write("Request failed: %s\n" % err.reason)
             except (OSError) as err:  # Socket timeout.
                 sys.stderr.write("Request failed: %s\n" % err.reason)
@@ -245,17 +275,18 @@ def _scrape_master_list(known_db=None, ignored_urls=None):
 
     # Scrub html out of descriptions and scrape download links.
     for result in results:
+        # Unicode reminder: Prepend (?u) before regexes with: \w,\W,\b,\B,\d,\D,\s,\S.
         post_content = result["raw_desc"]
         post_content = re.sub("<br */>", "\n", post_content)
         post_content = re.sub("<img [^>]*/>", "", post_content)
         post_content = re.sub("<span [^>]*>", "", post_content)
         post_content = re.sub("</span>", "", post_content)
         post_content = re.sub("&quot;", "\"", post_content)
-        post_content = re.sub("\xe2\x80[\x98\x99]", "'", post_content)
+        post_content = re.sub(u("\u2018|\u2019"), "'", post_content)
+        post_content = re.sub(u("\u2022"), "-", post_content)
+        post_content = re.sub(u("\u2013"), "-", post_content)
+        post_content = re.sub(u("\u00a9"), "()", post_content)
         post_content = re.sub("&amp;", "&", post_content)
-        post_content = re.sub("\xe2\x80\xa2", "-", post_content)
-        post_content = re.sub("\xe2\x80\x93", "-", post_content)
-        post_content = re.sub("\xc2\xa9", "()", post_content)
         post_content = re.sub("<a (?:[^>]+ )?href=\"([^\"]+)\"[^>]*>", "<a href=\"\\g<1>\">", post_content)
         post_content = re.sub("<a href=\"[^\"]+/forum/memberlist.php[^\"]+\"[^>]*>([^<]+)</a>", "\\g<1>", post_content)
         post_content = re.sub("<a href=\"http://(?:i.imgur.com/|[^\"]*photobucket.com/|[^\"]*deviantart.com/|www.mediafire.com/view/[?])[^\"]+\"[^>]*>([^<]+)</a>", "\\g<1>", post_content)
@@ -277,8 +308,8 @@ def _scrape_master_list(known_db=None, ignored_urls=None):
         # Link to FTLEdit Thread
         post_content = re.sub("<a href=\"[^\"]+/forum/viewtopic.php?(?:[^&]+&)*t=2959\"[^>]*>([^<]+)</a>", "\\g<1>", post_content)
 
-        post_content = re.sub("\\A\\s+", "", post_content)
-        post_content = re.sub("\\s+\\Z", "", post_content)
+        post_content = re.sub("(?u)\\A\\s+", "", post_content)
+        post_content = re.sub("(?u)\\s+\\Z", "", post_content)
         result["raw_desc"] = post_content +"\n"  # Triple-quoting looks better with a newline.
 
     return results
@@ -315,7 +346,7 @@ def main():
         mod_info.set_thread_hash(result["thread_hash"])
         new_db.add_mod(mod_info)
 
-    with open(new_db_path, "w") as f:
+    with open(new_db_path, "wb") as f:
         new_db.write_as_code(f)
 
 

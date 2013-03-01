@@ -1,4 +1,8 @@
-import Tkinter as tk
+# Modules that changed in Python 3.x.
+try:
+    import tkinter as tk
+except (ImportError) as err:
+    import Tkinter as tk
 
 
 class HyperlinkManager(object):

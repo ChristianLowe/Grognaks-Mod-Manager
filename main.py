@@ -38,12 +38,10 @@ if (__name__ == "__main__"):
 
 # Import everything else (tkinter may be absent in some environments).
 try:
-    from ConfigParser import SafeConfigParser
     import errno
     import glob
     import hashlib
     import platform
-    import Queue
     import re
     import shutil as sh
     import subprocess
@@ -51,9 +49,31 @@ try:
     import threading
     import webbrowser
     import zipfile as zf
-    import Tkinter as tk
-    import tkFileDialog
-    import tkMessageBox as msgbox
+
+    # Modules that changed in Python 3.x.
+    # Use loops for brevity, which means passing vars into __import__().
+    # And alias the modules by directly setting the globals() dict.
+    for (old_name, new_name) in [("ConfigParser", "configparser"),
+                                 ("Queue", "queue"),
+                                 ("Tkinter", "tkinter")]:
+        try:
+            # import new_name
+            globals()[new_name] = __import__(new_name, globals(), locals(), [])
+        except (ImportError) as err:
+            # import old_name as new_name
+            globals()[new_name] = __import__(old_name, globals(), locals(), [])
+
+    for (old_thing, new_thing, alias) in [("tkMessageBox", "messagebox", "msgbox"),
+                                          ("tkFileDialog", "filedialog", "filedlg")]:
+        try:
+            # from tkinter import new_thing as alias
+            globals()[alias] = getattr(__import__("tkinter", globals(), locals(), [new_thing]), new_thing)
+        except (ImportError) as err:
+            # import old_thing as alias
+            globals()[alias] = __import__(old_thing, globals(), locals(), [])
+
+    globals()["tk"] = globals()["tkinter"]  # Mimic import tkinter as tk
+
 
     # Modules bundled with this script.
     from lib.ftldat import FTLDatUnpacker
@@ -79,7 +99,7 @@ class RootWindow(tk.Tk):
                         "ACTION_DIE"]
         for x in self.ACTIONS: setattr(self, x, x)
 
-        self._event_queue = Queue.Queue()
+        self._event_queue = queue.Queue()
         self.done = False     # Indicates to other threads that mainloop() ended.
         self._main_window = None
         self.mod_hashes = {}  # Map mod_name to mod_hash for db lookups.
@@ -127,7 +147,7 @@ class RootWindow(tk.Tk):
         while (True):
             try:
                 func_or_name, arg_dict = self._event_queue.get_nowait()
-            except (Queue.Empty) as err:
+            except (queue.Empty) as err:
                 break
             else:
                 self._process_event(func_or_name, arg_dict)
@@ -495,7 +515,7 @@ def unpackdat(dat_path, unpack_dir):
     logging.info("Unpacking %s..." % os.path.basename(dat_path))
     unpacker = FTLDatUnpacker(open(dat_path, "rb"))
 
-    for i, filename, size, offset in unpacker:
+    for (i, filename, size, offset) in unpacker:
         target = os.path.join(unpack_dir, filename)
         if (not os.path.exists(os.path.dirname(target))):
             os.makedirs(os.path.dirname(target))
@@ -548,7 +568,7 @@ def prompt_for_ftl_path():
     message += "Or 'FTL.app', if you're on OSX.";
     msgbox.showinfo(global_config.APP_NAME, message)
 
-    result = tkFileDialog.askopenfilename(title="Find data.dat or FTL.app",
+    result = filedlg.askopenfilename(title="Find data.dat or FTL.app",
         filetypes=[("data.dat or OSX Bundle", ("*.dat","*.app")), ("All Files", "*.*")])
 
     if (result):
@@ -795,7 +815,7 @@ class LogicThread(killable_threading.KillableThread):
 
         self._mygui = root_window
         self._patch_thread = None
-        self._event_queue = Queue.Queue()
+        self._event_queue = queue.Queue()
 
     def run(self):
         try:
@@ -828,7 +848,7 @@ class LogicThread(killable_threading.KillableThread):
                 else:
                     first_pass = False
                     action_name, arg_dict = self._event_queue.get_nowait()
-            except (Queue.Empty):
+            except (queue.Empty):
                 break
             else:
                 self._process_event(action_name, arg_dict)
@@ -848,7 +868,7 @@ class LogicThread(killable_threading.KillableThread):
             self._patching_finished(arg_dict)
 
     def _load_config(self, arg_dict):
-        cfg = SafeConfigParser()
+        cfg = configparser.SafeConfigParser()
         cfg.add_section("settings")
 
         # Set defaults.

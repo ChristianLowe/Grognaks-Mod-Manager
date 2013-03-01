@@ -8,6 +8,13 @@ import struct
 import sys
 import os
 
+# Make Python 2.x more like Python 3.x.
+if ("xrange" in globals()):
+    range = xrange
+if (hasattr(itertools, "imap")):
+    map = itertools.imap
+
+
 def ftl_path_join(*args):
     """ Joins paths in the way FTL expects them to be in .dat files.
         That is: the UNIX way. """
@@ -45,11 +52,11 @@ class FTLDatPacker(object):
         self.f = f
         self.f.seek(0, 0)
         self.f.write(struct.pack("<L", index_size))
-        for i in xrange(index_size):
+        for i in range(index_size):
             self.f.write(struct.pack("<L", 0))
     def add(self, filename, f, size):
         if self.first_free_index == self.index_size:
-            raise FTLDatPacker, "Index is full"
+            raise FTLDatError("Index is full")
         index = self.first_free_index
         offset = self.first_free_offset
         self.first_free_index += 1
@@ -57,7 +64,7 @@ class FTLDatPacker(object):
         self.f.write(struct.pack("<L", offset))
         self.f.seek(offset, 0)
         self.f.write(struct.pack("<LL", size, len(filename)))
-        self.f.write(filename)
+        self.f.write(filename.encode("ascii"))  # Encode str/unicode to bytes.
         self.first_free_offset += 8 + size + len(filename)
         to_write = size
         while to_write:
@@ -70,8 +77,8 @@ class FTLDatUnpacker(object):
 
         >>> unpacker = FTLDatUnpacker(open('data.dat'))
         >>> for i, filename, size, offset in unpacker:
-        ...     print filename
-        ...     print unpacket.get(filename)
+        ...     print(filename)
+        ...     print(unpacket.get(filename))
         """
     def __init__(self, f):
         self.index = []      # [idx: offset]
@@ -82,7 +89,7 @@ class FTLDatUnpacker(object):
     def _read_index(self):
         self.f.seek(0, 0)
         n_entries  = struct.unpack('<L', self.f.read(4))[0]
-        for i in xrange(n_entries):
+        for i in range(n_entries):
             self.index.append(struct.unpack('<L', self.f.read(4))[0])
             self.metadata.append(None)
         for i, offset in enumerate(self.index):
@@ -90,7 +97,9 @@ class FTLDatUnpacker(object):
                 continue
             self.f.seek(offset, 0)
             size, l_filename  = struct.unpack('<LL', self.f.read(8))
-            filename = self.f.read(l_filename)
+            # Read and decode bytes to an str/unicode.
+            # (whichever string type the Python 2.x/3.x likes)
+            filename = str(self.f.read(l_filename).decode("ascii"))
             self.metadata[i] = (filename, size, offset+8+l_filename)
             if filename in self.filenames:
                 raise FTLDatError("Duplicate filename")
@@ -98,14 +107,14 @@ class FTLDatUnpacker(object):
     def __getitem__(self, filename):
         """ Returns the contents of the file <filename> in a string """
         if not filename in self.filenames:
-            raise KeyError
+            raise KeyError()
         filename, size, offset = self.metadata[self.filenames[filename]]
         self.f.seek(offset, 0)
         return self.f.read(size)
     def extract_to(self, filename, f):
         """ Extracts the file <filename> to the fileobject <f>. """
         if not filename in self.filenames:
-            raise KeyError
+            raise KeyError()
         filename, size, offset = self.metadata[self.filenames[filename]]
         self.f.seek(offset, 0)
         to_read = size
@@ -114,20 +123,20 @@ class FTLDatUnpacker(object):
             to_read -= len(buf)
             f.write(buf)
     def __iter__(self):
-        return itertools.imap(lambda x: (x[0], x[1][0], x[1][1], x[1][2]),
+        return map(lambda x: (x[0], x[1][0], x[1][1], x[1][2]),
                 enumerate(filter(lambda x: x is not None, self.metadata)))
 
 class Program(object):
     def cmd_info(self):
-        print 'Loading index ...'
+        print('Loading index...')
         unpacker = FTLDatUnpacker(self.args.datfile)
-        print 
-        print "%-4s %-7s %-57s%10s" % ('#', 'offset', 'filename', 'size')
+        print("")
+        print("%-4s %-7s %-57s%10s" % ('#', 'offset', 'filename', 'size'))
         N = 0
         c_size = 0
         for i, filename, size, offset in unpacker:
-            print "%-4s %-7s %-57s%10s" % (i, hex(offset)[2:], filename,
-                            str(size) if self.args.bytes else nice_size(size))
+            print("%-4s %-7s %-57s%10s" % (i, hex(offset)[2:], filename,
+                            str(size) if self.args.bytes else nice_size(size)))
             if self.args.hashes:
                 class HashFile:
                     def __init__(self): self.h = hashlib.md5()
@@ -135,16 +144,16 @@ class Program(object):
                     def finish_up(self): return self.h.hexdigest()
                 hf = HashFile()
                 unpacker.extract_to(filename, hf)
-                print "        md5: %s" % hf.finish_up()
+                print("        md5: %s" % hf.finish_up())
             c_size += size
             N += 1
         print
-        print '  %s/%s entries' % (N, len(unpacker.index))
-        print '  %s' % str(c_size) if self.args.bytes else nice_size(c_size)
+        print('  %s/%s entries' % (N, len(unpacker.index)))
+        print('  %s' % str(c_size) if self.args.bytes else nice_size(c_size))
     def cmd_pack(self):
         if self.args.folder is None:
             self.args.folder = self.args.datfile.name + '-unpacked'
-        print 'Listing files to pack ...'
+        print('Listing files to pack ...')
         s = [()]
         files = []
         while s:
@@ -156,15 +165,15 @@ class Program(object):
                     files.append(current + (child,))
                 elif os.path.isdir(full_path):
                     s.append(current + (child,))
-        print 'Create datfile ...'
+        print('Create datfile ...')
         if self.args.indexsize is not None:
             indexSize = max(self.args.indexsize, len(files))
         else:
             indexSize = len(files)
         packer = FTLDatPacker(self.args.datfile, indexSize)
-        print 'Packing ...'
+        print('Packing ...')
         for _file in files:
-            print ' %s' % '/'.join(_file)
+            print(' %s' % '/'.join(_file))
             full_path = os.path.join(self.args.folder, *_file)
             size = os.stat(full_path).st_size
             with open(full_path, 'rb') as f:
@@ -172,18 +181,18 @@ class Program(object):
     def cmd_unpack(self):
         if self.args.folder is None:
             self.args.folder = self.args.datfile.name + '-unpacked'
-        print 'Loading index ... '
+        print('Loading index ... ')
         unpacker = FTLDatUnpacker(self.args.datfile)
-        print 'Extracting ...'
+        print('Extracting ...')
         for i, filename, size, offset in unpacker:
             target = os.path.join(self.args.folder, filename)
             if not os.path.exists(os.path.dirname(target)):
                 os.makedirs(os.path.dirname(target))
             if os.path.exists(target) and not self.args.force:
-                print 'ERROR %s already exists. Use -f to override.' % target
+                print('ERROR %s already exists. Use -f to override.' % target)
                 return -1
             with open(target, 'wb') as f:
-                print ' %s' % filename
+                print(' %s' % filename)
                 unpacker.extract_to(filename, f)
 
 # Python 2.6 didn't have argparse.
