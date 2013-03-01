@@ -74,7 +74,7 @@ Oh yes, a demo, a demo! Not much, and most of the stuff is horribly unbalanced, 
     mod_info.set_author( "Whale Cancer" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=4&t=2947" )
     mod_info.put_version( "???", "N/A WIP" )
-    mod_info.set_thread_hash( "1ffb0889cb910419c27a0f31b6067681" )
+    mod_info.set_thread_hash( "c0876479b4618f539815c6abd1240fd3" )
 
     mod_info.set_desc(r"""This mod is supposed to present the foundation of the federation, rather than its fall. The Engi and Zoltan are presented as allies while the Mantis, Rock, and Slugs as aggressors; the final battle is a unifying battle in which the Engi, Zoltan, and Humanity stand against the Rock, Slugs, and Mantis (I'm thinking of casting the slugs as the manipulators of this 'axis'). The old playable ships associated with those races are mini-bosses at the end of quest chains and, of course, they will be used in the final battle as well.
 
@@ -158,8 +158,8 @@ This is a useful utility mod for those who want to unlock certain ships without 
     mod_info.set_title( "Halo" )
     mod_info.set_author( "Lord0fHam" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=11475" )
-    mod_info.put_version( "1e381090dec2bca663a709d770eb0940", "1.1 WIP" )
-    mod_info.set_thread_hash( "ddd1870041df9830cf3e2518dc6705de" )
+    mod_info.put_version( "1e381090dec2bca663a709d770eb0940", "1.0.1 WIP" )
+    mod_info.set_thread_hash( "7c43fe82d068dd7085dc9a22ed76d8fd" )
 
     mod_info.set_desc(r"""I have decided to make a total conversion of the game to make it Halo themed. I'm going to add new weapons, ships, sectors, events, etc. I have some ideas, but I need more. I am going to make all new sectors after all so I need many new events. If there are any Halo fans (or not) out there that would like to suggest any new events, weapons, etc. or help out with art for new things, please post below. I hope to make this mod a total conversion, ending with the replacement of the final boss with some super powerful Covenant Cruiser to stop Truth from firing the Halos.
 
@@ -199,7 +199,7 @@ The Incursor "Archon" was designed to strike fast and hard, weakening the enemy 
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=3542" )
     mod_info.put_version( "9de0823d7d8b33cf27ac2807e085cd45", "0.4.3" )
     mod_info.put_version( "516e20d80b9c6c878b0730c3e7978576", "0.4.1" )
-    mod_info.set_thread_hash( "6f36b48493ba758b6227c6d93f206262" )
+    mod_info.set_thread_hash( "744d5675899e0971b693af598a60664d" )
 
     mod_info.set_desc(r"""What is FTL Infinite Space?
 The universe is vast. With FTL Infinite Space you can explore the universe to your hearts content, or till you blow your ship to bits. Infinite Space will jump you from sector to sector, while you search for ancient powerful artifacts, and advanced technology to enhance your ships capabilities. Learn when to fight, and when to run. Dominate or be destroyed.
@@ -321,7 +321,7 @@ Features
     mod_info.set_author( "DauntlessK" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=11604" )
     mod_info.put_version( "???", "N/A WIP" )
-    mod_info.set_thread_hash( "93dc96a2e5617245c3c700245a72f0f9" )
+    mod_info.set_thread_hash( "45d4c8a847a945382311da3105cd07d3" )
 
     mod_info.set_desc(r"""This mod is meant to give you the feeling that you're a captain in the dark and twisted universe that is Warhammer 40,000. It is starting off as a ship, weapon mod, but will continue to grow into something even bigger.
 """)
@@ -398,7 +398,7 @@ Replaces the Kestrel-B ship.
     mod_info.set_author( "EchoesofOld" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11327" )
     mod_info.put_version( "642c121e47964c6e825c4b89da7a7e7e", "1.1" )
-    mod_info.set_thread_hash( "3ec836ef8a3aa15366c79f7327a3492d" )
+    mod_info.set_thread_hash( "d8ecd11fad226a01436e233f08ba822f" )
 
     mod_info.set_desc(r"""This ship is an unarmed vessel that relies on its cloak to survive.
 
@@ -470,7 +470,7 @@ Mod data:
     mod_info.set_author( "nataryeahbuddy" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11537" )
     mod_info.put_version( "7981bcf4ae27eeb3551ea46adedfe779", "1.2" )
-    mod_info.set_thread_hash( "982b60c332810a8548fe69f56e428795" )
+    mod_info.set_thread_hash( "d5fd366a25b7a9a7e8fb22f480406336" )
 
     mod_info.set_desc(r"""Lockheed-Martin/Boeing F-22A Raptor for FTL
 Part of a "Present-Time" Total Conversion that MAY be coming soon! (I'm working on an F-35)
@@ -692,6 +692,24 @@ Replaces the Stealth-B ship.
     mod_info.set_desc(r"""The primary feature of this mod is: 18 new ships to play! All your favourite air units from Starcraft 1 and 2, ported into FTL!
 
 The Ship mod and the UI mod are designed to be used together, but if you find the Starcrafty icons confusing you could just use the SC2Ships with the default icons.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Star Trek Universe" )
+    mod_info.set_author( "speedoflight" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11844" )
+    mod_info.put_version( "098dc2eb3865b701697e6a73420f57c6", "0.1 Beta WIP" )
+    mod_info.set_thread_hash( "93cc95f7a43f68fab53b9d56eaa08876" )
+
+    mod_info.set_desc(r"""For now, this is in alpha state.
+
+The Defiant is a ship designed for assault purposes, there is no space for exploration equipment, colonial investigation or whatever. Its main purpose is to provide high reactor power to feed the weapons and the engines. Like the tv show, the Defiant has a cloaking system, installed by the romulans when they needed to defeat the Dominion. The Hull is reduced to 26 points to compensate a bit.
+
+Replaces the Kestrel-A ship.
+
+Various new weapons are added, too.
 """)
     mod_db.add_mod(mod_info)
 
