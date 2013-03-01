@@ -131,6 +131,7 @@ Changelog
 - Fixed data.dat/FTL.app file chooser, which sometimes left files hidden
 - Moved dat backups to GMM/backup/ (bak's in the old location will be deleted)
 - Made the code tolerable by Python 3.x (hopefully without new 2.x bugs)
+- Made the Patch/Toggle/Forum buttons expand to accomodate their text
 
 1.6:
 - GMM no longer needs to be placed in the FTL directory

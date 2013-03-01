@@ -234,7 +234,6 @@ class MainWindow(tk.Toplevel):
 
         if (self.custom_args["title"]): self.wm_title(self.custom_args["title"])
 
-        self.button_width = 7
         self.button_padx = "2m"
         self.button_pady = "1m"
 
@@ -296,37 +295,29 @@ class MainWindow(tk.Toplevel):
 
         # Add the buttons to the buttons frame.
         self._patch_btn = tk.Button(right_frame, text="Patch")
-        self._patch_btn.configure(
-            width=self.button_width,
-            padx=self.button_padx, pady=self.button_pady)
+        self._patch_btn.configure(padx=self.button_padx, pady=self.button_pady)
 
-        self._patch_btn.pack(side="top")
+        self._patch_btn.pack(side="top", fill="x")
         self._patch_btn.configure(command=self._patch)
         self._patch_btn.bind("<Return>", lambda e: self._patch())
 
         self._toggle_all_btn = tk.Button(right_frame, text="Toggle All")
-        self._toggle_all_btn.configure(
-            width=self.button_width,
-            padx=self.button_padx, pady=self.button_pady)
+        self._toggle_all_btn.configure(padx=self.button_padx, pady=self.button_pady)
 
-        self._toggle_all_btn.pack(side="top")
+        self._toggle_all_btn.pack(side="top", fill="x")
         self._toggle_all_btn.configure(command=self._toggle_all)
         self._toggle_all_btn.bind("<Return>", lambda e: self._toggle_all())
 
         self._dummy_a_btn = tk.Button(right_frame, text="")
-        self._dummy_a_btn.configure(
-            width=self.button_width,
-            padx=self.button_padx, pady=self.button_pady,
+        self._dummy_a_btn.configure(padx=self.button_padx, pady=self.button_pady,
             state="disabled")
 
-        self._dummy_a_btn.pack(side="top")
+        self._dummy_a_btn.pack(side="top", fill="x")
 
         self._forum_btn = tk.Button(right_frame, text="Forum")
-        self._forum_btn.configure(
-            width=self.button_width,
-            padx=self.button_padx, pady=self.button_pady)
+        self._forum_btn.configure(padx=self.button_padx, pady=self.button_pady)
 
-        self._forum_btn.pack(side="top")
+        self._forum_btn.pack(side="top", fill="x")
         self._forum_btn.configure(command=self._browse_forum)
         self._forum_btn.bind("<Return>", lambda e: self._browse_forum())
 
