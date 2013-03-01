@@ -141,13 +141,16 @@ def create_default_db():
 
 
 # Make both Python 3.x and 2.x use unicode.
-if (sys.version < "3"):
+if (sys.hexversion >= 0x030000a0):
+    # At least Python 3.0.0 alpha0
+    # (aN=alpha #N, cN=candidate #N, f0=final).
+    def u(x):
+        return x  # It's already unicode.
+else:
+    # Python 2.x.
     import codecs
     def u(x):
         return codecs.unicode_escape_decode(x)[0]
-else:
-    def u(x):
-        return x
 
 
 def _get_first_post(url):
