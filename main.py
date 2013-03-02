@@ -299,6 +299,10 @@ class MainWindow(tk.Toplevel):
         self._desc_area.tag_configure("title", font="helvetica 20 bold")
         self._hyperman = tkHyperlinkManager.HyperlinkManager(self._desc_area)
 
+        self._statusbar = tk.Label(root_frame, borderwidth="1", relief="sunken",
+            anchor="w", font="helvetica 9")
+        self._statusbar.pack(fill="x", expand="yes", pady=("3","0"))
+
         # Add the buttons to the buttons frame.
         self._patch_btn = tk.Button(right_frame, text="Patch")
         self._patch_btn.configure(padx=self.button_padx, pady=self.button_pady)
@@ -306,6 +310,7 @@ class MainWindow(tk.Toplevel):
         self._patch_btn.pack(side="top", fill="x")
         self._patch_btn.configure(command=self._patch)
         self._patch_btn.bind("<Return>", lambda e: self._patch())
+        self._set_status_help(self._patch_btn, "Incorporate all selected mods into the game.")
 
         self._toggle_all_btn = tk.Button(right_frame, text="Toggle All")
         self._toggle_all_btn.configure(padx=self.button_padx, pady=self.button_pady)
@@ -313,6 +318,7 @@ class MainWindow(tk.Toplevel):
         self._toggle_all_btn.pack(side="top", fill="x")
         self._toggle_all_btn.configure(command=self._toggle_all)
         self._toggle_all_btn.bind("<Return>", lambda e: self._toggle_all())
+        self._set_status_help(self._toggle_all_btn, "Select all mods, or none.")
 
         self._dummy_a_btn = tk.Button(right_frame, text="")
         self._dummy_a_btn.configure(padx=self.button_padx, pady=self.button_pady,
@@ -320,26 +326,31 @@ class MainWindow(tk.Toplevel):
 
         self._dummy_a_btn.pack(side="top", fill="x")
 
-        self._forum_btn = tk.Button(right_frame, text="Forum")
-        self._forum_btn.configure(padx=self.button_padx, pady=self.button_pady)
+        self._about_btn = tk.Button(right_frame, text="About")
+        self._about_btn.configure(padx=self.button_padx, pady=self.button_pady)
 
-        self._forum_btn.pack(side="top", fill="x")
-        self._forum_btn.configure(command=self._browse_forum)
-        self._forum_btn.bind("<Return>", lambda e: self._browse_forum())
+        self._about_btn.pack(side="top", fill="x")
+        self._about_btn.configure(command=self._show_app_description)
+        self._about_btn.bind("<Return>", lambda e: self._show_app_description())
+        self._set_status_help(self._about_btn, "Show info about this program.")
 
         self.wm_protocol("WM_DELETE_WINDOW", self._destroy)  # Intercept window manager closing.
 
-        self._fill_list()
-        self._patch_btn.focus_force()
-
-    def _fill_list(self):
-        """Fills the list of all available mods."""
-
-        # Set default description.
-        self._set_description("Grognak's Mod Manager", author="Grognak", version=global_config.APP_VERSION, url=global_config.APP_URL, description="Thanks for using GMM.\nMake sure to periodically check the forum for updates!")
-
+        # Fill the list with all available mods.
         for mod_name in self.custom_args["mod_names"]:
             self._add_mod(mod_name, False)
+
+        self._show_app_description()
+
+        self._patch_btn.focus_force()
+
+    def _set_status_help(self, widget, message):
+        """Adds mouse-enter and mouse-leave triggers to show a statusbar message."""
+        def f(e):
+            if (hasattr(e.widget, "cget") and e.widget.cget("state") != "disabled"):
+                self.set_status_text(message)
+        widget.bind("<Enter>", f)
+        widget.bind("<Leave>", lambda e: self.set_status_text(""))
 
     def _on_listbox_select(self, event):
         current_selection = self._mod_listbox.curselection()
@@ -442,8 +453,13 @@ class MainWindow(tk.Toplevel):
         else:
             self._mod_listbox.selection_set(0, tk.END)
 
-    def _browse_forum(self):
-        webbrowser.open(global_config.APP_URL, new=2)
+    def _show_app_description(self):
+        # Set default description.
+        self._set_description("Grognak's Mod Manager", author="Grognak", version=global_config.APP_VERSION, url=global_config.APP_URL, description="Thanks for using GMM.\nMake sure to periodically check the forum for updates!")
+
+    def set_status_text(self, message):
+        """Sets the text in the status bar."""
+        self._statusbar.configure(text=message)
 
     def center_window(self):
         """Centers this window on the screen.
