@@ -379,6 +379,22 @@ The Cobra is armed with a dorsal weapons battery (a Burst Laser Mk II in the gam
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Battlestars" )
+    mod_info.set_author( "FrostWyrmWraith" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11940" )
+    mod_info.put_version( "4b2d7e5f6d80b475a9b4e9d0d740ff41", "1.0" )
+    mod_info.set_thread_hash( "49de32110c905eb33e5ef07f888afbfd" )
+
+    mod_info.set_desc(r"""Here we have a pair of ships in one file-the Galactica and the Pegasus.
+
+The Galactica begins with a missile launcher and two Vipers as a homage to what it fought like in the series.
+
+With the Pegasus I didn't want to make the ship too overpowered so I gave it two KEW batteries and a single Viper, though starting it with more and giving it more drone slots would have been more accurate. I wanted it to play a bit differently, so it focuses more on weapons than fighters. In the game you can find the Viper Mk VII, as well, so keep your eyes peeled!
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Blazing Cruiser" )
     mod_info.set_author( "Zaffre" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=4&t=3133" )
@@ -419,7 +435,6 @@ I have discovered that you can NOT load my ships simultaneously. I dont know WHA
     mod_info.set_author( "MeGusta" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11434" )
     mod_info.put_version( "848d44e196b16fec980862432d82fa1f", "1.1 No Human" )
-    mod_info.put_version( "76cdb2bad9582d23c1f6f4d868218d6c", "1.1" )
     mod_info.set_thread_hash( "04ef703bdcb3dcf80859040a2928e490" )
 
     mod_info.set_desc(r"""This is the C-1092. It is made for teleportation combat. You get in, then out as quick as possible. I made this because I could not find any ships of this type. It looks the same as the Type B stealth fighter.
@@ -493,6 +508,20 @@ The Lockheed Martin/Boeing F-22 Raptor is a single-seat, twin-engine fifth-gener
     mod_info.set_thread_hash( "c4ed37f4842eb68bb5e7599a54cacdef" )
 
     mod_info.set_desc(r"""Greetings FTL and Halo fans!
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Halo: CCS-Class Battlecruiser" )
+    mod_info.set_author( "FrostWyrmWraith" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11938" )
+    mod_info.put_version( "21fc1a22707e4b30e806b1a2e9f66674", "1.0" )
+    mod_info.set_thread_hash( "a925d0ba5d43b6d90def7bfe732da653" )
+
+    mod_info.set_desc(r"""The Covenant battlecruiser featured heavily in the Halo series! It starts with a slug and two engi. It also adds the plasma torpedo to the game. It requires two power and has a fairly long charge up, but does two damage and is pretty much guaranteed to cause fires.
+
+Replaces the Slug-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -704,6 +733,7 @@ The Ship mod and the UI mod are designed to be used together, but if you find th
     mod_info.set_title( "Star Trek Universe" )
     mod_info.set_author( "speedoflight" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11844" )
+    mod_info.put_version( "c6880fd3e9423affe5ff9dc733580cad", "0.2 Beta WIP" )
     mod_info.put_version( "098dc2eb3865b701697e6a73420f57c6", "0.1 Beta WIP" )
     mod_info.set_thread_hash( "93cc95f7a43f68fab53b9d56eaa08876" )
 
