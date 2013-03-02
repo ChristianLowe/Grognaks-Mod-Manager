@@ -454,7 +454,7 @@ class MainWindow(tk.Toplevel):
             self._mod_listbox.selection_set(0, tk.END)
 
     def _show_app_description(self):
-        # Set default description.
+        """Shows info about this program."""
         self._set_description("Grognak's Mod Manager", author="Grognak", version=global_config.APP_VERSION, url=global_config.APP_URL, description="Thanks for using GMM.\nMake sure to periodically check the forum for updates!")
 
     def set_status_text(self, message):
