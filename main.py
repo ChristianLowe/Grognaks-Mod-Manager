@@ -926,15 +926,6 @@ def validate_xml(xml_text):
     else:
         xml_text = "<wrapper>\n%s\n</wrapper>" % xml_text
 
-    # Mismatched single-line tags.
-    # Example: blueprints.xml: <title>...</type>
-    def replacer(m):
-        if (m.group(1) != m.group(4)):
-            results.append(["error", "<"+ m.group(1) +"...>...</"+ m.group(4) +">"])
-            return "<"+ m.group(1) + m.group(2) +">"+ m.group(3) +"</"+ m.group(1) +">"
-        return m.group(0)
-    xml_text = re.sub("<([^/!][^> ]+?)((?: [^>]+?)?)(?<!/)>([^<]+?)</([^>]+?)>", replacer, xml_text)
-
     # Comments with long tails or double-dashes.
     def replacer(m):
         if (m.group(1) or m.group(3) or "--" in m.group(2)):
@@ -943,6 +934,15 @@ def validate_xml(xml_text):
         #return m.group(0)
         return re.sub("[^\n]", "", m.group(2))  # Don't preserve comments (keep only \n).
     xml_text = re.sub("(?s)<!--(-*)(.*?)(-*)-->", replacer, xml_text)
+
+    # Mismatched single-line tags.
+    # Example: blueprints.xml: <title>...</type>
+    def replacer(m):
+        if (m.group(1) != m.group(4)):
+            results.append(["error", "<"+ m.group(1) +"...>...</"+ m.group(4) +">"])
+            return "<"+ m.group(1) + m.group(2) +">"+ m.group(3) +"</"+ m.group(1) +">"
+        return m.group(0)
+    xml_text = re.sub("<([^/!][^> ]+?)((?: [^>]+?)?)(?<!/)>([^<]+?)</([^>]+?)>", replacer, xml_text)
 
     # <pilot power="1"max="3" room="0"/>  # Groan, \t separates attribs sometimes.
     def replacer(m):
