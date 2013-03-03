@@ -212,7 +212,7 @@ class RootWindow(tk.Tk):
             if (arg_dict["ftl_exe_path"]):
                 if (msgbox.askyesno(global_config.APP_NAME, "Patching completed successfully. Run FTL now?")):
                     logging.info("Running FTL...")
-                    subprocess.Popen([arg_dict["ftl_exe_path"]])
+                    subprocess.Popen([arg_dict["ftl_exe_path"]], cwd=os.path.dirname(arg_dict["ftl_exe_path"]))
             else:
                 msgbox.showinfo(global_config.APP_NAME, "Patching completed successfully.")
 
