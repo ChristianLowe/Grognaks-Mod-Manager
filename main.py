@@ -549,10 +549,10 @@ def append_xml_file(src_path, dst_path):
         with open(dst_path, "rb") as dst_file:
             dst_text = get_text(dst_file)
             dst_text = xml_decl_ptn.sub("", dst_text)  # Prune any declaration.
-            dst_text = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + dst_text
 
     with open(dst_path, "wb") as dst_file:
-        new_text = dst_text +"\n\n<!-- Appended by GMM -->\n\n"+ src_text +"\n"
+        new_text = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+        new_text += dst_text +"\n\n<!-- Appended by GMM -->\n\n"+ src_text +"\n"
         new_text = re.sub("\n", "\r\n", new_text)
         dst_file.write(new_text.encode("utf-8"))
 
