@@ -1015,9 +1015,9 @@ def validate_xml(xml_text):
         return m.group(0)
     xml_text = re.sub("(?s)<(gib[0-9]+)>(.*?)</(gib[0-9]+)>", replacer, xml_text)
 
-    # event*.xml: <choice ... hidden="true" hidden="true">
+    # event*.xml: <choice... hidden="true" hidden="true">
     def replacer(m):
-        results.append(["error", "<"+ m.group(1) +" ... "+ m.group(3) +"=... "+ m.group(3) +"=...>"])
+        results.append(["error", "<"+ m.group(1) +"... "+ m.group(3) +"=... "+ m.group(3) +"=...>"])
         return "<"+ m.group(1) + m.group(2) +" "+ m.group(3) + m.group(4) +" "+ m.group(5) +">"
     xml_text = re.sub("<([a-zA-Z0-9_-]+?)((?: [^>]+?)?) ([^>]+?)(=\"[^\">]+?\") \\3(?:=\"[^\">]+?\")([^>]*)>", replacer, xml_text)
 
