@@ -211,8 +211,15 @@ class RootWindow(tk.Tk):
 
             if (arg_dict["ftl_exe_path"]):
                 if (msgbox.askyesno(global_config.APP_NAME, "Patching completed successfully. Run FTL now?")):
-                    logging.info("Running FTL...")
-                    subprocess.Popen([arg_dict["ftl_exe_path"]], cwd=os.path.dirname(arg_dict["ftl_exe_path"]))
+                    if (platform.system() == "Darwin" and os.path.isdir(arg_dict["ftl_exe_path"])
+                        and os.path.isfile(os.join(arg_dict["ftl_exe_path"], "Contents", "Info.plist"))):
+                        # This is an app bundle.
+                        logging.info("Running FTL Bundle...")
+                        subprocess.Popen(["open", "-a", arg_dict["ftl_exe_path"]], cwd=os.path.dirname(arg_dict["ftl_exe_path"]))
+
+                    else:
+                        logging.info("Running FTL...")
+                        subprocess.Popen([arg_dict["ftl_exe_path"]], cwd=os.path.dirname(arg_dict["ftl_exe_path"]))
             else:
                 msgbox.showinfo(global_config.APP_NAME, "Patching completed successfully.")
 
@@ -877,12 +884,21 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     return False
 
 def find_ftl_exe():
-    """Returns the FTL executable's path, or None."""
+    """Returns the FTL executable's path, or None.
+    On Windows, this will be an *.exe.
+    On OSX, this will be an application bundle directory (FTL.app/).
+    """
 
     if (platform.system() == "Windows"):
         exe_path = os.path.normpath(os.path.join(global_config.dir_res, *["..", "FTLGame.exe"]))
         if (os.path.isfile(exe_path)):
             return exe_path
+
+    elif (platform.system() == "Darwin"):
+        # FTL.app/Contents/Resources/
+        app_path = os.path.normpath(os.path.join(global_config.dir_res, *["..", ".."]))
+        if (os.path.isfile(os.join(app_path, "Contents", "Info.plist"))):
+            return app_path
 
     return None
 
