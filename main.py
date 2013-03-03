@@ -556,16 +556,21 @@ def append_xml_file(src_path, dst_path):
         new_text = re.sub("\n", "\r\n", new_text)
         dst_file.write(new_text.encode("utf-8"))
 
-def append_file(src, dst):
-    source = open(src, "r")
-    target = open(dst, "a")
+def append_file(src_path, dst_path):
+    """Blindly appends bytes from one file onto another."""
+    src_file = None
+    dst_file = None
 
-    target.write(source.read() +"\n")
+    try:
+        src_file = open(src_path, "rb")
+        dst_file = open(dst_path, "ab")
+        dst_file.write(src_file.read())
+    finally:
+        for f in [src_file, dst_file]:
+            if (f is not None):
+                f.close()
 
-    source.close()
-    target.close()
-
-def merge_file(src, dst):
+def merge_file(src_path, dst_path):
     pass
 
 def packdat(unpack_dir, dat_path):
