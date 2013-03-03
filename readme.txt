@@ -145,6 +145,7 @@ Changelog
 - Made the code tolerable by Python 3.x (hopefully without new 2.x bugs)
 - Made the Patch/Toggle/Forum buttons expand to accomodate their text
 - Added "Validate" button to check mods for problems
+- Added support for appending xml files with unicode UTF-8 BOMs
 
 1.6:
 - GMM no longer needs to be placed in the FTL directory

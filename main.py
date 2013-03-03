@@ -516,7 +516,47 @@ def ftl_path_join(*args):
         That is: the UNIX way. """
     return "/".join(args)
 
-def appendfile(src, dst):
+def append_xml_file(src_path, dst_path):
+    """Semi-intelligently appends XML from one file onto another.
+
+    UTF-8 BOMs will be pruned.
+    Any XML declaration in the source will be pruned.
+    The destination's declaration will be replaced with one for utf-8.
+    This assumes the encoding of both files can be decoded as utf-8 (ascii's fine).
+    CR-LF line endings will be normalized to LF for reading, then written as CR-LF.
+    """
+    src_text = ""
+    dst_text = ""
+
+    xml_decl_ptn = re.compile("<[?]xml version=\"1.0\" encoding=\"[^\"]+?\"[?]>")
+
+    def get_text(f):
+        f_bytes = f.read()
+        if (f_bytes.startswith(codecs.BOM_UTF8)):
+            f_bytes = f_bytes[len(codecs.BOM_UTF8):]
+        f_text = f_bytes.decode("utf-8")
+        f_text = re.sub("\r?\n", "\n", f_text)
+        return f_text
+
+    with open(src_path, "rb") as src_file:
+        src_text = get_text(src_file)
+        src_text = xml_decl_ptn.sub("", src_text)  # Prune any declaration.
+
+    if (src_text == ""):
+        return  # Nothing to append.
+
+    if (os.path.isfile(dst_path)):
+        with open(dst_path, "rb") as dst_file:
+            dst_text = get_text(dst_file)
+            dst_text = xml_decl_ptn.sub("", dst_text)  # Prune any declaration.
+            dst_text = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + dst_text
+
+    with open(dst_path, "wb") as dst_file:
+        new_text = dst_text +"\n\n<!-- Appended by GMM -->\n\n"+ src_text +"\n"
+        new_text = re.sub("\n", "\r\n", new_text)
+        dst_file.write(new_text.encode("utf-8"))
+
+def append_file(src, dst):
     source = open(src, "r")
     target = open(dst, "a")
 
@@ -525,7 +565,7 @@ def appendfile(src, dst):
     source.close()
     target.close()
 
-def mergefile(src, dst):
+def merge_file(src, dst):
     pass
 
 def packdat(unpack_dir, dat_path):
@@ -790,14 +830,16 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                                 if (not os.path.exists(path)):
                                     os.makedirs(path)
                             for f in files:
-                                if (f.endswith(".append")):
-                                    appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
+                                if (f.endswith(".xml.append")):
+                                    append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
                                 elif (f.endswith(".append.xml")):
-                                    appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
+                                    append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
+                                elif (f.endswith(".append")):
+                                    append_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
                                 elif (f.endswith(".merge")):
-                                    mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge")]))
+                                    merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge")]))
                                 elif (f.endswith("merge.xml")):
-                                    mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
+                                    merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
                                 else:
                                     sh.copy2(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f))
 
@@ -840,7 +882,9 @@ def find_ftl_exe():
     return None
 
 def validate_mod(mod_path):
-    """Returns a string detailing problems in a mod's files, and a boolean for the outcome."""
+    """Returns a string detailing problems in a mod's files, and a boolean for the outcome.
+    The outcome will be False if there are any warnings or errors.
+    """
     result = ""
     mod_valid = True
     seen_macosx = False
@@ -859,13 +903,15 @@ def validate_mod(mod_path):
                 if (not seen_macosx):
                     result += "! Junk Folder: __MACOSX\n"
                     seen_macosx = True
+                    mod_valid = False
             elif (item.endswith(".xml") or item.endswith(".xml.append")):
                 result += "> %s\n" % item
 
                 item_bytes = mod_zip.read(item)
                 if (item_bytes.startswith(codecs.BOM_UTF8)):
-                    result += "~ Unicode BOM detected. (ascii is safer)\n"
+                    result += "~ Unicode UTF-8 BOM detected. (ascii is safer)\n"
                     item_bytes = item_bytes[len(codecs.BOM_UTF8):]
+                    mod_valid = False
                 item_text = item_bytes.decode("utf-8")
                 item_text = re.sub("\r?\n", "\n", item_text)
 
