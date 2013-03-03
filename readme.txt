@@ -110,8 +110,8 @@ Developer Notes
 
   The Append Extension
 
-    Any file in your .ftl with the extension .append will be appended to its
-    respective vanilla file. (See the example mod.)
+    Any file in your .ftl with the extension .xml.append will be appended to
+    its respective vanilla file. (See the example mod.)
 
     It is highly recommended that you take advantage of this as much as
     possible. As a rule of thumb, if you're editing an event xml file,
