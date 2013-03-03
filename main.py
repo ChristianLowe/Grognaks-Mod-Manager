@@ -857,7 +857,7 @@ def validate_mod(mod_path):
                 pass
             elif (item.startswith("__MACOSX/")):
                 if (not seen_macosx):
-                    print "! Junk Folder: __MACOSX"
+                    result += "! Junk Folder: __MACOSX\n"
                     seen_macosx = True
             elif (item.endswith(".xml") or item.endswith(".xml.append")):
                 result += "> %s\n" % item
