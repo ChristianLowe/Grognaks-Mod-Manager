@@ -44,6 +44,7 @@ if (__name__ == "__main__"):
 
 # Import everything else (tkinter may be absent in some environments).
 try:
+    import codecs
     import errno
     import glob
     import hashlib
@@ -55,6 +56,7 @@ try:
     import threading
     import webbrowser
     import zipfile as zf
+    import xml.parsers.expat
 
     # Modules that changed in Python 3.x.
     # Use loops for brevity, which means passing vars into __import__().
@@ -320,11 +322,13 @@ class MainWindow(tk.Toplevel):
         self._toggle_all_btn.bind("<Return>", lambda e: self._toggle_all())
         self._set_status_help(self._toggle_all_btn, "Select all mods, or none.")
 
-        self._dummy_a_btn = tk.Button(right_frame, text="")
-        self._dummy_a_btn.configure(padx=self.button_padx, pady=self.button_pady,
-            state="disabled")
+        self._validate_btn = tk.Button(right_frame, text="Validate")
+        self._validate_btn.configure(padx=self.button_padx, pady=self.button_pady)
 
-        self._dummy_a_btn.pack(side="top", fill="x")
+        self._validate_btn.pack(side="top", fill="x")
+        self._validate_btn.configure(command=self._validate_selected_mod)
+        self._validate_btn.bind("<Return>", lambda e: self._validate_selected_mod())
+        self._set_status_help(self._validate_btn, "Check selected mods for problems.")
 
         self._about_btn = tk.Button(right_frame, text="About")
         self._about_btn.configure(padx=self.button_padx, pady=self.button_pady)
@@ -452,6 +456,30 @@ class MainWindow(tk.Toplevel):
             self._mod_listbox.selection_clear(0, tk.END)
         else:
             self._mod_listbox.selection_set(0, tk.END)
+
+    def _validate_selected_mod(self):
+        """Checks the selected mod for invalid XML."""
+        mod_names = [self._mod_listbox.get(n) for n in self._mod_listbox.curselection()]
+        result = ""
+        any_invalid = False
+
+        for mod_name in mod_names:
+            mod_path = find_mod(mod_name)
+            if (mod_path):
+                mod_result, mod_valid = validate_mod(mod_path)
+                result += mod_result
+                result += "\n"
+                if (not mod_valid):
+                    any_invalid = True
+
+        if (not result):
+            result = "No mods were checked."
+        elif (any_invalid):
+            result += "FTL itself can tolerate lots of errors and still run. "
+            result += "But invalid XML may break tools that do proper parsing, "
+            result += "and it hinders the development of new tools.\n"
+
+        self._set_description("Results", description=result)
 
     def _show_app_description(self):
         """Shows info about this program."""
@@ -735,9 +763,11 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                 tmp = tf.mkdtemp()
 
                 # Python 2.6 didn't support with+ZipFile. :/
-                mod_zip = zf.ZipFile(mod_path, "r")
+                mod_zip = None
                 try:
                     # Unzip everything into a temporary folder.
+                    mod_zip = zf.ZipFile(mod_path, "r")
+
                     for item in mod_zip.namelist():
                         if (item.endswith("/")):
                             path = os.path.join(tmp, item)
@@ -746,7 +776,8 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                         else:
                             mod_zip.extract(item, tmp)
                 finally:
-                    mod_zip.close()
+                    if (mod_zip is not None):
+                        mod_zip.close()
 
                 # Go through each directory in the mod.
                 for directory in os.listdir(tmp):
@@ -807,6 +838,206 @@ def find_ftl_exe():
             return exe_path
 
     return None
+
+def validate_mod(mod_path):
+    """Returns a string detailing problems in a mod's files, and a boolean for the outcome."""
+    result = ""
+    mod_valid = True
+    seen_macosx = False
+
+    mod_zip = None
+    try:
+        mod_zip = zf.ZipFile(mod_path, "r")
+        if (len(mod_zip.namelist()) == 0):
+            result += "! Empty zip\n"
+            mod_valid = False
+
+        for item in mod_zip.namelist():
+            if (item.endswith("/")):
+                pass
+            elif (item.startswith("__MACOSX/")):
+                if (not seen_macosx):
+                    print "! Junk Folder: __MACOSX"
+                    seen_macosx = True
+            elif (item.endswith(".xml") or item.endswith(".xml.append")):
+                result += "> %s\n" % item
+
+                item_bytes = mod_zip.read(item)
+                if (item_bytes.startswith(codecs.BOM_UTF8)):
+                    result += "~ Unicode BOM detected. (ascii is safer)\n"
+                    item_bytes = item_bytes[len(codecs.BOM_UTF8):]
+                item_text = item_bytes.decode("utf-8")
+                item_text = re.sub("\r?\n", "\n", item_text)
+
+                xml_results, xml_valid = validate_xml(item_text)
+
+                # Pretty print.
+                prev_result = None
+                for xml_result in xml_results:
+                    if (xml_result == prev_result):
+                        continue
+                    for x in [(["error", "exception"], "! "), (None, "  ")]:
+                        if (x[0] is None or xml_result[0] in x[0]):
+                            result += x[1]
+                            break
+                    result += re.sub("\n", "\n  ", xml_result[1]) +"\n"
+                    prev_result = xml_result
+                result += "\n"
+
+                if (not xml_valid):
+                    mod_valid = False
+
+    except (Exception) as err:
+        logging.exception(err)
+        result += "! An error occurred. See log for details.\n"
+        mod_valid = False
+    finally:
+        if (mod_zip is not None):
+            mod_zip.close()
+
+    if (mod_valid):
+        return ("@ %s: ok\n" % os.path.basename(mod_path), mod_valid)
+    else:
+      header = "@ %s: see below\n" % os.path.basename(mod_path)
+      header += "  %s\n" % ("-"*(len(header)-2))
+      return ((header + result), mod_valid)
+
+def validate_xml(xml_text):
+    """Returns a report detailing problems in an xml file, and a boolean for the outcome.
+    It first tries to preemptively fix and report common typos all at once.
+    Then a real XML parser runs, which stops at the first typo it sees. :/
+
+    The report is a list of [type, message] pairs.
+    Types: error (standard problems), exception (parser choked), or done (all errors found).
+    """
+    results = []
+    valid = False
+
+    # Wrap everything in a root tag, while mindful of the xml declaration.
+    xml_decl_ptn = re.compile("<[?]xml version=\"1.0\" encoding=\"[^\"]+?\"[?]>")
+    m = xml_decl_ptn.search(xml_text)
+    if (m):
+        if (m.start() == 0):
+            xml_text = xml_text[:m.end()] +"\n<wrapper>\n"+ xml_text[m.end():]
+        else:
+            results.append(["error", "<?xml... ?> should only occur on the first line."])
+            xml_text = "<wrapper>\n"+ xml_text[:m.start()] + xml_text[m.end():]
+        xml_text += "\n</wrapper>"
+    else:
+        xml_text = "<wrapper>\n%s\n</wrapper>" % xml_text
+
+    # Mismatched single-line tags.
+    # Example: blueprints.xml: <title>...</type>
+    def replacer(m):
+        if (m.group(1) != m.group(4)):
+            results.append(["error", "<"+ m.group(1) +"...>...</"+ m.group(4) +">"])
+            return "<"+ m.group(1) + m.group(2) +">"+ m.group(3) +"</"+ m.group(1) +">"
+        return m.group(0)
+    xml_text = re.sub("<([^/!][^> ]+?)((?: [^>]+?)?)(?<!/)>([^<]+?)</([^>]+?)>", replacer, xml_text)
+
+    # Comments with long tails or double-dashes.
+    def replacer(m):
+        if (m.group(1) or m.group(3) or "--" in m.group(2)):
+            results.append(["error", "<!-- No other dashes should touch. -->"])
+            #return "<!--"+ re.sub("--*", "-", m.group(2)) +"-->"
+        #return m.group(0)
+        return re.sub("[^\n]", "", m.group(2))  # Don't preserve comments (keep only \n).
+    xml_text = re.sub("(?s)<!--(-*)(.*?)(-*)-->", replacer, xml_text)
+
+    # <pilot power="1"max="3" room="0"/>  # Groan, \t separates attribs sometimes.
+    def replacer(m):
+        results.append(["error", "<"+ m.group(1) +"...\""+ m.group(3) +"...>"])
+        return "<"+ m.group(1) + m.group(2) +" "+ m.group(3) + m.group(4) +">"
+    xml_text = re.sub("<([^> ]+?)( [^>]+?\")([^\"= \t>]+?=\"[^\"]+?\")((?:[^>]+?)?)>", replacer, xml_text)
+
+    # sector_data.xml closing tag.
+    def replacer(m):
+        results.append(["error", "<sectorDescription>...</sectorDescrption>"])
+        return m.group(1) +"</sectorDescription>"
+    xml_text = re.sub("((?s)<sectorDescription[^>]*>.*?)</sectorDescrption>", replacer, xml_text)
+
+    # {anyship}.xml: <gib1>...</gib2>
+    def replacer(m):
+        if (m.group(1) != m.group(3)):
+            results.append(["error", "<"+ m.group(1) +">...</"+ m.group(3) +">"])
+            return "<"+ m.group(1) +">"+ m.group(2) +"</"+ m.group(1) +">"
+        return m.group(0)
+    xml_text = re.sub("(?s)<(gib[0-9]+)>(.*?)</(gib[0-9]+)>", replacer, xml_text)
+
+    # event*.xml: <choice ... hidden="true" hidden="true">
+    def replacer(m):
+        results.append(["error", "<"+ m.group(1) +" ... "+ m.group(3) +"=... "+ m.group(3) +"=...>"])
+        return "<"+ m.group(1) + m.group(2) +" "+ m.group(3) + m.group(4) +" "+ m.group(5) +">"
+    xml_text = re.sub("<([a-zA-Z0-9_-]+?)((?: [^>]+?)?) ([^>]+?)(=\"[^\">]+?\") \\3(?:=\"[^\">]+?\")([^>]*)>", replacer, xml_text)
+
+    # <shields>...</slot>
+    def replacer(m):
+        results.append(["error", "<shields>...</slot>"])
+        return m.group(1) +"</shields>"
+    ptn = ""
+    ptn += "(?u)(<shields *(?: [^>]*)?>\\s*"
+    ptn +=   "<slot *(?: [^>]*)?>\\s*"
+    ptn +=     "(?:<direction>[^<]*</direction>\\s*)?"
+    ptn +=     "(?:<number>[^<]*</number>\\s*)?"
+    ptn +=   "</slot>\\s*)"
+    ptn += "</slot>"  # Wrong closing tag.
+    xml_text = re.sub(ptn, replacer, xml_text)
+
+    # <shipBlueprint>...</ship>
+    def replacer(m):
+        results.append(["error", "<shipBlueprint>...</ship>"])
+        return m.group(1) +"</shipBlueprint>"
+    ptn = ""
+    ptn += "(?u)(<shipBlueprint *(?: [^>]*)?>\\s*"
+    ptn +=   "<class>[^<]*</class>\\s*"
+    ptn +=   "<systemList *(?: [^>]*)?>\\s*"
+    ptn +=      "(?:<[a-zA-Z]+ *(?: [^>]*)?/>\\s*)*"
+    ptn +=   "</systemList>\\s*"
+    ptn +=   "(?:<droneList *(?: [^>]*)?>\\s*"
+    ptn +=      "(?:<[a-zA-Z]+ *(?: [^>]*)?/>\\s*)*"
+    ptn +=   "</droneList>\\s*)?"
+    ptn +=   "(?:<weaponList *(?: [^>]*)?>\\s*"
+    ptn +=      "(?:<[a-zA-Z]+ *(?: [^>]*)?/>\\s*)*"
+    ptn +=   "</weaponList>\\s*)?"
+    ptn +=   "(?:<[a-zA-Z]+ *(?: [^>]*)?/>\\s*)*)"
+    ptn += "</ship>";  # Wrong closing tag.
+    xml_text = re.sub(ptn, replacer, xml_text)
+
+    # <textList>...</text>
+    def replacer(m):
+        results.append(["error", "<textList>...</text>"])
+        return m.group(1) +"</textList>"
+    ptn = ""
+    ptn += "(?u)(<textList *(?: [^>]*)?>\\s*"
+    ptn += "(?:<text *(?: [^>]*)?>[^<]*</text>\\s*)*)"
+    ptn += "</text>"  # Wrong closing tag.
+    xml_text = re.sub(ptn, replacer, xml_text)
+
+    try:
+        parser = xml.parsers.expat.ParserCreate()
+        parser.Parse(xml_text, True)
+        results.append(["done", "Done"])
+
+        valid = True
+        for x in results:
+            if (x[0] == "error"):
+                valid = False
+                break
+
+    except (xml.parsers.expat.ExpatError) as err:
+        message = "Fix this and try again:\n%s" % str(err)
+        message += "\n"
+        message += "~  ~  ~  ~  ~\n"
+        message += xml_text.split("\n")[err.lineno-1] + "\n"
+        message += "~  ~  ~  ~  ~"
+        results.append(["exception", message])
+        valid = False
+    except (Exception) as err:
+        logging.exception(err)
+        results.append(["exception", "An error occurred. See log for details."])
+        valid = False
+
+    return (results, valid)
 
 
 class LogicThread(killable_threading.KillableThread):
