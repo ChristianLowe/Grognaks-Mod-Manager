@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 import re
 import sys
@@ -35,6 +36,55 @@ class ModDB(object):
 
     def clear(self):
         self.catalog[:] = []
+
+    def dump_json(self):
+        """Serializes the catalog to a json string."""
+        result = {}
+        # An integer to increment when the class structure changes.
+        result["catalog_version"] = 1
+
+        result["catalog"] = []
+        for mod_info in self.catalog:
+            mod_data = {}
+            mod_data["title"] = mod_info.get_title()
+            mod_data["author"] = mod_info.get_author()
+            mod_data["url"] = mod_info.get_url()
+
+            mod_data["versions"] = []
+            for (h, v) in mod_info.get_versions().items():
+                mod_data["versions"].append({"hash":h, "version":v})
+
+            mod_data["thread_hash"] = mod_info.get_thread_hash()
+            mod_data["desc"] = mod_info.get_desc()
+
+            result["catalog"].append(mod_data)
+
+        return json.dumps(result, ensure_ascii=True, allow_nan=False, sort_keys=True)
+
+    def load_json(self, s):
+        """Populates the catalog from a serialized json string.
+        Call clear() first.
+        """
+        json_obj = json.loads(s)
+
+        if ("catalog_version" not in json_obj): return
+
+        if (json_obj["catalog_version"] == 1):
+            for mod_data in json_obj["catalog"]:
+                mod_info = ModInfo()
+                mod_info.set_title(mod_data["title"])
+                mod_info.set_author(mod_data["author"])
+                mod_info.set_url(mod_data["url"])
+
+                for ver_data in mod_data["versions"]:
+                    mod_info.put_version(ver_data["hash"], ver_data["version"])
+
+                mod_info.set_thread_hash(mod_data["thread_hash"])
+                mod_info.set_desc(mod_data["desc"])
+
+                self.add_mod(mod_info)
+        else:
+            logging.warning("Unable to deserialize catalog version %s" % json_obj["catalog_version"])
 
     def write_as_code(self, f):
         """Serializes the catalog as a python function.
