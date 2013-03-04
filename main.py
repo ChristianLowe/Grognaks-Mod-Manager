@@ -84,9 +84,8 @@ try:
 
 
     # Modules bundled with this script.
-    from lib.ftldat import FTLDatUnpacker
-    from lib.ftldat import FTLDatPacker
     from lib import cleanup
+    from lib import ftldat
     from lib import global_config
     from lib import killable_threading
     from lib import moddb
@@ -518,11 +517,6 @@ class MainWindow(tk.Toplevel):
         self.destroy()
 
 
-def ftl_path_join(*args):
-    """ Joins paths in the way FTL expects them to be in .dat files.
-        That is: the UNIX way. """
-    return "/".join(args)
-
 def append_xml_file(src_path, dst_path):
     """Semi-intelligently appends XML from one file onto another.
 
@@ -596,19 +590,19 @@ def packdat(unpack_dir, dat_path):
                 s.append(current + (child,))
     logging.info("Creating datfile...")
     index_size = len(files)
-    packer = FTLDatPacker(open(dat_path, "wb"), index_size)
+    packer = ftldat.FTLPack(open(dat_path, "wb"), create=True, index_size=index_size)
     logging.info("Packing...")
     for _file in files:
         full_path = os.path.join(unpack_dir, *_file)
         size = os.stat(full_path).st_size
         with open(full_path, "rb") as f:
-            packer.add(ftl_path_join(*_file), f, size)
+            packer.add(ftldat.ftl_path_join(*_file), f, size)
 
 def unpackdat(dat_path, unpack_dir):
     logging.info("Unpacking %s..." % os.path.basename(dat_path))
-    unpacker = FTLDatUnpacker(open(dat_path, "rb"))
+    unpacker = ftldat.FTLPack(open(dat_path, "rb"))
 
-    for (i, filename, size, offset) in unpacker:
+    for (i, filename, size, offset) in unpacker.list_metadata():
         target = os.path.join(unpack_dir, filename)
         if (not os.path.exists(os.path.dirname(target))):
             os.makedirs(os.path.dirname(target))

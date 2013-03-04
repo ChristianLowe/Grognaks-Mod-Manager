@@ -147,6 +147,7 @@ Changelog
 - Added "Validate" button to check mods for problems
 - Added support for appending xml files with unicode UTF-8 BOMs
 - Added FTL launching under OSX
+- Updated backend (un)packer to ftldat r7 (plus changes for Python 2.6/3.x)
 
 1.6:
 - GMM no longer needs to be placed in the FTL directory
