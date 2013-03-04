@@ -7,9 +7,16 @@ import logging
 import os
 import sys
 
+
 if (__name__ == "__main__"):
     global dir_self
     locale.setlocale(locale.LC_ALL, "")
+
+    # Tkinter chokes on non-US locales with commas for decimal points.
+    #   http://bugs.python.org/issue10647
+    #   Fixed in Python 3.2.
+    #
+    locale.setlocale(locale.LC_NUMERIC, "C")  # Use period for numbers.
 
     # Get the un-symlinked, absolute path to this module.
     dir_self = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
@@ -37,11 +44,11 @@ if (__name__ == "__main__"):
 
 # Import everything else (tkinter may be absent in some environments).
 try:
-    from ConfigParser import SafeConfigParser
+    import codecs
     import errno
     import glob
+    import hashlib
     import platform
-    import Queue
     import re
     import shutil as sh
     import subprocess
@@ -49,16 +56,40 @@ try:
     import threading
     import webbrowser
     import zipfile as zf
-    import Tkinter as tk
-    import tkFileDialog
-    import tkMessageBox as msgbox
+    import xml.parsers.expat
+
+    # Modules that changed in Python 3.x.
+    # Use loops for brevity, which means passing vars into __import__().
+    # And alias the modules by directly setting the globals() dict.
+    for (old_name, new_name) in [("ConfigParser", "configparser"),
+                                 ("Queue", "queue"),
+                                 ("Tkinter", "tkinter")]:
+        try:
+            # import new_name
+            globals()[new_name] = __import__(new_name, globals(), locals(), [])
+        except (ImportError) as err:
+            # import old_name as new_name
+            globals()[new_name] = __import__(old_name, globals(), locals(), [])
+
+    for (old_thing, new_thing, alias) in [("tkMessageBox", "messagebox", "msgbox"),
+                                          ("tkFileDialog", "filedialog", "filedlg")]:
+        try:
+            # from tkinter import new_thing as alias
+            globals()[alias] = getattr(__import__("tkinter", globals(), locals(), [new_thing]), new_thing)
+        except (ImportError) as err:
+            # import old_thing as alias
+            globals()[alias] = __import__(old_thing, globals(), locals(), [])
+
+    globals()["tk"] = globals()["tkinter"]  # Mimic import tkinter as tk
+
 
     # Modules bundled with this script.
-    from lib.ftldat import FTLDatUnpacker
-    from lib.ftldat import FTLDatPacker
     from lib import cleanup
+    from lib import ftldat
     from lib import global_config
     from lib import killable_threading
+    from lib import moddb
+    from lib import tkHyperlinkManager
 
 except (Exception) as err:
     logging.exception(err)
@@ -70,13 +101,36 @@ class RootWindow(tk.Tk):
         tk.Tk.__init__(self, master, *args, **kwargs)
         # Pseudo enum constants.
         self.ACTIONS = ["ACTION_CONFIG", "ACTION_SHOW_MAIN_WINDOW",
+                        "ACTION_ADD_MOD_HASH",
                         "ACTION_PATCHING_SUCCEEDED", "ACTION_PATCHING_FAILED",
                         "ACTION_DIE"]
         for x in self.ACTIONS: setattr(self, x, x)
 
-        self._event_queue = Queue.Queue()
-        self.done = False  # Indicates to other threads that mainloop() ended.
+        self._event_queue = queue.Queue()
+        self.done = False     # Indicates to other threads that mainloop() ended.
         self._main_window = None
+        self.mod_hashes = {}  # Map mod_name to mod_hash for db lookups.
+        self.mod_db = moddb.create_default_db()
+
+        # Add a right-click clipboard menu to
+        # all text fields and text areas.
+        self._clpbrd_menu = tk.Menu(self, tearoff=0)
+        self._clpbrd_menu.add_command(label="Cut")
+        self._clpbrd_menu.add_command(label="Copy")
+        self._clpbrd_menu.add_command(label="Paste")
+        def show_clpbrd_menu(e):
+            w = e.widget
+            edit_choice_state = "normal"
+            try:
+                if (w.cget("state") == "disabled"): edit_choice_state = "disabled"
+            except (Exception) as err:
+                pass
+            self._clpbrd_menu.entryconfigure("Cut", command=lambda: w.event_generate("<<Cut>>"), state=edit_choice_state)
+            self._clpbrd_menu.entryconfigure("Copy", command=lambda: w.event_generate("<<Copy>>"))
+            self._clpbrd_menu.entryconfigure("Paste", command=lambda: w.event_generate("<<Paste>>"), state=edit_choice_state)
+            self._clpbrd_menu.tk.call("tk_popup", self._clpbrd_menu, e.x_root, e.y_root)
+        self.bind_class("Entry", "<Button-3><ButtonRelease-3>", show_clpbrd_menu)
+        self.bind_class("Text", "<Button-3><ButtonRelease-3>", show_clpbrd_menu)
 
         self.wm_protocol("WM_DELETE_WINDOW", self._on_delete)
 
@@ -100,7 +154,7 @@ class RootWindow(tk.Tk):
         while (True):
             try:
                 func_or_name, arg_dict = self._event_queue.get_nowait()
-            except (Queue.Empty) as err:
+            except (queue.Empty) as err:
                 break
             else:
                 self._process_event(func_or_name, arg_dict)
@@ -147,13 +201,24 @@ class RootWindow(tk.Tk):
                 self._main_window = MainWindow(master=self, title=global_config.APP_NAME, mod_names=arg_dict["mod_names"], next_func=arg_dict["next_func"])
                 self._main_window.center_window()
 
+        elif (func_or_name == self.ACTION_ADD_MOD_HASH):
+            check_args(["mod_name", "mod_hash"])
+            self.mod_hashes[arg_dict["mod_name"]] = arg_dict["mod_hash"]
+
         elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
             check_args(["ftl_exe_path"])
 
             if (arg_dict["ftl_exe_path"]):
                 if (msgbox.askyesno(global_config.APP_NAME, "Patching completed successfully. Run FTL now?")):
-                    logging.info("Running FTL...")
-                    subprocess.Popen([arg_dict["ftl_exe_path"]])
+                    if (platform.system() == "Darwin" and os.path.isdir(arg_dict["ftl_exe_path"])
+                        and os.path.isfile(os.join(arg_dict["ftl_exe_path"], "Contents", "Info.plist"))):
+                        # This is an app bundle.
+                        logging.info("Running FTL Bundle...")
+                        subprocess.Popen(["open", "-a", arg_dict["ftl_exe_path"]], cwd=os.path.dirname(arg_dict["ftl_exe_path"]))
+
+                    else:
+                        logging.info("Running FTL...")
+                        subprocess.Popen([arg_dict["ftl_exe_path"]], cwd=os.path.dirname(arg_dict["ftl_exe_path"]))
             else:
                 msgbox.showinfo(global_config.APP_NAME, "Patching completed successfully.")
 
@@ -183,10 +248,10 @@ class MainWindow(tk.Toplevel):
 
         if (self.custom_args["title"]): self.wm_title(self.custom_args["title"])
 
-        self.button_width = 7
         self.button_padx = "2m"
         self.button_pady = "1m"
 
+        self._hyperman = None
         self._prev_selection = set()
         self._mouse_press_list_index = None
 
@@ -222,69 +287,80 @@ class MainWindow(tk.Toplevel):
         # Add a listbox to hold the mod names.
         self._mod_listbox = tk.Listbox(left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
         self._mod_listbox.pack(side="left", fill="both", expand="yes")
-        self._mod_scrollbar = tk.Scrollbar(left_frame, command=self._mod_listbox.yview, orient="vertical")
-        self._mod_scrollbar.pack(side="right", fill="y")
+        self._mod_list_scroll = tk.Scrollbar(left_frame, orient="vertical")
+        self._mod_list_scroll.pack(side="right", fill="y")
         self._mod_listbox.bind("<<ListboxSelect>>", self._on_listbox_select)
         self._mod_listbox.bind("<Button-1>", self._on_listbox_mouse_pressed)
         self._mod_listbox.bind("<B1-Motion>", self._on_listbox_mouse_dragged)
-        self._mod_listbox.configure(yscrollcommand=self._mod_scrollbar.set)
+        self._mod_listbox.configure(yscrollcommand=self._mod_list_scroll.set)
+        self._mod_list_scroll.configure(command=self._mod_listbox.yview)
 
         # Add textbox at bottom to hold mod information.
-        self._desc_area = tk.Text(bottom_frame, width=60, height=10, wrap="word")
+        self._desc_scroll = tk.Scrollbar(bottom_frame, orient="vertical")
+        self._desc_scroll.pack(side="right", fill="y")
+        self._desc_area = tk.Text(bottom_frame, width=60, height=11, wrap="word")
         self._desc_area.pack(fill="both", expand="yes")
+        self._desc_area.configure(yscrollcommand=self._desc_scroll.set)
+        self._desc_scroll.configure(command=self._desc_area.yview)
 
         # Set formating tags.
-        self._desc_area.tag_configure("title", font="helvetica 24 bold")
+        self._desc_area.tag_configure("title", font="helvetica 20 bold")
+        self._hyperman = tkHyperlinkManager.HyperlinkManager(self._desc_area)
+
+        self._statusbar = tk.Label(root_frame, borderwidth="1", relief="sunken",
+            anchor="w", font="helvetica 9")
+        self._statusbar.pack(fill="x", expand="yes", pady=("3","0"))
 
         # Add the buttons to the buttons frame.
         self._patch_btn = tk.Button(right_frame, text="Patch")
-        self._patch_btn.configure(
-            width=self.button_width,
-            padx=self.button_padx, pady=self.button_pady)
+        self._patch_btn.configure(padx=self.button_padx, pady=self.button_pady)
 
-        self._patch_btn.pack(side="top")
+        self._patch_btn.pack(side="top", fill="x")
         self._patch_btn.configure(command=self._patch)
         self._patch_btn.bind("<Return>", lambda e: self._patch())
+        self._set_status_help(self._patch_btn, "Incorporate all selected mods into the game.")
 
         self._toggle_all_btn = tk.Button(right_frame, text="Toggle All")
-        self._toggle_all_btn.configure(
-            width=self.button_width,
-            padx=self.button_padx, pady=self.button_pady)
+        self._toggle_all_btn.configure(padx=self.button_padx, pady=self.button_pady)
 
-        self._toggle_all_btn.pack(side="top")
+        self._toggle_all_btn.pack(side="top", fill="x")
         self._toggle_all_btn.configure(command=self._toggle_all)
         self._toggle_all_btn.bind("<Return>", lambda e: self._toggle_all())
+        self._set_status_help(self._toggle_all_btn, "Select all mods, or none.")
 
-        self._dummy_a_btn = tk.Button(right_frame, text="")
-        self._dummy_a_btn.configure(
-            width=self.button_width,
-            padx=self.button_padx, pady=self.button_pady,
-            state="disabled")
+        self._validate_btn = tk.Button(right_frame, text="Validate")
+        self._validate_btn.configure(padx=self.button_padx, pady=self.button_pady)
 
-        self._dummy_a_btn.pack(side="top")
+        self._validate_btn.pack(side="top", fill="x")
+        self._validate_btn.configure(command=self._validate_selected_mod)
+        self._validate_btn.bind("<Return>", lambda e: self._validate_selected_mod())
+        self._set_status_help(self._validate_btn, "Check selected mods for problems.")
 
-        self._forum_btn = tk.Button(right_frame, text="Forum")
-        self._forum_btn.configure(
-            width=self.button_width,
-            padx=self.button_padx, pady=self.button_pady)
+        self._about_btn = tk.Button(right_frame, text="About")
+        self._about_btn.configure(padx=self.button_padx, pady=self.button_pady)
 
-        self._forum_btn.pack(side="top")
-        self._forum_btn.configure(command=self._browse_forum)
-        self._forum_btn.bind("<Return>", lambda e: self._browse_forum())
+        self._about_btn.pack(side="top", fill="x")
+        self._about_btn.configure(command=self._show_app_description)
+        self._about_btn.bind("<Return>", lambda e: self._show_app_description())
+        self._set_status_help(self._about_btn, "Show info about this program.")
 
-        self._fill_list()
         self.wm_protocol("WM_DELETE_WINDOW", self._destroy)  # Intercept window manager closing.
+
+        # Fill the list with all available mods.
+        for mod_name in self.custom_args["mod_names"]:
+            self._add_mod(mod_name, False)
+
+        self._show_app_description()
 
         self._patch_btn.focus_force()
 
-    def _fill_list(self):
-        """Fills the list of all available mods."""
-
-        # Set default description.
-        self._set_description("Grognak's Mod Manager", "Grognak", global_config.APP_VERSION, "Thanks for using GMM. Make sure to periodically check the forum for updates!")
-
-        for mod_name in self.custom_args["mod_names"]:
-            self._add_mod(mod_name, False)
+    def _set_status_help(self, widget, message):
+        """Adds mouse-enter and mouse-leave triggers to show a statusbar message."""
+        def f(e):
+            if (hasattr(e.widget, "cget") and e.widget.cget("state") != "disabled"):
+                self.set_status_text(message)
+        widget.bind("<Enter>", f)
+        widget.bind("<Leave>", lambda e: self.set_status_text(""))
 
     def _on_listbox_select(self, event):
         current_selection = self._mod_listbox.curselection()
@@ -292,7 +368,26 @@ class MainWindow(tk.Toplevel):
         self._prev_selection = set(current_selection)
 
         if (len(new_selection) > 0):
-            self._set_description(self._mod_listbox.get(new_selection[0]))
+            mod_name = self._mod_listbox.get(new_selection[0])
+            if (mod_name in self._root().mod_hashes):
+                mod_hash = self._root().mod_hashes[mod_name]
+                mod_info = self._root().mod_db.get_mod_info(hash=mod_hash)
+                if (mod_info is not None):
+                    # Don't assume solely hash searching today will guarantee
+                    # the hash in among results' versions tomorrow.
+                    mod_ver = mod_info.get_version(mod_hash)
+                    if (mod_ver is None):
+                        mod_ver = "???"
+                    self._set_description(mod_info.get_title(), author=mod_info.get_author(), version=mod_ver, url=mod_info.get_url(), description=mod_info.get_desc())
+                else:
+                    desc = "No info is available for the selected mod.\n\n"
+                    desc += "If it's stable, please let the GMM devs know\n"
+                    desc += "where you found it and include this md5 hash:\n"
+                    desc += str(mod_hash) +"\n"
+                    self._set_description(mod_name, description=desc)
+                    logging.info("No info for selected mod: %s (%s)." % (mod_name, mod_hash))
+            else:
+                self._set_description(mod_name, description="The selected mod has not been identified by its hash yet.\nTry again in a few seconds.")
 
     def _on_listbox_mouse_pressed(self, event):
         self._mouse_press_list_index = self._mod_listbox.nearest(event.y)
@@ -321,15 +416,33 @@ class MainWindow(tk.Toplevel):
         if (selected):
             self._mod_listbox.selection_set(newitem)
 
-    def _set_description(self, title, author=None, version=None, description=None):
+    def _set_description(self, title, author=None, version=None, url=None, description=None):
         """Sets the currently displayed mod description."""
         self._desc_area.configure(state="normal")
         self._desc_area.delete("1.0", tk.END)
+        self._hyperman.reset()
         self._desc_area.insert(tk.END, (title +"\n"), "title")
-        if (author is not None and version is not None):
-            self._desc_area.insert(tk.END, "by %s (version %s)\n\n" % (author, str(version)))
-        else:
+
+        first = True
+        if (author):
+            self._desc_area.insert(tk.END, "%sby %s" % (("" if (first) else " "), author))
+            first = False
+        if (version):
+            self._desc_area.insert(tk.END, "%s(version %s)" % (("" if (first) else " "), str(version)))
+            first = False
+        if (not first):
             self._desc_area.insert(tk.END, "\n")
+
+        if (url):
+            self._desc_area.insert(tk.END, "Website: ")
+            if (re.match("^(?:https?|ftp)://", url)):
+                link_callback = lambda : webbrowser.open(url, new=2)
+                self._desc_area.insert(tk.END, "Link", self._hyperman.add(link_callback))
+            else:
+                self._desc_area.insert(tk.END, "%s" % url)
+            self._desc_area.insert(tk.END, "\n")
+
+        self._desc_area.insert(tk.END, "\n")
         if (description):
             self._desc_area.insert(tk.END, description)
         else:
@@ -350,8 +463,37 @@ class MainWindow(tk.Toplevel):
         else:
             self._mod_listbox.selection_set(0, tk.END)
 
-    def _browse_forum(self):
-        webbrowser.open("http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464")
+    def _validate_selected_mod(self):
+        """Checks the selected mod for invalid XML."""
+        mod_names = [self._mod_listbox.get(n) for n in self._mod_listbox.curselection()]
+        result = ""
+        any_invalid = False
+
+        for mod_name in mod_names:
+            mod_path = find_mod(mod_name)
+            if (mod_path):
+                mod_result, mod_valid = validate_mod(mod_path)
+                result += mod_result
+                result += "\n"
+                if (not mod_valid):
+                    any_invalid = True
+
+        if (not result):
+            result = "No mods were checked."
+        elif (any_invalid):
+            result += "FTL itself can tolerate lots of errors and still run. "
+            result += "But invalid XML may break tools that do proper parsing, "
+            result += "and it hinders the development of new tools.\n"
+
+        self._set_description("Results", description=result)
+
+    def _show_app_description(self):
+        """Shows info about this program."""
+        self._set_description("Grognak's Mod Manager", author="Grognak", version=global_config.APP_VERSION, url=global_config.APP_URL, description="Thanks for using GMM.\nMake sure to periodically check the forum for updates!")
+
+    def set_status_text(self, message):
+        """Sets the text in the status bar."""
+        self._statusbar.configure(text=message)
 
     def center_window(self):
         """Centers this window on the screen.
@@ -375,21 +517,61 @@ class MainWindow(tk.Toplevel):
         self.destroy()
 
 
-def ftl_path_join(*args):
-    """ Joins paths in the way FTL expects them to be in .dat files.
-        That is: the UNIX way. """
-    return "/".join(args)
+def append_xml_file(src_path, dst_path):
+    """Semi-intelligently appends XML from one file onto another.
 
-def appendfile(src, dst):
-    source = open(src, "r")
-    target = open(dst, "a")
+    UTF-8 BOMs will be pruned.
+    Any XML declaration in the source will be pruned.
+    The destination's declaration will be replaced with one for utf-8.
+    This assumes the encoding of both files can be decoded as utf-8 (ascii's fine).
+    CR-LF line endings will be normalized to LF for reading, then written as CR-LF.
+    """
+    src_text = ""
+    dst_text = ""
 
-    target.write(source.read() +"\n")
+    xml_decl_ptn = re.compile("<[?]xml version=\"1.0\" encoding=\"[^\"]+?\"[?]>")
 
-    source.close()
-    target.close()
+    def get_text(f):
+        f_bytes = f.read()
+        if (f_bytes.startswith(codecs.BOM_UTF8)):
+            f_bytes = f_bytes[len(codecs.BOM_UTF8):]
+        f_text = f_bytes.decode("utf-8")
+        f_text = re.sub("\r?\n", "\n", f_text)
+        return f_text
 
-def mergefile(src, dst):
+    with open(src_path, "rb") as src_file:
+        src_text = get_text(src_file)
+        src_text = xml_decl_ptn.sub("", src_text)  # Prune any declaration.
+
+    if (src_text == ""):
+        return  # Nothing to append.
+
+    if (os.path.isfile(dst_path)):
+        with open(dst_path, "rb") as dst_file:
+            dst_text = get_text(dst_file)
+            dst_text = xml_decl_ptn.sub("", dst_text)  # Prune any declaration.
+
+    with open(dst_path, "wb") as dst_file:
+        new_text = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+        new_text += dst_text +"\n\n<!-- Appended by GMM -->\n\n"+ src_text +"\n"
+        new_text = re.sub("\n", "\r\n", new_text)
+        dst_file.write(new_text.encode("utf-8"))
+
+def append_file(src_path, dst_path):
+    """Blindly appends bytes from one file onto another."""
+    src_file = None
+    dst_file = None
+
+    try:
+        src_file = open(src_path, "rb")
+        dst_file = open(dst_path, "ab")
+        dst_file.write(src_file.read())
+    finally:
+        for f in [src_file, dst_file]:
+            if (f is not None):
+                f.close()
+
+def merge_file(src_path, dst_path):
     pass
 
 def packdat(unpack_dir, dat_path):
@@ -408,19 +590,19 @@ def packdat(unpack_dir, dat_path):
                 s.append(current + (child,))
     logging.info("Creating datfile...")
     index_size = len(files)
-    packer = FTLDatPacker(open(dat_path, "wb"), index_size)
+    packer = ftldat.FTLPack(open(dat_path, "wb"), create=True, index_size=index_size)
     logging.info("Packing...")
     for _file in files:
         full_path = os.path.join(unpack_dir, *_file)
         size = os.stat(full_path).st_size
         with open(full_path, "rb") as f:
-            packer.add(ftl_path_join(*_file), f, size)
+            packer.add(ftldat.ftl_path_join(*_file), f, size)
 
 def unpackdat(dat_path, unpack_dir):
     logging.info("Unpacking %s..." % os.path.basename(dat_path))
-    unpacker = FTLDatUnpacker(open(dat_path, "rb"))
+    unpacker = ftldat.FTLPack(open(dat_path, "rb"))
 
-    for i, filename, size, offset in unpacker:
+    for (i, filename, size, offset) in unpacker.list_metadata():
         target = os.path.join(unpack_dir, filename)
         if (not os.path.exists(os.path.dirname(target))):
             os.makedirs(os.path.dirname(target))
@@ -473,7 +655,7 @@ def prompt_for_ftl_path():
     message += "Or 'FTL.app', if you're on OSX.";
     msgbox.showinfo(global_config.APP_NAME, message)
 
-    result = tkFileDialog.askopenfilename(title="Find data.dat or FTL.app",
+    result = filedlg.askopenfilename(title="Find data.dat or FTL.app",
         filetypes=[("data.dat or OSX Bundle", ("*.dat","*.app")), ("All Files", "*.*")])
 
     if (result):
@@ -541,14 +723,25 @@ def load_modorder():
         logging.info("Added %s" % f)
 
     # Strip extensions to get mod_names.
-    ext_ptn = "[.](?:"+ ("|".join(mod_exts)) +")$"
-    modorder_lines = [re.sub(ext_ptn, "", f, flags=re.I) for f in modorder_lines]
+    ext_ptn = re.compile("[.](?:"+ ("|".join(mod_exts)) +")$", flags=re.I)
+    modorder_lines = [ext_ptn.sub("", f) for f in modorder_lines]
 
     return modorder_lines
 
 def save_modorder(modorder_lines):
     with open(os.path.join(global_config.dir_mods, "modorder.txt"), "w") as modorder_file:
         modorder_file.write("\n".join(modorder_lines) +"\n")
+
+def hash_file(path, blocksize=65536):
+    """Returns an md5 hash string based on a file's contents."""
+    hasher = hashlib.md5()
+    with open(path, "rb") as f:
+        buf = f.read(blocksize)
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = f.read(blocksize)
+
+    return hasher.hexdigest()
 
 def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     """Backs up, clobbers, unpacks, merges, and finally packs dats.
@@ -568,8 +761,8 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     data_dat_path = os.path.join(global_config.dir_res, "data.dat")
     resource_dat_path = os.path.join(global_config.dir_res, "resource.dat")
 
-    data_bak_path = os.path.join(global_config.dir_res, "data.dat.bak")
-    resource_bak_path = os.path.join(global_config.dir_res, "resource.dat.bak")
+    data_bak_path = os.path.join(global_config.dir_backup, "data.dat.bak")
+    resource_bak_path = os.path.join(global_config.dir_backup, "resource.dat.bak")
 
     data_unp_path = None
     resource_unp_path = None
@@ -614,8 +807,13 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                 logging.info("")
                 logging.info("Installing mod: %s" % os.path.basename(mod_path))
                 tmp = tf.mkdtemp()
-                with zf.ZipFile(mod_path, "r") as mod_zip:
+
+                # Python 2.6 didn't support with+ZipFile. :/
+                mod_zip = None
+                try:
                     # Unzip everything into a temporary folder.
+                    mod_zip = zf.ZipFile(mod_path, "r")
+
                     for item in mod_zip.namelist():
                         if (item.endswith("/")):
                             path = os.path.join(tmp, item)
@@ -623,6 +821,9 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                                 os.makedirs(path)
                         else:
                             mod_zip.extract(item, tmp)
+                finally:
+                    if (mod_zip is not None):
+                        mod_zip.close()
 
                 # Go through each directory in the mod.
                 for directory in os.listdir(tmp):
@@ -635,14 +836,16 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                                 if (not os.path.exists(path)):
                                     os.makedirs(path)
                             for f in files:
-                                if (f.endswith(".append")):
-                                    appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
+                                if (f.endswith(".xml.append")):
+                                    append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
                                 elif (f.endswith(".append.xml")):
-                                    appendfile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
+                                    append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
+                                elif (f.endswith(".append")):
+                                    append_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
                                 elif (f.endswith(".merge")):
-                                    mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge")]))
+                                    merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge")]))
                                 elif (f.endswith("merge.xml")):
-                                    mergefile(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
+                                    merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
                                 else:
                                     sh.copy2(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f))
 
@@ -675,14 +878,227 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     return False
 
 def find_ftl_exe():
-    """Returns the FTL executable's path, or None."""
+    """Returns the FTL executable's path, or None.
+    On Windows, this will be an *.exe.
+    On OSX, this will be an application bundle directory (FTL.app/).
+    """
 
     if (platform.system() == "Windows"):
         exe_path = os.path.normpath(os.path.join(global_config.dir_res, *["..", "FTLGame.exe"]))
         if (os.path.isfile(exe_path)):
             return exe_path
 
+    elif (platform.system() == "Darwin"):
+        # FTL.app/Contents/Resources/
+        app_path = os.path.normpath(os.path.join(global_config.dir_res, *["..", ".."]))
+        if (os.path.isfile(os.join(app_path, "Contents", "Info.plist"))):
+            return app_path
+
     return None
+
+def validate_mod(mod_path):
+    """Returns a string detailing problems in a mod's files, and a boolean for the outcome.
+    The outcome will be False if there are any warnings or errors.
+    """
+    result = ""
+    mod_valid = True
+    seen_macosx = False
+
+    mod_zip = None
+    try:
+        mod_zip = zf.ZipFile(mod_path, "r")
+        if (len(mod_zip.namelist()) == 0):
+            result += "! Empty zip\n"
+            mod_valid = False
+
+        for item in mod_zip.namelist():
+            if (item.endswith("/")):
+                pass
+            elif (item.startswith("__MACOSX/")):
+                if (not seen_macosx):
+                    result += "! Junk Folder: __MACOSX\n"
+                    seen_macosx = True
+                    mod_valid = False
+            elif (item.endswith(".xml") or item.endswith(".xml.append")):
+                result += "> %s\n" % item
+
+                item_bytes = mod_zip.read(item)
+                if (item_bytes.startswith(codecs.BOM_UTF8)):
+                    result += "~ Unicode UTF-8 BOM detected. (ascii is safer)\n"
+                    item_bytes = item_bytes[len(codecs.BOM_UTF8):]
+                    mod_valid = False
+                item_text = item_bytes.decode("utf-8")
+                item_text = re.sub("\r?\n", "\n", item_text)
+
+                xml_results, xml_valid = validate_xml(item_text)
+
+                # Pretty print.
+                prev_result = None
+                for xml_result in xml_results:
+                    if (xml_result == prev_result):
+                        continue
+                    for x in [(["error", "exception"], "! "), (None, "  ")]:
+                        if (x[0] is None or xml_result[0] in x[0]):
+                            result += x[1]
+                            break
+                    result += re.sub("\n", "\n  ", xml_result[1]) +"\n"
+                    prev_result = xml_result
+                result += "\n"
+
+                if (not xml_valid):
+                    mod_valid = False
+
+    except (Exception) as err:
+        logging.exception(err)
+        result += "! An error occurred. See log for details.\n"
+        mod_valid = False
+    finally:
+        if (mod_zip is not None):
+            mod_zip.close()
+
+    if (mod_valid):
+        return ("@ %s: ok\n" % os.path.basename(mod_path), mod_valid)
+    else:
+      header = "@ %s: see below\n" % os.path.basename(mod_path)
+      header += "  %s\n" % ("-"*(len(header)-2))
+      return ((header + result), mod_valid)
+
+def validate_xml(xml_text):
+    """Returns a report detailing problems in an xml file, and a boolean for the outcome.
+    It first tries to preemptively fix and report common typos all at once.
+    Then a real XML parser runs, which stops at the first typo it sees. :/
+
+    The report is a list of [type, message] pairs.
+    Types: error (standard problems), exception (parser choked), or done (all errors found).
+    """
+    results = []
+    valid = False
+
+    # Wrap everything in a root tag, while mindful of the xml declaration.
+    xml_decl_ptn = re.compile("<[?]xml version=\"1.0\" encoding=\"[^\"]+?\"[?]>")
+    m = xml_decl_ptn.search(xml_text)
+    if (m):
+        if (m.start() == 0):
+            xml_text = xml_text[:m.end()] +"\n<wrapper>\n"+ xml_text[m.end():]
+        else:
+            results.append(["error", "<?xml... ?> should only occur on the first line."])
+            xml_text = "<wrapper>\n"+ xml_text[:m.start()] + xml_text[m.end():]
+        xml_text += "\n</wrapper>"
+    else:
+        xml_text = "<wrapper>\n%s\n</wrapper>" % xml_text
+
+    # Comments with long tails or double-dashes.
+    def replacer(m):
+        if (m.group(1) or m.group(3) or "--" in m.group(2)):
+            results.append(["error", "<!-- No other dashes should touch. -->"])
+            #return "<!--"+ re.sub("--*", "-", m.group(2)) +"-->"
+        #return m.group(0)
+        return re.sub("[^\n]", "", m.group(2))  # Don't preserve comments (keep only \n).
+    xml_text = re.sub("(?s)<!--(-*)(.*?)(-*)-->", replacer, xml_text)
+
+    # Mismatched single-line tags.
+    # Example: blueprints.xml: <title>...</type>
+    def replacer(m):
+        if (m.group(1) != m.group(4)):
+            results.append(["error", "<"+ m.group(1) +"...>...</"+ m.group(4) +">"])
+            return "<"+ m.group(1) + m.group(2) +">"+ m.group(3) +"</"+ m.group(1) +">"
+        return m.group(0)
+    xml_text = re.sub("<([^/!][^> ]+?)((?: [^>]+?)?)(?<!/)>([^<]+?)</([^>]+?)>", replacer, xml_text)
+
+    # <pilot power="1"max="3" room="0"/>  # Groan, \t separates attribs sometimes.
+    def replacer(m):
+        results.append(["error", "<"+ m.group(1) +"...\""+ m.group(3) +"...>"])
+        return "<"+ m.group(1) + m.group(2) +" "+ m.group(3) + m.group(4) +">"
+    xml_text = re.sub("<([^> ]+?)( [^>]+?\")([^\"= \t>]+?=\"[^\"]+?\")((?:[^>]+?)?)>", replacer, xml_text)
+
+    # sector_data.xml closing tag.
+    def replacer(m):
+        results.append(["error", "<sectorDescription>...</sectorDescrption>"])
+        return m.group(1) +"</sectorDescription>"
+    xml_text = re.sub("((?s)<sectorDescription[^>]*>.*?)</sectorDescrption>", replacer, xml_text)
+
+    # {anyship}.xml: <gib1>...</gib2>
+    def replacer(m):
+        if (m.group(1) != m.group(3)):
+            results.append(["error", "<"+ m.group(1) +">...</"+ m.group(3) +">"])
+            return "<"+ m.group(1) +">"+ m.group(2) +"</"+ m.group(1) +">"
+        return m.group(0)
+    xml_text = re.sub("(?s)<(gib[0-9]+)>(.*?)</(gib[0-9]+)>", replacer, xml_text)
+
+    # event*.xml: <choice... hidden="true" hidden="true">
+    def replacer(m):
+        results.append(["error", "<"+ m.group(1) +"... "+ m.group(3) +"=... "+ m.group(3) +"=...>"])
+        return "<"+ m.group(1) + m.group(2) +" "+ m.group(3) + m.group(4) +" "+ m.group(5) +">"
+    xml_text = re.sub("<([a-zA-Z0-9_-]+?)((?: [^>]+?)?) ([^>]+?)(=\"[^\">]+?\") \\3(?:=\"[^\">]+?\")([^>]*)>", replacer, xml_text)
+
+    # <shields>...</slot>
+    def replacer(m):
+        results.append(["error", "<shields>...</slot>"])
+        return m.group(1) +"</shields>"
+    ptn = ""
+    ptn += "(?u)(<shields *(?: [^>]*)?>\\s*"
+    ptn +=   "<slot *(?: [^>]*)?>\\s*"
+    ptn +=     "(?:<direction>[^<]*</direction>\\s*)?"
+    ptn +=     "(?:<number>[^<]*</number>\\s*)?"
+    ptn +=   "</slot>\\s*)"
+    ptn += "</slot>"  # Wrong closing tag.
+    xml_text = re.sub(ptn, replacer, xml_text)
+
+    # <shipBlueprint>...</ship>
+    def replacer(m):
+        results.append(["error", "<shipBlueprint>...</ship>"])
+        return m.group(1) +"</shipBlueprint>"
+    ptn = ""
+    ptn += "(?u)(<shipBlueprint *(?: [^>]*)?>\\s*"
+    ptn +=   "<class>[^<]*</class>\\s*"
+    ptn +=   "<systemList *(?: [^>]*)?>\\s*"
+    ptn +=      "(?:<[a-zA-Z]+ *(?: [^>]*)?/>\\s*)*"
+    ptn +=   "</systemList>\\s*"
+    ptn +=   "(?:<droneList *(?: [^>]*)?>\\s*"
+    ptn +=      "(?:<[a-zA-Z]+ *(?: [^>]*)?/>\\s*)*"
+    ptn +=   "</droneList>\\s*)?"
+    ptn +=   "(?:<weaponList *(?: [^>]*)?>\\s*"
+    ptn +=      "(?:<[a-zA-Z]+ *(?: [^>]*)?/>\\s*)*"
+    ptn +=   "</weaponList>\\s*)?"
+    ptn +=   "(?:<[a-zA-Z]+ *(?: [^>]*)?/>\\s*)*)"
+    ptn += "</ship>";  # Wrong closing tag.
+    xml_text = re.sub(ptn, replacer, xml_text)
+
+    # <textList>...</text>
+    def replacer(m):
+        results.append(["error", "<textList>...</text>"])
+        return m.group(1) +"</textList>"
+    ptn = ""
+    ptn += "(?u)(<textList *(?: [^>]*)?>\\s*"
+    ptn += "(?:<text *(?: [^>]*)?>[^<]*</text>\\s*)*)"
+    ptn += "</text>"  # Wrong closing tag.
+    xml_text = re.sub(ptn, replacer, xml_text)
+
+    try:
+        parser = xml.parsers.expat.ParserCreate()
+        parser.Parse(xml_text, True)
+        results.append(["done", "Done"])
+
+        valid = True
+        for x in results:
+            if (x[0] == "error"):
+                valid = False
+                break
+
+    except (xml.parsers.expat.ExpatError) as err:
+        message = "Fix this and try again:\n%s" % str(err)
+        message += "\n"
+        message += "~  ~  ~  ~  ~\n"
+        message += xml_text.split("\n")[err.lineno-1] + "\n"
+        message += "~  ~  ~  ~  ~"
+        results.append(["exception", message])
+        valid = False
+    except (Exception) as err:
+        logging.exception(err)
+        results.append(["exception", "An error occurred. See log for details."])
+        valid = False
+
+    return (results, valid)
 
 
 class LogicThread(killable_threading.KillableThread):
@@ -704,7 +1120,7 @@ class LogicThread(killable_threading.KillableThread):
 
         self._mygui = root_window
         self._patch_thread = None
-        self._event_queue = Queue.Queue()
+        self._event_queue = queue.Queue()
 
     def run(self):
         try:
@@ -737,7 +1153,7 @@ class LogicThread(killable_threading.KillableThread):
                 else:
                     first_pass = False
                     action_name, arg_dict = self._event_queue.get_nowait()
-            except (Queue.Empty):
+            except (queue.Empty):
                 break
             else:
                 self._process_event(action_name, arg_dict)
@@ -757,7 +1173,7 @@ class LogicThread(killable_threading.KillableThread):
             self._patching_finished(arg_dict)
 
     def _load_config(self, arg_dict):
-        cfg = SafeConfigParser()
+        cfg = configparser.SafeConfigParser()
         cfg.add_section("settings")
 
         # Set defaults.
@@ -825,13 +1241,53 @@ class LogicThread(killable_threading.KillableThread):
                 cfg_file.write("\n")
                 arg_dict["config_parser"].write(cfg_file)
 
+        # Delete backups in the old location.
+        old_data_bak_path = os.path.join(global_config.dir_res, "data.dat.bak")
+        old_resource_bak_path = os.path.join(global_config.dir_res, "resource.dat.bak")
+
+        for bak_path in [old_data_bak_path, old_resource_bak_path]:
+            if (not os.path.isfile(bak_path)): continue
+            logging.debug("Deleting old backup: %s" % bak_path)
+            try:
+                os.unlink(bak_path)
+            except (Exception) as err:
+                logging.exception(err)
+
+            if (os.path.exists(bak_path)):
+                logging.warning("Failed to delete old backup: %s" % bak_path)
+
         all_mod_names = load_modorder()
         save_modorder(all_mod_names)
 
+        # Show the main window.
         def next_func(arg_dict):
             self.invoke_later(self.ACTION_MAIN_WINDOW_CLOSED, arg_dict)
 
         self._mygui.invoke_later(self._mygui.ACTION_SHOW_MAIN_WINDOW, {"mod_names":all_mod_names, "next_func":next_func})
+
+        # Collect hashes of mod files in the background.
+        def hashing_payload(mod_names, mygui, keep_alive_func=None, sleep_func=None):
+            for mod_name in mod_names:
+                if (not keep_alive_func()): break
+                mod_path = find_mod(mod_name)
+                if (mod_path):
+                  mod_hash = hash_file(mod_path)
+                  mygui.invoke_later(mygui.ACTION_ADD_MOD_HASH, {"mod_name":mod_name, "mod_hash":mod_hash})
+
+        def wrapper_finished_func(payload_result):
+            logging.info("Background hashing finished.")
+
+        def wrapper_exception_func(err):
+            logging.exception(err)
+            logging.error("Background hashing failed.")
+
+        self._hashing_thread = killable_threading.WrapperThread()
+        self._hashing_thread.set_payload(hashing_payload, all_mod_names, self._mygui)
+        self._hashing_thread.set_success_func(wrapper_finished_func)
+        self._hashing_thread.set_failure_func(wrapper_exception_func)
+        self._hashing_thread.name = "HashWorker"
+        self._hashing_thread.start()
+        global_config.get_cleanup_handler().add_thread(self._hashing_thread)
 
     def _main_window_closed(self, arg_dict):
         for arg in ["all_mods", "selected_mods"]:
@@ -895,14 +1351,19 @@ def main():
     global dir_self  # dir_self was set earlier.
 
     global_config.dir_self = dir_self
+    global_config.dir_backup = os.path.join(global_config.dir_self, "backup")
     global_config.dir_mods = os.path.join(global_config.dir_self, "mods")
     # Set dir_res later.
 
     cleanup_handler = None
 
     try:
-        logging.info("%s (on %s)" % (global_config.APP_NAME, platform.platform(aliased=True, terse=False)))
-        logging.info("Rooting at: %s\n" % global_config.dir_self)
+        logging.info("%s" % global_config.APP_NAME)
+        logging.info("Platform:    %s" % platform.platform(aliased=True, terse=False))
+        logging.info("Interpreter: %s %s (%s)" % (platform.python_implementation(), platform.python_version(), ("64bit" if (sys.maxsize > 2**32) else "32bit")))
+        logging.info("")
+        logging.info("Rooting at: %s" % global_config.dir_self)
+        logging.info("")
 
         logging.info("Registering ctrl-c handler.")
         cleanup_handler = cleanup.CustomCleanupHandler()

@@ -3,8 +3,9 @@ import time
 
 # Global Constants
 
-APP_VERSION = "1.6.1"
+APP_VERSION = "1.7.0"
 APP_NAME = "Grognak's Mod Manager v%s" % APP_VERSION
+APP_URL = "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464"
 
 allowzip = False
 never_run_ftl = False

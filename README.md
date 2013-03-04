@@ -8,7 +8,7 @@ Comments can be made in a forum thread [here](http://www.ftlgame.com/forum/viewt
 
 Requirements
 ------------
-* Python 2.7 or higher, but not 3.x
+* Python 2.6 or higher. With 3.x, there may be bugs.
     * http://www.python.org/getit/
 * FTL (1.01-1.03.1, Windows/OSX/Linux, Steam/GOG/Standalone)
     * http://www.ftlgame.com/
