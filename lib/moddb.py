@@ -119,7 +119,11 @@ class ModDB(object):
 
             buf += "    mod_info.set_thread_hash( \"%s\" )\n" % slash(mod_info.get_thread_hash())
             buf += "\n"
-            buf += "    mod_info.set_desc(r\"\"\"%s\"\"\")\n" % mod_info.get_desc()
+
+            # Triple-quotes aren't allowed in the raw-string description.
+            sanitized_desc = re.sub("\"\"\"", "", mod_info.get_desc())
+            buf += "    mod_info.set_desc(r\"\"\"%s\"\"\")\n" % sanitized_desc
+
             buf += "    mod_db.add_mod(mod_info)\n"
             buf += "\n\n"
             f.write(buf.encode(enc_type, errors="xmlcharrefreplace"))
