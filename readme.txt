@@ -132,6 +132,7 @@ Developer Notes
 Changelog
 
 1.7:
+- Added a log warning during patching if a mod gets clobbered
 - Lowered the required Python version to 2.6
 - Added a Linux/Mac launcher (modman.command) to guarantee a terminal
 - Added forum-scraped metadata for most mod files (based on their md5)

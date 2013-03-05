@@ -767,6 +767,7 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     data_unp_path = None
     resource_unp_path = None
     tmp = None
+    modded_items = []  # Tracks changed files in case they're clobbered.
 
     try:
         # Create backup dats, if necessary.
@@ -838,19 +839,27 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                             for f in files:
                                 if (f.endswith(".xml.append")):
                                     append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
+                                    modded_items.append(f[:-len(".append")])
                                 elif (f.endswith(".append.xml")):
                                     append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
+                                    modded_items.append(f[:-len(".append.xml")]+".xml")
                                 elif (f.endswith(".append")):
                                     append_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
+                                    modded_items.append(f[:-len(".append")])
                                 elif (f.endswith(".merge")):
                                     merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge")]))
                                 elif (f.endswith("merge.xml")):
                                     merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
                                 else:
+                                    if (f in modded_items):
+                                        logging.warning("Clobbering earlier mods: %s" % f)
                                     sh.copy2(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f))
+                                    modded_items.append(f)
 
                     else:
                         logging.warning("Unsupported folder: %s" % directory)
+
+                modded_items = sorted(set(modded_items))  # Prune duplicates.
 
             finally:
                 # Clean up temporary mod folder's contents.
