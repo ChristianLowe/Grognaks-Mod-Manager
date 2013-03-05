@@ -902,24 +902,47 @@ def validate_mod(mod_path):
     """
     result = ""
     mod_valid = True
+    seen_append = False
     seen_macosx = False
+
+    junk_file_ptns = []
+    junk_file_ptns.append(re.compile("[.]DS_Store$"))
+    junk_file_ptns.append(re.compile("thumbs[.]db$"))
+
+    def is_junk_file(s):
+        for ptn in junk_file_ptns:
+            if (ptn.search(s)):
+                return True
+        return False
 
     mod_zip = None
     try:
         mod_zip = zf.ZipFile(mod_path, "r")
         if (len(mod_zip.namelist()) == 0):
-            result += "! Empty zip\n"
+            result += "! Empty zip.\n"
             mod_valid = False
 
         for item in mod_zip.namelist():
             if (item.endswith("/")):
                 pass
+
             elif (item.startswith("__MACOSX/")):
                 if (not seen_macosx):
-                    result += "! Junk Folder: __MACOSX\n"
+                    result += "\n"
+                    result += "! Junk Folder: __MACOSX/\n"
                     seen_macosx = True
                     mod_valid = False
-            elif (item.endswith(".xml") or item.endswith(".xml.append")):
+
+            elif (is_junk_file(item)):
+                result += "\n"
+                result += "! Junk File: %s\n" % item
+                mod_valid = False
+
+            elif (item.endswith(".xml") or item.endswith(".xml.append") or item.endswith(".append.xml")):
+                if (item.endswith(".xml.append") or item.endswith(".append.xml")):
+                    seen_append = True
+
+                result += "\n"
                 result += "> %s\n" % item
 
                 item_bytes = mod_zip.read(item)
@@ -943,10 +966,14 @@ def validate_mod(mod_path):
                             break
                     result += re.sub("\n", "\n  ", xml_result[1]) +"\n"
                     prev_result = xml_result
-                result += "\n"
 
                 if (not xml_valid):
                     mod_valid = False
+
+        if (not seen_append):
+            result += "\n"
+            result += "~ This mod doesn't append. It clobbers.\n"
+            mod_valid = False
 
     except (Exception) as err:
         logging.exception(err)
