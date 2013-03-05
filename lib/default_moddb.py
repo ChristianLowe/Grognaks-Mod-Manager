@@ -11,9 +11,11 @@ def populate_catalog(mod_db):
     mod_info.set_author( "nataryeahbuddy" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11058" )
     mod_info.put_version( "1368ecb746bea1fab261d8a5eb8c23f1", "1.2" )
-    mod_info.set_thread_hash( "b0814b321e69b821654eb403922c7920" )
+    mod_info.set_thread_hash( "dbb90b01a5931e59a6e2cf5e6b3054f6" )
 
-    mod_info.set_desc(r"""Get five shields and power your advanced weaponry! Thanks to a breakthrough by Engi scientists, ships are now able to have five shields and level twelve weapons. The Engi Advanced Technology Development Division has released this technology to the Federation, in hopes that they can beat the rebels. You can pick it up today, at your local Zoltan Trade Hub or on this post!
+    mod_info.set_desc(r"""Discontinued. See: "Advanced Battle Systems".
+
+Get five shields and power your advanced weaponry! Thanks to a breakthrough by Engi scientists, ships are now able to have five shields and level twelve weapons. The Engi Advanced Technology Development Division has released this technology to the Federation, in hopes that they can beat the rebels. You can pick it up today, at your local Zoltan Trade Hub or on this post!
 
 Known Bugs:
 Asteroid Fields are messed up and you die... unknown cause, code seems to be fine.
@@ -25,8 +27,9 @@ Asteroid Fields are messed up and you die... unknown cause, code seems to be fin
     mod_info.set_title( "Advanced Battle Systems" )
     mod_info.set_author( "nataryeahbuddy" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11469" )
+    mod_info.put_version( "4b88a7f3664f96d54de0fe83fd17f2ed", "1.2" )
     mod_info.put_version( "b45b9610ef83386da780a88c8e29d027", "1.1" )
-    mod_info.set_thread_hash( "15e5cb64edec4872cde39bad2369cfb0" )
+    mod_info.set_thread_hash( "6bd30a167155e7650ae3fee2c8e84ce1" )
 
     mod_info.set_desc(r"""Features
 - Max power of teleporter increased to 4.
@@ -201,9 +204,11 @@ The Incursor "Archon" was designed to strike fast and hard, weakening the enemy 
     mod_info.set_title( "Infinite Space" )
     mod_info.set_author( "DrkTemplar" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=3542" )
+    mod_info.put_version( "5bad4d1ec8fcc188142ce2861f8650bb", "0.4.4 Hi-res Bkgs" )
+    mod_info.put_version( "de440631df2c0b8274a0f37ccff79206", "0.4.4 Original Bkgs" )
     mod_info.put_version( "9de0823d7d8b33cf27ac2807e085cd45", "0.4.3" )
     mod_info.put_version( "516e20d80b9c6c878b0730c3e7978576", "0.4.1" )
-    mod_info.set_thread_hash( "744d5675899e0971b693af598a60664d" )
+    mod_info.set_thread_hash( "b8fb37954083fce4a872708eeb168238" )
 
     mod_info.set_desc(r"""What is FTL Infinite Space?
 The universe is vast. With FTL Infinite Space you can explore the universe to your hearts content, or till you blow your ship to bits. Infinite Space will jump you from sector to sector, while you search for ancient powerful artifacts, and advanced technology to enhance your ships capabilities. Learn when to fight, and when to run. Dominate or be destroyed.
@@ -217,6 +222,7 @@ Features
 - New events
 - A different gaming experience than vanilla.
 - High-res background graphics mod by Splette!
+- DronesPlus mod by karmos!
 """)
     mod_db.add_mod(mod_info)
 
@@ -573,6 +579,23 @@ Replaces the Stealth-A ship.
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "The Marauders" )
+    mod_info.set_author( "UltraMantis" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11501" )
+    mod_info.put_version( "ef5cdc4b6413f4013959271155ef84be", "1.0 2013-03-04" )
+    mod_info.put_version( "3851b27cd288083356b433436eda6195", "1.0" )
+    mod_info.set_thread_hash( "6d71975f90004484da6788e1f5c3acb5" )
+
+    mod_info.set_desc(r"""Marauder ships are characterised by powerful weapon systems that seem to require massive power to operate, even at the expense of all other systems. While not refined, the weapons are effective. Usually disableing and stripping ships clean to provide resources required for the vessel to reach it's full potential. Even though their origins and source of technology are a mystery, the ships are crewed by common races though it's hard to say if they joined up willingly or are slaves.
+
+Fair warning to those eager to play, these ships will not be easy. My guess is that difficulty will be between NORMAL and EXTREME, depending on which ship you pick.
+
+This mod was made without regard for compatibility with other mods. However, it will work with visual, events, and weapon mods, but will almost certainly break system mods. Whether or not it works with other ship mods is unpredictable. I recommend that you install this as a single mod.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Mor-Saxum (Rock Cruiser)" )
     mod_info.set_author( "HalfDemon23" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11514" )
@@ -733,9 +756,10 @@ The Ship mod and the UI mod are designed to be used together, but if you find th
     mod_info.set_title( "Star Trek Universe" )
     mod_info.set_author( "speedoflight" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11844" )
+    mod_info.put_version( "cddbb53e53745b8b1ac7cac7073e14e0", "0.2 2013-03-02 WIP" )
     mod_info.put_version( "c6880fd3e9423affe5ff9dc733580cad", "0.2 Beta WIP" )
     mod_info.put_version( "098dc2eb3865b701697e6a73420f57c6", "0.1 Beta WIP" )
-    mod_info.set_thread_hash( "93cc95f7a43f68fab53b9d56eaa08876" )
+    mod_info.set_thread_hash( "4344e1d170bd33dbc01daf7de467cf3c" )
 
     mod_info.set_desc(r"""For now, this is in alpha state.
 
@@ -937,7 +961,7 @@ Any mods that replace the artillery system won't work together, so when you're s
     mod_info.set_author( "HausHFG" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11468" )
     mod_info.put_version( "445f00599032a0d6be4551df06204300", "0.5 WIP" )
-    mod_info.set_thread_hash( "367b936a2639e351fc5caa2129669618" )
+    mod_info.set_thread_hash( "ddba41960966ec48c84a5ecea4123ea9" )
 
     mod_info.set_desc(r"""So, I just wanted to make overclocked weapons to add more variety to the game, so far, it seems to have worked. As on February 9th 2013, there are 4 new weapons, based off their original counterparts, after all, overclocking makes the weapon more powerful, not a different model.
 """)
@@ -1048,13 +1072,27 @@ Rename .ftl to .zip and extract it in order to study it further.
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "Additional Events & Texts" )
+    mod_info.set_title( "Additional Events and Texts" )
     mod_info.set_author( "Collaboration" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11094" )
     mod_info.put_version( "404bc800a8fd9febfe67475454e2c9c3", "2012-10-04" )
     mod_info.set_thread_hash( "???" )
 
     mod_info.set_desc(r"""The goal of this mod is to add new content in form of events and random texts, this will ensure that you are unlucky if you experience the same event twice in a row. It will add extra random texts to already existing events, like when you get to a beacon with nothing, you don't want to see the same text here. All events should be balanced, you won't get a lot of scrap for nothing, at least not more than you could if you played vanilla.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "OliMods - Better Mercenaries " )
+    mod_info.set_author( "Catalyst78" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11338" )
+    mod_info.put_version( "91ee0a6f71d37c24ca02c1b52a430e76", "1.3" )
+    mod_info.set_thread_hash( "daf2f98ce1225cc55781f581c23c033d" )
+
+    mod_info.set_desc(r"""Tired of slaughtering every mercenary that darer fly your path of destruction? Want some of those neat little blue options to spice up your mercenary encounter? Well look no further!
+
+With the intention of making mercenary encounters a little more interesting I have tripled the amount of code in the mercenary encounter event!
 """)
     mod_db.add_mod(mod_info)
 
