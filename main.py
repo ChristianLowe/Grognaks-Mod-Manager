@@ -87,6 +87,7 @@ try:
     from lib import cleanup
     from lib import ftldat
     from lib import global_config
+    from lib import imageinfo
     from lib import killable_threading
     from lib import moddb
     from lib import tkHyperlinkManager
@@ -946,6 +947,23 @@ def validate_mod(mod_path):
                 result += "\n"
                 result += "! Junk File: %s\n" % item
                 mod_valid = False
+
+            elif (item.endswith(".png")):
+                item_file = None
+                try:
+                    item_file = mod_zip.open(item)
+                    image_info = imageinfo.read_metadata(item_file)
+
+                    if (image_info["color_type"] != 6):  # Truecolor+Alpha (32bit RGBA)
+                        color_type_str = {0:"Gray", 2:"Truecolor", 3:"Indexed",
+                                          4:"Gray+Alpha", 6:"Truecolor+Alpha"}.get(image_info["color_type"], str(image_info["color_type"]) +"?")
+                        result += "\n"
+                        result += "> %s\n" % item
+                        result += "! ColorType: %s (Should be 32bit Truecolor+Alpha)\n" % (color_type_str)
+                        mod_valid = False
+                finally:
+                    if (item_file is not None):
+                        item_file.close()
 
             elif (item.endswith(".xml") or item.endswith(".xml.append") or item.endswith(".append.xml")):
                 if (item.endswith(".xml.append") or item.endswith(".append.xml")):
