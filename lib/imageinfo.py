@@ -42,7 +42,7 @@ def read_metadata(f):
      header_compression, header_filter,
      header_interlace) = struct.unpack("!2I5B", chunk_data)
 
-    # Derived values
+    # Derived values.
     #   http://www.w3.org/TR/PNG/#6Colour-values
     colormap =  bool(header_color_type & 1)
     greyscale = not (header_color_type & 2)
