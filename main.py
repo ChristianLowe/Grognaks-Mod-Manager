@@ -959,7 +959,7 @@ def validate_mod(mod_path):
                                           4:"Gray+Alpha", 6:"Truecolor+Alpha"}.get(image_info["color_type"], str(image_info["color_type"]) +"?")
                         result += "\n"
                         result += "> %s\n" % item
-                        result += "! ColorType: %s (Should be 32bit Truecolor+Alpha)\n" % (color_type_str)
+                        result += "~ ColorType: %s (Usually 32bit Truecolor+Alpha)\n" % (color_type_str)
                         mod_valid = False
                 except (Exception) as err:
                     logging.exception(err)
