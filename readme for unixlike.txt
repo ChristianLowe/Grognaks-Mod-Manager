@@ -46,13 +46,7 @@ Usage
     Put it in the GMM/mods/ folder.
 
   To Start GMM:
-    Windows:
-      Double-click modman.exe.
-      OR
-      Double-click main.py.
-
-    Mac/Linux:
-      Double-click modman.command.
+    Double-click modman.command.
 
   To install mods:
     Select the mods you want to install.
@@ -71,14 +65,6 @@ Usage
 Troubleshooting
 
   If you get permission errors...
-    Windows:
-      Right-click modman.exe -> "Run as Administrator".
-      OR
-      Start Menu -> Programs -> Accessories.
-      Right-click "Command Prompt" to run as an admin.
-      cd to the GMM directory.
-      Run "main.py"
-
     Make sure that your resource.dat and data.dat files are not read-only.
 
   If the game shows exclamation marks for everything...
