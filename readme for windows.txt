@@ -37,7 +37,7 @@ Setup
 Usage
 
   To add a mod (an *.ftl file) to GMM:
-    Put it in the GMM/mods/ folder.
+    Put it in the GMM\mods\ folder.
 
   To Start GMM:
     Double-click modman.exe.
