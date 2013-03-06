@@ -128,6 +128,12 @@ Developer Notes
     Unless you're overriding something, try to use unique unique names in
     your xml so that it won't clobber another mod and vice versa.
 
+    Mac:
+      OSX adds a junk to .zip files.
+      These commands will address that:
+        zip -d mymod.zip __MACOSX/\*
+        zip -d mymod.zip \*.DS_Store
+
 
 Changelog
 
