@@ -961,6 +961,10 @@ def validate_mod(mod_path):
                         result += "> %s\n" % item
                         result += "! ColorType: %s (Should be 32bit Truecolor+Alpha)\n" % (color_type_str)
                         mod_valid = False
+                except (Exception) as err:
+                    logging.exception(err)
+                    result += "! An error occurred. See log for details.\n"
+                    mod_valid = False
                 finally:
                     if (item_file is not None):
                         item_file.close()
