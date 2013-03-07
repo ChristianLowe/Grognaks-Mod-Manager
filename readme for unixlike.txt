@@ -27,12 +27,6 @@ Setup
 
   Unzip the files from this archive anywhere.
 
-  Mac/Linux:
-    Open a terminal.
-    Type "chmod +x " with the space.
-    Type the path to modman.command (or drag it onto the terminal).
-    Hit enter.
-
   On the first run, you may be prompted to locate your
   FTL resources. Specifically "data.dat" in the "resources/"
   directory under your FTL install (Mac users can select FTL.app).
