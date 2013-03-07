@@ -69,9 +69,12 @@ Troubleshooting
     Make sure that your resource.dat and data.dat files are not read-only.
 
   If the game shows exclamation marks for everything...
-    Steam users can delete the /resources directory and "verify game cache".
-      https://support.steampowered.com/kb_article.php?ref=2037-QEUH-3335
-    Standalone users should be fine after reinstalling FTL.
+    Delete the files in GMM/Backup/
+    Steam users:
+      Delete the /resources directory and "verify game cache".
+        https://support.steampowered.com/kb_article.php?ref=2037-QEUH-3335
+    Standalone users:
+      Reinstall FTL.
 
   Other...
     Try deleting modorder.txt from the \mods folder and relaunching GMM.
@@ -117,6 +120,9 @@ Developer Notes
 
 
 Changelog
+
+???:
+- Added a log warning during patching if a mod gets clobbered
 
 1.7:
 - Lowered the required Python version to 2.6
