@@ -25,7 +25,7 @@ Requirements
 
 Setup
 
-  Unzip the files from this archive anywhere.
+  Extract the files from this archive anywhere.
 
   On the first run, you may be prompted to locate your
   FTL resources. Specifically "data.dat" in the "resources\"
@@ -78,45 +78,6 @@ Troubleshooting
 
   Other...
     Try deleting modorder.txt from the \mods folder and relaunching GMM.
-
-
-Developer Notes
-
-  Creating an .ftl File
-
-    A .ftl file is simply a renamed .zip with a specific file structure.
-    For an example, try renaming and unpacking the example .ftl file that
-    comes with the program.
-
-    The root of the ZIP file should contain one or more of these folders:
-      data/
-      audio/
-      fonts/
-      img/
-
-      You should ONLY put in the files that you want to modify. This keeps
-      mod sizes low and prevents major conflict between mods.
-
-
-  The Append Extension
-
-    Any file in your .ftl with the extension .xml.append will be appended to
-    its respective vanilla file. (See the example mod.)
-
-    It is highly recommended that you take advantage of this as much as
-    possible. As a rule of thumb, if you're editing an event xml file,
-    you're going to want to append your changes rather then flat out replace
-    the file. Keep in mind that you can override vanilla events to your
-    pleasure by having the same event name, and using .append helps prevent
-    mod conflict.
-
-
-  General
-
-    When developing a mod, save your text files as ANSI, not UTF-8.
-
-    Unless you're overriding something, try to use unique unique names in
-    your xml so that it won't clobber another mod and vice versa.
 
 
 Changelog
