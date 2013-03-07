@@ -55,3 +55,10 @@ Pitfalls
   As of FTL 1.03.1: If a ship is modded to have level 5 shields, asteroid
   storms will be abnormally fast.
   http://www.ftlgame.com/forum/viewtopic.php?f=9&t=11057
+
+  When adding a music track to sounds.xml, the explore and battle theme
+  files are played simultaneously as one song (mixing between them when
+  entering/exiting combat). They should have similar duration because if one
+  is longer than the other, there may be noticable silence at the end of the
+  shorter piece.
+  http://www.ftlgame.com/forum/viewtopic.php?f=12&t=9111
