@@ -208,7 +208,7 @@ The Incursor "Archon" was designed to strike fast and hard, weakening the enemy 
     mod_info.put_version( "de440631df2c0b8274a0f37ccff79206", "0.4.4 Original Bkgs" )
     mod_info.put_version( "9de0823d7d8b33cf27ac2807e085cd45", "0.4.3" )
     mod_info.put_version( "516e20d80b9c6c878b0730c3e7978576", "0.4.1" )
-    mod_info.set_thread_hash( "b8fb37954083fce4a872708eeb168238" )
+    mod_info.set_thread_hash( "1a505ca71e3c454db68254f0a3a57365" )
 
     mod_info.set_desc(r"""What is FTL Infinite Space?
 The universe is vast. With FTL Infinite Space you can explore the universe to your hearts content, or till you blow your ship to bits. Infinite Space will jump you from sector to sector, while you search for ancient powerful artifacts, and advanced technology to enhance your ships capabilities. Learn when to fight, and when to run. Dominate or be destroyed.
@@ -259,8 +259,6 @@ YOU.
     mod_info.set_desc(r"""Avast, thar be a pirate mod now!
 
 "Pirates!" has rewritten events, changing the reactions and choices you can make, as well as altering the storylines. Pirate chasing civilian? You can aid the civilian OR the pirate. Caveman stuck on a moon? Sure, you can risk letting him join your crew... or you could throw him in the composter and turn him into fuel. Use your pirate charm to talk your way out of tricky situations or barter for more plunder, and flash the jolly roger to turn other pirates to your alliegance!
-
-The overall plotline of the game is being changed as well. Already, the universe has shifted back in time to pre-rebellion times, when the Federation Military Police patrolled the spaceways, hunting pirates such as you. As a notorious pirate, you will have them at your tail at all times as you try to escape to the planet of Deadman's Port, the legendary pirate haven on the other side of the galaxy. And there is another story you've heard... of a wondrous place called... "Treasure Planet."
 
 On the aesthetic side, the rebel fleet has been replaced with the Federation military, dark green ships that seek to destroy or arrest you. You pilot a "liberated" model of one of these Federation ships, the "The Black Spot." The mod also rewrites all tooltips into "Pirate-Speak," a much more suitable dialect of English for those of you who are swashbuckling corsairs. All NPC crew-members will now have pirate names, including favorites such "Peg-leg" and "Patchy." In addition, the first of many new weapons has been added, the Cast-Iron Ship's Cannon, masterfully nailed to the side of your ship with wooden planks, and accompanied by a hearty quantity of lead cannonballs for you to launch through the depths of space.
 """)
@@ -315,7 +313,7 @@ Features
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "Turning The Tide" )
+    mod_info.set_title( "Turning the Tide" )
     mod_info.set_author( "Kieve" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=4&t=3056" )
     mod_info.put_version( "a5a73f329fb153dc445eca672b51114b", "1.0" )
@@ -369,7 +367,7 @@ I am not including any custom events, so that this remains compatible with as ma
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "Battlefleet Gothic: Cobra Class Destroyer" )
+    mod_info.set_title( "Battlefleet Gothic - Cobra Class Destroyer" )
     mod_info.set_author( "Harnisfechten" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=10431" )
     mod_info.put_version( "3d50785d23090ecb0aa0ede535b0c24b", "1.0 WIP" )
@@ -388,6 +386,7 @@ The Cobra is armed with a dorsal weapons battery (a Burst Laser Mk II in the gam
     mod_info.set_title( "Battlestars" )
     mod_info.set_author( "FrostWyrmWraith" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11940" )
+    mod_info.put_version( "544a96a8c4af93c0099a55d10563e8fd", "1.0 2013-03-06" )
     mod_info.put_version( "4b2d7e5f6d80b475a9b4e9d0d740ff41", "1.0" )
     mod_info.set_thread_hash( "49de32110c905eb33e5ef07f888afbfd" )
 
@@ -449,7 +448,7 @@ I have discovered that you can NOT load my ships simultaneously. I dont know WHA
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "Duality Cruiser & Merchant Cruiser" )
+    mod_info.set_title( "Duality Cruiser and Merchant Cruiser" )
     mod_info.set_author( "zaratustra" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=4&t=2729" )
     mod_info.put_version( "4d68f90233698b7db9c792ae3573e2fe", "1.0" )
@@ -507,7 +506,7 @@ The Lockheed Martin/Boeing F-22 Raptor is a single-seat, twin-engine fifth-gener
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "Halo 4 : Broadsword ship" )
+    mod_info.set_title( "Halo 4 - Broadsword Ship" )
     mod_info.set_author( "Revenant721" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11620" )
     mod_info.put_version( "3f17e969074ad365d4d3e850d51fdca1", "1.1" )
@@ -528,6 +527,35 @@ The Lockheed Martin/Boeing F-22 Raptor is a single-seat, twin-engine fifth-gener
     mod_info.set_desc(r"""The Covenant battlecruiser featured heavily in the Halo series! It starts with a slug and two engi. It also adds the plasma torpedo to the game. It requires two power and has a fairly long charge up, but does two damage and is pretty much guaranteed to cause fires.
 
 Replaces the Slug-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Hardcase" )
+    mod_info.set_author( "sandtrooper956" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=12041" )
+    mod_info.put_version( "6c3ee488fc3cc03ce2b4c33cc9678e80", "1.0 2013-03-06" )
+    mod_info.put_version( "60b7591a6cbc4ade08b83b5c544ccfcb", "1.0" )
+    mod_info.set_thread_hash( "6b118795dc49e0782797a676fa285ef1" )
+
+    mod_info.set_desc(r"""An edit of the Rock-B ship.
+
+It has 200 hp but it its systems are these:
+- Level 3 Engines
+- Level 4 Weapons
+- Level 1 Oxygen
+- Level 1 Piloting
+
+They are very limited; no way to heal crew until you get a medbay, which could take a while.
+
+Starting crew: just 2 rockmen.
+
+It only has 2 Weapon slots, starting with:
+- Heavy Laser II
+- Ion Blast
+
+Replaces the Rock-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -584,7 +612,7 @@ Replaces the Stealth-A ship.
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11501" )
     mod_info.put_version( "ef5cdc4b6413f4013959271155ef84be", "1.0 2013-03-04" )
     mod_info.put_version( "3851b27cd288083356b433436eda6195", "1.0" )
-    mod_info.set_thread_hash( "6d71975f90004484da6788e1f5c3acb5" )
+    mod_info.set_thread_hash( "72866888a9ed7d55024ea935461d3c21" )
 
     mod_info.set_desc(r"""Marauder ships are characterised by powerful weapon systems that seem to require massive power to operate, even at the expense of all other systems. While not refined, the weapons are effective. Usually disableing and stripping ships clean to provide resources required for the vessel to reach it's full potential. Even though their origins and source of technology are a mystery, the ships are crewed by common races though it's hard to say if they joined up willingly or are slaves.
 
@@ -596,13 +624,15 @@ This mod was made without regard for compatibility with other mods. However, it 
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "Mor-Saxum (Rock Cruiser)" )
+    mod_info.set_title( "Mor-Saxum" )
     mod_info.set_author( "HalfDemon23" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11514" )
     mod_info.put_version( "e50d7504123fab5224248c8704a5bc12", "0.6" )
     mod_info.set_thread_hash( "09e54784dbf67a2d92a395f28570e039" )
 
     mod_info.set_desc(r"""A gigantic Rock Dreadnought that was intended to blockade the entire Rebel Fleet; however the Rebels attacked the construction base before it was completed, resulting in the Prototype limping out of the attack. While it lacks secondary systems, the Mor-Saxum has an impressive armament and unrivalled hull strength, now TRIPLE of a standard Rock Cruiser - if its systems were brought up to full strength... not even a Rebel Fleet could stand in its way.
+
+Replaces the Rock-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -642,7 +672,7 @@ Replaces the Engi-B ship.
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "Playable rebel flagship" )
+    mod_info.set_title( "Playable Rebel Flagship" )
     mod_info.set_author( "Baldwebby360" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=10108" )
     mod_info.put_version( "9643c9a6af40bfd7710157dd49f00390", "1.0 Rebel WIP" )
@@ -745,7 +775,7 @@ Replaces the Stealth-B ship.
     mod_info.put_version( "958fba168d38361cce4f9ad280e83e99", "0.5 Ships" )
     mod_info.set_thread_hash( "0f04d41207487b4870ca57bd4c6c3484" )
 
-    mod_info.set_desc(r"""The primary feature of this mod is: 18 new ships to play! All your favourite air units from Starcraft 1 and 2, ported into FTL!
+    mod_info.set_desc(r"""The primary feature of this mod is: new ships to play! All your favourite air units from Starcraft 1 and 2, ported into FTL!
 
 The Ship mod and the UI mod are designed to be used together, but if you find the Starcrafty icons confusing you could just use the SC2Ships with the default icons.
 """)
@@ -756,7 +786,8 @@ The Ship mod and the UI mod are designed to be used together, but if you find th
     mod_info.set_title( "Star Trek Universe" )
     mod_info.set_author( "speedoflight" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11844" )
-    mod_info.put_version( "cddbb53e53745b8b1ac7cac7073e14e0", "0.2 2013-03-02 WIP" )
+    mod_info.put_version( "0443f8504ad6823a1ea875127a87273b", "0.3 Beta WIP" )
+    mod_info.put_version( "cddbb53e53745b8b1ac7cac7073e14e0", "0.2 Beta 2013-03-02 WIP" )
     mod_info.put_version( "c6880fd3e9423affe5ff9dc733580cad", "0.2 Beta WIP" )
     mod_info.put_version( "098dc2eb3865b701697e6a73420f57c6", "0.1 Beta WIP" )
     mod_info.set_thread_hash( "4344e1d170bd33dbc01daf7de467cf3c" )
@@ -825,7 +856,7 @@ Replaces the Kestrel-A ship.
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "THE YAS-62" )
+    mod_info.set_title( "The YAS-62" )
     mod_info.set_author( "nataryeahbuddy" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11124" )
     mod_info.put_version( "ebefad606e6a66dd9e3ec4f9908e5d60", "1.1" )
@@ -881,6 +912,22 @@ Crystal
 Shoots shield-piercing crystal shards. Only obtainable in the Crystal Sector. 3 Power.
 
 The mod may (i.e. will probably) conflict with other mods that add drones. It is likely that we modders have used the same blueprint and weapon names at least once.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Extended Ion" )
+    mod_info.set_author( "Zaffre" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?p=17749" )
+    mod_info.put_version( "03831481149b1c1f1de100178ff5e7d9", "1.0" )
+    mod_info.set_thread_hash( "1fdc0a91ac0e0b3ac7ad7c14516a7705" )
+
+    mod_info.set_desc(r"""Discontinued.
+
+Extended Ion aims to add more to the arsenal of ion weapons by adding things like ion drones and lasers, and also upgraded ion blast weapons. The Engi ship starts out with some of these ion weapons and drones for a preview.
+
+Replaces the Engi-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -948,6 +995,7 @@ Version 0.1 replaced the Kestrel A ship.
 The Athena is a missile launcher that doesn't use missiles. Instead, it is built over time, fueled by your reactor. There's nothing too special about this weapon (though the same could be said for a lot of the weapons here), but if you ever find yourself out of missiles and needing to get past a shield, this is a good choice.
 
 Replaces the Kestrel-A ship.
+
 Using Rapid Missiles in conjunction? Check your mod order.
 
 A note about these weapons:
