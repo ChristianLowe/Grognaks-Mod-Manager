@@ -203,7 +203,7 @@ def fetch_newest_catalog(url, etag=None):
         if (etag):
             request.add_header("If-None-Match", etag)
 
-        response = urlopen(request)
+        response = urlopen(request, timeout=10)
 
         response_info = response.info()
         if ((not etag) and "ETag" in response_info):
