@@ -17,6 +17,8 @@
 #         python -m lib.moddb_updater --dump-json
 #
 #     A json file will appear in that folder.
+#     Copy it to GMM/backup/
+#     Commit the json and default_moddb.py to the repository.
 #
 
 import hashlib
@@ -261,7 +263,7 @@ def _hash_thread(url):
 
 def _dump_json():
     """Dumps the default moddb to a json file."""
-    new_json_path = "./current_moddb.json"
+    new_json_path = "./current_catalog.json"
 
     known_db = moddb.create_default_db()
     json_str = known_db.dump_json()

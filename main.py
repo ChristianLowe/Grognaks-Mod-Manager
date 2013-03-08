@@ -102,7 +102,7 @@ class RootWindow(tk.Tk):
         tk.Tk.__init__(self, master, *args, **kwargs)
         # Pseudo enum constants.
         self.ACTIONS = ["ACTION_CONFIG", "ACTION_SHOW_MAIN_WINDOW",
-                        "ACTION_ADD_MOD_HASH",
+                        "ACTION_ADD_MOD_HASH", "ACTION_SET_MODDB",
                         "ACTION_PATCHING_SUCCEEDED", "ACTION_PATCHING_FAILED",
                         "ACTION_DIE"]
         for x in self.ACTIONS: setattr(self, x, x)
@@ -205,6 +205,10 @@ class RootWindow(tk.Tk):
         elif (func_or_name == self.ACTION_ADD_MOD_HASH):
             check_args(["mod_name", "mod_hash"])
             self.mod_hashes[arg_dict["mod_name"]] = arg_dict["mod_hash"]
+
+        elif (func_or_name == self.ACTION_SET_MODDB):
+            check_args(["new_moddb"])
+            self.mod_db = arg_dict["new_moddb"]
 
         elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
             check_args(["ftl_exe_path"])
@@ -1177,6 +1181,8 @@ class LogicThread(killable_threading.KillableThread):
         for x in self.ACTIONS: setattr(self, x, x)
 
         self._mygui = root_window
+        self._hashing_thread = None
+        self._catalog_update_thread = None
         self._patch_thread = None
         self._event_queue = queue.Queue()
 
@@ -1346,6 +1352,28 @@ class LogicThread(killable_threading.KillableThread):
         self._hashing_thread.name = "HashWorker"
         self._hashing_thread.start()
         global_config.get_cleanup_handler().add_thread(self._hashing_thread)
+
+        # Get the latest catalog.
+        def catalog_update_payload(mygui, keep_alive_func=None, sleep_func=None):
+            new_moddb = moddb.get_updated_db()
+            if (new_moddb):
+                logging.debug("Replacing current mod_db with saved catalog.")
+                mygui.invoke_later(mygui.ACTION_SET_MODDB, {"new_moddb":new_moddb})
+
+        def wrapper_finished_func(payload_result):
+            logging.debug("Background catalog update check finished.")
+
+        def wrapper_exception_func(err):
+            logging.exception(err)
+            logging.error("Background catalog update check failed.")
+
+        self._catalog_update_thread = killable_threading.WrapperThread()
+        self._catalog_update_thread.set_payload(catalog_update_payload, self._mygui)
+        self._catalog_update_thread.set_success_func(wrapper_finished_func)
+        self._catalog_update_thread.set_failure_func(wrapper_exception_func)
+        self._catalog_update_thread.name = "CatalogUpdateWorker"
+        self._catalog_update_thread.start()
+        global_config.get_cleanup_handler().add_thread(self._catalog_update_thread)
 
     def _main_window_closed(self, arg_dict):
         for arg in ["all_mods", "selected_mods"]:

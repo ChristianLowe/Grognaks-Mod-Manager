@@ -1,6 +1,24 @@
+import datetime
 import json
+import logging
+import os
 import re
 import sys
+
+# Modules that changed in Python 3.x.
+try:
+    from urllib.request import Request
+    from urllib.request import urlopen
+except (ImportError) as err:
+    from urllib2 import Request
+    from urllib2 import urlopen
+
+try:
+    from urllib.error import HTTPError, URLError
+except (ImportError) as err:
+    from urllib2 import HTTPError, URLError
+
+from lib import global_config
 
 
 class ModDB(object):
@@ -26,10 +44,13 @@ class ModDB(object):
     def dump_json(self):
         """Serializes the catalog to a json string."""
         result = {}
-        # An integer to increment when the class structure changes.
-        result["catalog_version"] = 1
 
-        result["catalog"] = []
+        # A dict of catalog flavors, indexed by a quoted-number.
+        # When the structure changes, increment the number.
+        # Legacy clients will look for the number they prefer.
+        result["catalog_versions"] = {}
+
+        result["catalog_versions"]["1"] = []
         for mod_info in self.catalog:
             mod_data = {}
             mod_data["title"] = mod_info.get_title()
@@ -43,20 +64,23 @@ class ModDB(object):
             mod_data["thread_hash"] = mod_info.get_thread_hash()
             mod_data["desc"] = mod_info.get_desc()
 
-            result["catalog"].append(mod_data)
+            result["catalog_versions"]["1"].append(mod_data)
 
         return json.dumps(result, ensure_ascii=True, allow_nan=False, sort_keys=True)
 
     def load_json(self, s):
         """Populates the catalog from a serialized json string.
         Call clear() first.
+
+        :raises: ValueError if the json could not be parsed.
         """
+        expected_catalog_version = "1"
         json_obj = json.loads(s)
 
-        if ("catalog_version" not in json_obj): return
+        if ("catalog_versions" not in json_obj): return
 
-        if (json_obj["catalog_version"] == 1):
-            for mod_data in json_obj["catalog"]:
+        if (expected_catalog_version in json_obj["catalog_versions"]):
+            for mod_data in json_obj["catalog_versions"][expected_catalog_version]:
                 mod_info = ModInfo()
                 mod_info.set_title(mod_data["title"])
                 mod_info.set_author(mod_data["author"])
@@ -70,7 +94,7 @@ class ModDB(object):
 
                 self.add_mod(mod_info)
         else:
-            logging.warning("Unable to deserialize catalog version %s" % json_obj["catalog_version"])
+            logging.warning("Unable to deserialize catalog version %s" % expected_catalog_version)
 
     def write_as_code(self, f):
         """Serializes the catalog as a python function.
@@ -165,3 +189,104 @@ def create_default_db():
     new_db = ModDB()
     default_moddb.populate_catalog(new_db)
     return new_db
+
+
+def fetch_newest_catalog(url, etag=None):
+    """Downloads the latest mod catalog.
+
+    :param url: The json catalog's address.
+    :param etag: An HTTP header value to track modification; obtained from a previous call.
+    :returns: A success boolean, the json string, and an etag string to pass next time, and . Or (False, None, None).
+    """
+    try:
+        request = Request(url)
+        if (etag):
+            request.add_header("If-None-Match", etag)
+
+        response = urlopen(request)
+
+        response_info = response.info()
+        if ((not etag) and "ETag" in response_info):
+            etag = response_info["ETag"]
+
+        json_str = response.read().decode("ascii")
+        response.close()
+
+        return (True, json_str, etag)
+
+    except (HTTPError) as err:
+        if (err.code == 304):  # 304 'Not Modified' is okay.
+            logging.debug("The server's catalog has not been modified since the previous check.")
+            return (True, None, None)
+        else:
+            logging.error("Catalog download request failed: HTTP Code %s" % err.code)
+
+    except (URLError) as err:
+        logging.error("Catalog download request failed: %s" % err.reason)
+    except (OSError) as err:  # Socket timeout.
+        logging.error("Catalog download request failed: %s" % err.reason)
+
+    return (False, None, None)
+
+
+def get_updated_db():
+    """Returns a ModDB with the latest catalog, or None.
+    If a previously downloaded json file exists, its datestamp will be examined.
+    If the date's sufficiently old, a fresh one will be downloaded to overwrite it.
+    If there's nothing new to download, the datestamp will be modified.
+    Then, if a json file exists, it will be loaded into a new ModDB and returned.
+
+    A text file containing an etag string will be saved alongside the json.
+    An etag is a hash used in HTTP requests to avoid redownloading unchanged files.
+    """
+    json_path = os.path.join(global_config.dir_backup, "current_catalog.json")
+    etag_path = os.path.join(global_config.dir_backup, "current_catalog_etag.txt")
+
+    try:
+        up_to_date = False
+        if (os.path.isfile(json_path)):
+            last_modified_date = datetime.datetime.fromtimestamp(os.path.getmtime(json_path))
+            logging.debug("Last catalog update: %s (local time)" % last_modified_date.strftime("%Y-%m-%d %H:%M:%S"))
+            if (last_modified_date.today() - last_modified_date < global_config.CATALOG_DOWNLOAD_INTERVAL):
+                logging.debug("Not bothering to download a newer catalog.")
+                up_to_date = True
+
+        if (not up_to_date):
+            etag = None
+            if (os.path.isfile(json_path) and os.path.isfile(etag_path)):
+                try:
+                    with open(etag_path, "rb") as etag_file:
+                        etag = etag_file.read().decode("ascii")
+                except (Exception) as err:
+                    logging.debug("Failed to read cached catalog etag: " % str(err))
+
+            logging.debug("Attempting to download a newer catalog...")
+            outcome, json_str, etag = fetch_newest_catalog(global_config.CATALOG_URL, etag)
+
+            if (outcome is True):
+                if (json_str):
+                    with open(json_path, "wb") as json_file:
+                        json_file.write(json_str.encode("ascii"))
+                if (etag):
+                    with open(etag_path, "wb") as etag_file:
+                        etag_file.write(etag.encode("ascii"))
+
+                os.utime(json_path, None)  # Set access/modified timestamps to now.
+
+    except (Exception) as err:
+        logging.debug("Failed to fetch latest catalog: %s" % str(err))
+
+    try:
+        if (os.path.isfile(json_path)):
+            json_str = None
+            with open(json_path, "rb") as json_file:
+                json_str = json_file.read().decode("ascii")
+
+            new_db = ModDB()
+            new_db.load_json(json_str)
+            return new_db
+
+    except (Exception) as err:
+        logging.debug("Failed to load latest catalog: %s" % str(err))
+
+    return None
