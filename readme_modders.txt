@@ -2,7 +2,7 @@ Mod Developer Notes
 
 Creating an .ftl File
 
-  A .ftl file is simply a renamed .zip with a specific file structure.
+  An .ftl file is simply a renamed .zip with a specific file structure.
   For an example, try renaming and unpacking the example .ftl file that
   comes with the program.
 
