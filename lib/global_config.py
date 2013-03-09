@@ -1,16 +1,22 @@
+import datetime
 import time
 
 
 # Global Constants
 
-APP_VERSION = "1.7.0"
+APP_VERSION = "???"
 APP_NAME = "Grognak's Mod Manager v%s" % APP_VERSION
 APP_URL = "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2464"
 
+CATALOG_DOWNLOAD_INTERVAL = datetime.timedelta(days=7)
+CATALOG_URL = "https://raw.github.com/Grognak/Grognaks-Mod-Manager/master/backup/current_catalog.json"
+
 allowzip = False
 never_run_ftl = False
+update_catalog = False
 
 dir_self = None
+dir_backup = None
 dir_mods = None
 dir_res = None
 

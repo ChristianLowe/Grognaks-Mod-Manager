@@ -87,6 +87,7 @@ try:
     from lib import cleanup
     from lib import ftldat
     from lib import global_config
+    from lib import imageinfo
     from lib import killable_threading
     from lib import moddb
     from lib import tkHyperlinkManager
@@ -101,7 +102,7 @@ class RootWindow(tk.Tk):
         tk.Tk.__init__(self, master, *args, **kwargs)
         # Pseudo enum constants.
         self.ACTIONS = ["ACTION_CONFIG", "ACTION_SHOW_MAIN_WINDOW",
-                        "ACTION_ADD_MOD_HASH",
+                        "ACTION_ADD_MOD_HASH", "ACTION_SET_MODDB",
                         "ACTION_PATCHING_SUCCEEDED", "ACTION_PATCHING_FAILED",
                         "ACTION_DIE"]
         for x in self.ACTIONS: setattr(self, x, x)
@@ -173,24 +174,30 @@ class RootWindow(tk.Tk):
             func_or_name(arg_dict)
 
         elif (func_or_name == self.ACTION_CONFIG):
-            check_args(["write_config", "config_parser", "next_func"])
+            check_args(["write_config", "config_parser", "prompts", "next_func"])
 
-            if (global_config.dir_res):
-                if (not msgbox.askyesno(global_config.APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % global_config.dir_res)):
-                    global_config.dir_res = None
+            if ("ftl_dats_path" in arg_dict["prompts"]):
+                if (global_config.dir_res):
+                    if (not msgbox.askyesno(global_config.APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % global_config.dir_res)):
+                        global_config.dir_res = None
 
-            if (not global_config.dir_res):
-                logging.debug("FTL dats path was not located automatically. Prompting user for location.")
-                global_config.dir_res = prompt_for_ftl_path()
+                if (not global_config.dir_res):
+                    logging.debug("FTL dats path was not located automatically. Prompting user for location.")
+                    global_config.dir_res = prompt_for_ftl_path()
 
-            if (global_config.dir_res):
-                arg_dict["config_parser"].set("settings", "ftl_dats_path", global_config.dir_res)
+                if (global_config.dir_res):
+                    arg_dict["config_parser"].set("settings", "ftl_dats_path", global_config.dir_res)
+                    arg_dict["write_config"] = True
+                    logging.info("FTL dats located at: %s" % global_config.dir_res)
+
+                if (not global_config.dir_res):
+                    logging.debug("No FTL dats path found, exiting.")
+                    sys.exit(1)
+
+            if ("update_catalog" in arg_dict["prompts"]):
+                global_config.update_catalog = msgbox.askyesno(global_config.APP_NAME, "Would you like GMM to periodically download\ndescriptions for the latest mods?\n\nYou can change this later in modman.ini.")
+                arg_dict["config_parser"].set("settings", "update_catalog", ("1" if (global_config.update_catalog is True) else "0"))
                 arg_dict["write_config"] = True
-                logging.info("FTL dats located at: %s" % global_config.dir_res)
-
-            if (not global_config.dir_res):
-                logging.debug("No FTL dats path found, exiting.")
-                sys.exit(1)
 
             arg_dict["next_func"]({"write_config":arg_dict["write_config"], "config_parser":arg_dict["config_parser"]})
 
@@ -204,6 +211,10 @@ class RootWindow(tk.Tk):
         elif (func_or_name == self.ACTION_ADD_MOD_HASH):
             check_args(["mod_name", "mod_hash"])
             self.mod_hashes[arg_dict["mod_name"]] = arg_dict["mod_hash"]
+
+        elif (func_or_name == self.ACTION_SET_MODDB):
+            check_args(["new_moddb"])
+            self.mod_db = arg_dict["new_moddb"]
 
         elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
             check_args(["ftl_exe_path"])
@@ -489,7 +500,7 @@ class MainWindow(tk.Toplevel):
 
     def _show_app_description(self):
         """Shows info about this program."""
-        self._set_description("Grognak's Mod Manager", author="Grognak", version=global_config.APP_VERSION, url=global_config.APP_URL, description="Thanks for using GMM.\nMake sure to periodically check the forum for updates!")
+        self._set_description("Grognak's Mod Manager", author="Grognak", version=global_config.APP_VERSION, url=global_config.APP_URL, description="Thanks for using GMM.\nMake sure to visit the forum for updates!")
 
     def set_status_text(self, message):
         """Sets the text in the status bar."""
@@ -767,6 +778,7 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
     data_unp_path = None
     resource_unp_path = None
     tmp = None
+    modded_items = []  # Tracks changed files in case they're clobbered.
 
     try:
         # Create backup dats, if necessary.
@@ -838,19 +850,27 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                             for f in files:
                                 if (f.endswith(".xml.append")):
                                     append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
+                                    modded_items.append(f[:-len(".append")])
                                 elif (f.endswith(".append.xml")):
                                     append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
+                                    modded_items.append(f[:-len(".append.xml")]+".xml")
                                 elif (f.endswith(".append")):
                                     append_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
+                                    modded_items.append(f[:-len(".append")])
                                 elif (f.endswith(".merge")):
                                     merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge")]))
                                 elif (f.endswith("merge.xml")):
                                     merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
                                 else:
+                                    if (f in modded_items):
+                                        logging.warning("Clobbering earlier mods: %s" % f)
                                     sh.copy2(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f))
+                                    modded_items.append(f)
 
                     else:
                         logging.warning("Unsupported folder: %s" % directory)
+
+                modded_items = sorted(set(modded_items))  # Prune duplicates.
 
             finally:
                 # Clean up temporary mod folder's contents.
@@ -902,24 +922,68 @@ def validate_mod(mod_path):
     """
     result = ""
     mod_valid = True
+    seen_append = False
     seen_macosx = False
+
+    junk_file_ptns = []
+    junk_file_ptns.append(re.compile("[.]DS_Store$"))
+    junk_file_ptns.append(re.compile("thumbs[.]db$"))
+
+    def is_junk_file(s):
+        for ptn in junk_file_ptns:
+            if (ptn.search(s)):
+                return True
+        return False
 
     mod_zip = None
     try:
         mod_zip = zf.ZipFile(mod_path, "r")
         if (len(mod_zip.namelist()) == 0):
-            result += "! Empty zip\n"
+            result += "! Empty zip.\n"
             mod_valid = False
 
         for item in mod_zip.namelist():
             if (item.endswith("/")):
                 pass
+
             elif (item.startswith("__MACOSX/")):
                 if (not seen_macosx):
-                    result += "! Junk Folder: __MACOSX\n"
+                    result += "\n"
+                    result += "! Junk Folder: __MACOSX/\n"
                     seen_macosx = True
                     mod_valid = False
-            elif (item.endswith(".xml") or item.endswith(".xml.append")):
+
+            elif (is_junk_file(item)):
+                result += "\n"
+                result += "! Junk File: %s\n" % item
+                mod_valid = False
+
+            elif (item.endswith(".png")):
+                item_file = None
+                try:
+                    item_file = mod_zip.open(item)
+                    image_info = imageinfo.read_metadata(item_file)
+
+                    if (image_info["color_type"] != 6):  # Truecolor+Alpha (32bit RGBA)
+                        color_type_str = {0:"Gray", 2:"Truecolor", 3:"Indexed",
+                                          4:"Gray+Alpha", 6:"Truecolor+Alpha"}.get(image_info["color_type"], str(image_info["color_type"]) +"?")
+                        result += "\n"
+                        result += "> %s\n" % item
+                        result += "~ ColorType: %s (Usually 32bit Truecolor+Alpha)\n" % (color_type_str)
+                        mod_valid = False
+                except (Exception) as err:
+                    logging.exception(err)
+                    result += "! An error occurred. See log for details.\n"
+                    mod_valid = False
+                finally:
+                    if (item_file is not None):
+                        item_file.close()
+
+            elif (item.endswith(".xml") or item.endswith(".xml.append") or item.endswith(".append.xml")):
+                if (item.endswith(".xml.append") or item.endswith(".append.xml")):
+                    seen_append = True
+
+                result += "\n"
                 result += "> %s\n" % item
 
                 item_bytes = mod_zip.read(item)
@@ -943,10 +1007,14 @@ def validate_mod(mod_path):
                             break
                     result += re.sub("\n", "\n  ", xml_result[1]) +"\n"
                     prev_result = xml_result
-                result += "\n"
 
                 if (not xml_valid):
                     mod_valid = False
+
+        if (not seen_append):
+            result += "\n"
+            result += "~ This mod doesn't append. It clobbers.\n"
+            mod_valid = False
 
     except (Exception) as err:
         logging.exception(err)
@@ -1119,6 +1187,8 @@ class LogicThread(killable_threading.KillableThread):
         for x in self.ACTIONS: setattr(self, x, x)
 
         self._mygui = root_window
+        self._hashing_thread = None
+        self._catalog_update_thread = None
         self._patch_thread = None
         self._event_queue = queue.Queue()
 
@@ -1180,22 +1250,35 @@ class LogicThread(killable_threading.KillableThread):
         cfg.set("settings", "allowzip", ("1" if (global_config.allowzip is True) else "0"))
         cfg.set("settings", "ftl_dats_path", "")
         cfg.set("settings", "never_run_ftl", ("1" if (global_config.never_run_ftl is True) else "0"))
+        cfg.set("settings", "update_catalog", "")
 
         write_config = False
+        prompts = []  # A list of settings the user needs to be asked about.
         try:
             with open(os.path.join(global_config.dir_self, "modman.ini"), "r") as cfg_file:
                 cfg.readfp(cfg_file)
         except (Exception) as err:
             write_config = True
 
-        if (cfg.has_option("settings", "allowzip")):
+        try:
             global_config.allowzip = cfg.getboolean("settings", "allowzip")
+        except (configparser.Error, ValueError):
+            pass
 
-        if (cfg.has_option("settings", "ftl_dats_path")):
+        try:
             global_config.dir_res = cfg.get("settings", "ftl_dats_path")
+        except (configparser.Error):
+            pass
 
-        if (cfg.has_option("settings", "never_run_ftl")):
+        try:
             global_config.never_run_ftl = cfg.getboolean("settings", "never_run_ftl")
+        except (configparser.Error, ValueError):
+            pass
+
+        try:
+            global_config.update_catalog = cfg.getboolean("settings", "update_catalog")
+        except (configparser.Error, ValueError):
+            prompts.append("update_catalog")
 
         # Remove deprecated settings.
         for x in ["macmodsdir", "highlightall"]:
@@ -1213,11 +1296,15 @@ class LogicThread(killable_threading.KillableThread):
         if (not global_config.dir_res):
             # Find/prompt for the path to set in the config.
             global_config.dir_res = find_ftl_path()
+            prompts.append("ftl_dats_path")
+
+        if (len(prompts) > 0):
+            # Something needs to be asked.
 
             def next_func(arg_dict):
                 self.invoke_later(self.ACTION_CONFIG_LOADED, arg_dict)
 
-            self._mygui.invoke_later(self._mygui.ACTION_CONFIG, {"write_config":write_config, "config_parser":cfg, "next_func":next_func})
+            self._mygui.invoke_later(self._mygui.ACTION_CONFIG, {"write_config":write_config, "config_parser":cfg, "prompts":prompts, "next_func":next_func})
         else:
             # Skip to the next phase.
             self.invoke_later(self.ACTION_CONFIG_LOADED, {"write_config":write_config, "config_parser":cfg})
@@ -1234,6 +1321,7 @@ class LogicThread(killable_threading.KillableThread):
                 cfg_file.write("# allowzip - Sets whether to treat .zip files as .ftl files. Default: 0 (false).\n")
                 cfg_file.write("# ftl_dats_path - The path to FTL's resources folder. If invalid, you'll be prompted.\n")
                 cfg_file.write("# never_run_ftl - If true, there will be no offer to run FTL after patching. Default: 0 (false).\n")
+                cfg_file.write("# update_catalog - If true, periodically download descriptions for the latest mods. If invalid, you'll be prompted.\n")
                 cfg_file.write("#\n")
                 cfg_file.write("# highlightall - Deprecated.\n")
                 cfg_file.write("# macmodsdir - Deprecated. Each OS keeps mods in GMM/mods/ now.\n")
@@ -1288,6 +1376,31 @@ class LogicThread(killable_threading.KillableThread):
         self._hashing_thread.name = "HashWorker"
         self._hashing_thread.start()
         global_config.get_cleanup_handler().add_thread(self._hashing_thread)
+
+        # Get the latest catalog.
+        if (global_config.update_catalog):
+            def catalog_update_payload(mygui, keep_alive_func=None, sleep_func=None):
+                new_moddb = moddb.get_updated_db()
+                if (new_moddb):
+                    logging.debug("Replacing current mod_db with saved catalog.")
+                    mygui.invoke_later(mygui.ACTION_SET_MODDB, {"new_moddb":new_moddb})
+
+            def wrapper_finished_func(payload_result):
+                logging.debug("Background catalog update check finished.")
+
+            def wrapper_exception_func(err):
+                logging.exception(err)
+                logging.error("Background catalog update check failed.")
+
+            self._catalog_update_thread = killable_threading.WrapperThread()
+            self._catalog_update_thread.set_payload(catalog_update_payload, self._mygui)
+            self._catalog_update_thread.set_success_func(wrapper_finished_func)
+            self._catalog_update_thread.set_failure_func(wrapper_exception_func)
+            self._catalog_update_thread.name = "CatalogUpdateWorker"
+            self._catalog_update_thread.start()
+            global_config.get_cleanup_handler().add_thread(self._catalog_update_thread)
+        else:
+            logging.debug("Skipping catalog update.")
 
     def _main_window_closed(self, arg_dict):
         for arg in ["all_mods", "selected_mods"]:
