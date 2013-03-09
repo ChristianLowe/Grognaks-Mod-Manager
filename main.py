@@ -174,24 +174,30 @@ class RootWindow(tk.Tk):
             func_or_name(arg_dict)
 
         elif (func_or_name == self.ACTION_CONFIG):
-            check_args(["write_config", "config_parser", "next_func"])
+            check_args(["write_config", "config_parser", "prompts", "next_func"])
 
-            if (global_config.dir_res):
-                if (not msgbox.askyesno(global_config.APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % global_config.dir_res)):
-                    global_config.dir_res = None
+            if ("ftl_dats_path" in arg_dict["prompts"]):
+                if (global_config.dir_res):
+                    if (not msgbox.askyesno(global_config.APP_NAME, "FTL resources were found in:\n%s\nIs this correct?" % global_config.dir_res)):
+                        global_config.dir_res = None
 
-            if (not global_config.dir_res):
-                logging.debug("FTL dats path was not located automatically. Prompting user for location.")
-                global_config.dir_res = prompt_for_ftl_path()
+                if (not global_config.dir_res):
+                    logging.debug("FTL dats path was not located automatically. Prompting user for location.")
+                    global_config.dir_res = prompt_for_ftl_path()
 
-            if (global_config.dir_res):
-                arg_dict["config_parser"].set("settings", "ftl_dats_path", global_config.dir_res)
+                if (global_config.dir_res):
+                    arg_dict["config_parser"].set("settings", "ftl_dats_path", global_config.dir_res)
+                    arg_dict["write_config"] = True
+                    logging.info("FTL dats located at: %s" % global_config.dir_res)
+
+                if (not global_config.dir_res):
+                    logging.debug("No FTL dats path found, exiting.")
+                    sys.exit(1)
+
+            if ("update_catalog" in arg_dict["prompts"]):
+                global_config.update_catalog = msgbox.askyesno(global_config.APP_NAME, "Would you like GMM to periodically download\ndescriptions for the latest mods?\n\nYou can change this later in modman.ini.")
+                arg_dict["config_parser"].set("settings", "update_catalog", ("1" if (global_config.update_catalog is True) else "0"))
                 arg_dict["write_config"] = True
-                logging.info("FTL dats located at: %s" % global_config.dir_res)
-
-            if (not global_config.dir_res):
-                logging.debug("No FTL dats path found, exiting.")
-                sys.exit(1)
 
             arg_dict["next_func"]({"write_config":arg_dict["write_config"], "config_parser":arg_dict["config_parser"]})
 
@@ -494,7 +500,7 @@ class MainWindow(tk.Toplevel):
 
     def _show_app_description(self):
         """Shows info about this program."""
-        self._set_description("Grognak's Mod Manager", author="Grognak", version=global_config.APP_VERSION, url=global_config.APP_URL, description="Thanks for using GMM.\nMake sure to periodically check the forum for updates!")
+        self._set_description("Grognak's Mod Manager", author="Grognak", version=global_config.APP_VERSION, url=global_config.APP_URL, description="Thanks for using GMM.\nMake sure to visit the forum for updates!")
 
     def set_status_text(self, message):
         """Sets the text in the status bar."""
@@ -1244,22 +1250,35 @@ class LogicThread(killable_threading.KillableThread):
         cfg.set("settings", "allowzip", ("1" if (global_config.allowzip is True) else "0"))
         cfg.set("settings", "ftl_dats_path", "")
         cfg.set("settings", "never_run_ftl", ("1" if (global_config.never_run_ftl is True) else "0"))
+        cfg.set("settings", "update_catalog", "")
 
         write_config = False
+        prompts = []  # A list of settings the user needs to be asked about.
         try:
             with open(os.path.join(global_config.dir_self, "modman.ini"), "r") as cfg_file:
                 cfg.readfp(cfg_file)
         except (Exception) as err:
             write_config = True
 
-        if (cfg.has_option("settings", "allowzip")):
+        try:
             global_config.allowzip = cfg.getboolean("settings", "allowzip")
+        except (configparser.Error, ValueError):
+            pass
 
-        if (cfg.has_option("settings", "ftl_dats_path")):
+        try:
             global_config.dir_res = cfg.get("settings", "ftl_dats_path")
+        except (configparser.Error):
+            pass
 
-        if (cfg.has_option("settings", "never_run_ftl")):
+        try:
             global_config.never_run_ftl = cfg.getboolean("settings", "never_run_ftl")
+        except (configparser.Error, ValueError):
+            pass
+
+        try:
+            global_config.update_catalog = cfg.getboolean("settings", "update_catalog")
+        except (configparser.Error, ValueError):
+            prompts.append("update_catalog")
 
         # Remove deprecated settings.
         for x in ["macmodsdir", "highlightall"]:
@@ -1277,11 +1296,15 @@ class LogicThread(killable_threading.KillableThread):
         if (not global_config.dir_res):
             # Find/prompt for the path to set in the config.
             global_config.dir_res = find_ftl_path()
+            prompts.append("ftl_dats_path")
+
+        if (len(prompts) > 0):
+            # Something needs to be asked.
 
             def next_func(arg_dict):
                 self.invoke_later(self.ACTION_CONFIG_LOADED, arg_dict)
 
-            self._mygui.invoke_later(self._mygui.ACTION_CONFIG, {"write_config":write_config, "config_parser":cfg, "next_func":next_func})
+            self._mygui.invoke_later(self._mygui.ACTION_CONFIG, {"write_config":write_config, "config_parser":cfg, "prompts":prompts, "next_func":next_func})
         else:
             # Skip to the next phase.
             self.invoke_later(self.ACTION_CONFIG_LOADED, {"write_config":write_config, "config_parser":cfg})
@@ -1298,6 +1321,7 @@ class LogicThread(killable_threading.KillableThread):
                 cfg_file.write("# allowzip - Sets whether to treat .zip files as .ftl files. Default: 0 (false).\n")
                 cfg_file.write("# ftl_dats_path - The path to FTL's resources folder. If invalid, you'll be prompted.\n")
                 cfg_file.write("# never_run_ftl - If true, there will be no offer to run FTL after patching. Default: 0 (false).\n")
+                cfg_file.write("# update_catalog - If true, periodically download descriptions for the latest mods. If invalid, you'll be prompted.\n")
                 cfg_file.write("#\n")
                 cfg_file.write("# highlightall - Deprecated.\n")
                 cfg_file.write("# macmodsdir - Deprecated. Each OS keeps mods in GMM/mods/ now.\n")
@@ -1354,26 +1378,29 @@ class LogicThread(killable_threading.KillableThread):
         global_config.get_cleanup_handler().add_thread(self._hashing_thread)
 
         # Get the latest catalog.
-        def catalog_update_payload(mygui, keep_alive_func=None, sleep_func=None):
-            new_moddb = moddb.get_updated_db()
-            if (new_moddb):
-                logging.debug("Replacing current mod_db with saved catalog.")
-                mygui.invoke_later(mygui.ACTION_SET_MODDB, {"new_moddb":new_moddb})
+        if (global_config.update_catalog):
+            def catalog_update_payload(mygui, keep_alive_func=None, sleep_func=None):
+                new_moddb = moddb.get_updated_db()
+                if (new_moddb):
+                    logging.debug("Replacing current mod_db with saved catalog.")
+                    mygui.invoke_later(mygui.ACTION_SET_MODDB, {"new_moddb":new_moddb})
 
-        def wrapper_finished_func(payload_result):
-            logging.debug("Background catalog update check finished.")
+            def wrapper_finished_func(payload_result):
+                logging.debug("Background catalog update check finished.")
 
-        def wrapper_exception_func(err):
-            logging.exception(err)
-            logging.error("Background catalog update check failed.")
+            def wrapper_exception_func(err):
+                logging.exception(err)
+                logging.error("Background catalog update check failed.")
 
-        self._catalog_update_thread = killable_threading.WrapperThread()
-        self._catalog_update_thread.set_payload(catalog_update_payload, self._mygui)
-        self._catalog_update_thread.set_success_func(wrapper_finished_func)
-        self._catalog_update_thread.set_failure_func(wrapper_exception_func)
-        self._catalog_update_thread.name = "CatalogUpdateWorker"
-        self._catalog_update_thread.start()
-        global_config.get_cleanup_handler().add_thread(self._catalog_update_thread)
+            self._catalog_update_thread = killable_threading.WrapperThread()
+            self._catalog_update_thread.set_payload(catalog_update_payload, self._mygui)
+            self._catalog_update_thread.set_success_func(wrapper_finished_func)
+            self._catalog_update_thread.set_failure_func(wrapper_exception_func)
+            self._catalog_update_thread.name = "CatalogUpdateWorker"
+            self._catalog_update_thread.start()
+            global_config.get_cleanup_handler().add_thread(self._catalog_update_thread)
+        else:
+            logging.debug("Skipping catalog update.")
 
     def _main_window_closed(self, arg_dict):
         for arg in ["all_mods", "selected_mods"]:

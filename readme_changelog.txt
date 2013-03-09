@@ -2,6 +2,7 @@ Changelog
 
 ???:
 - Added periodic updates to the catalog of mod metadata
+- Added ini setting: update_catalog
 - Added a log warning during patching if a mod gets clobbered
 
 1.7:

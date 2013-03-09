@@ -13,6 +13,7 @@ CATALOG_URL = "https://raw.github.com/Grognak/Grognaks-Mod-Manager/master/backup
 
 allowzip = False
 never_run_ftl = False
+update_catalog = False
 
 dir_self = None
 dir_backup = None
