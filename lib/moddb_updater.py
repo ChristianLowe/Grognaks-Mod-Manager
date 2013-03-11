@@ -94,7 +94,7 @@ def _scrape_master_list(known_db=None, ignored_urls=None):
 
     mods_header_ptn = re.compile(re.escape("<span style=\"font-weight: bold\"><span style=\"text-decoration: underline\"><span style=\"font-size: 150%; line-height: 116%;\">Mods</span></span></span>"))
 
-    mod_ptn = re.compile("(?u)^(?:\\[[A-Za-z0-9 ]+ *\\])?<a href=\"([^\"]+)\"[^>]*>([^>]+)</a> *((?:\\[[A-Za-z0-9 ]+\\])?)(?: - (?:.*?))? - Author: <a href=\"[^\"]+\"[^>]*>([^<]+?)</a>")
+    mod_ptn = re.compile("(?u)^(?:\\[[A-Za-z0-9 ]+ *\\])?<a href=\"([^\"]+)\"[^>]*>([^>]+)</a> *((?:\\[[A-Za-z0-9 ]+\\])?)(?: (?:.*?))? - Author: <a href=\"[^\"]+\"[^>]*>([^<]+?)</a>")
 
     forum_url_fragment = "http://www.ftlgame.com/forum/viewtopic.php"
 

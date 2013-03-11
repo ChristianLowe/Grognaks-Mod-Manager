@@ -951,7 +951,7 @@ def validate_mod(mod_path):
                 if (junk_dir not in seen_junk_dirs):
                     seen_junk_dirs.append(junk_dir)
                     result += "\n"
-                    result += "! Junk Folder: %s\n" % junk_dir
+                    result += "! Unsupported Folder: %s\n" % junk_dir
                 mod_valid = False
 
             elif (item.endswith("/")):
