@@ -18,7 +18,7 @@ def populate_catalog(mod_db):
 Get five shields and power your advanced weaponry! Thanks to a breakthrough by Engi scientists, ships are now able to have five shields and level twelve weapons. The Engi Advanced Technology Development Division has released this technology to the Federation, in hopes that they can beat the rebels. You can pick it up today, at your local Zoltan Trade Hub or on this post!
 
 Known Bugs:
-Asteroid Fields are messed up and you die... unknown cause, code seems to be fine.
+A bug in FTL causes asteroid storms to be abnormally fast when you have five shields.
 """)
     mod_db.add_mod(mod_info)
 
@@ -100,6 +100,10 @@ The plan is also to rewrite a whole bunch of events, as I intend the mod to be e
     mod_info.set_desc(r"""Part of the "Ghost Ships and New Items" collection.
 
 This mod creates two ghost ships, crewed by ghosts and equipped with unique weapons. One of these ships is a variant of the starting Kestrel, and the other is an alternate version of Stealth A. Since ghosts do not require air, the ships lack oxygen systems. This mod also adds a few ghost-related events, as well as some blue text options for ghosts. The Federation cruiser type A exchanges its human crew member for a ghost, but retains its other normal crew and still has an oxygen system.
+
+Replaces the Kestrel-A ship.
+Replaces the Stealth-A ship.
+Replaces the Federation Cruiser-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -234,7 +238,7 @@ Features
     mod_info.put_version( "278414a9d1385dc2ec2676590afb3da3", "0.013" )
     mod_info.set_thread_hash( "e1ff5a7d2b0b51b7414d302792aea4b0" )
 
-    mod_info.set_desc(r"""Backstory:
+    mod_info.set_desc(r"""Backstory
 Cerberus has found a way to control the reapers. The reaper war has been raging on since the failure of the Crucible Project, and the whereabouts of the Normandy and its crew are unknown.
 
 Data mined from the Cerberus network suggests a tachyon pulse emanating from The Illusive Man's command ship has "erased" the reaper collective consciousness, and replaced it with a rudimentary command recognition structure that Cerberus can send commands to. The data also suggests that the Illusive Man's command ship is the only ship capable of sending commands to reaper forces, and that eliminating it will permanently disable the reapers.
@@ -242,6 +246,8 @@ Data mined from the Cerberus network suggests a tachyon pulse emanating from The
 Unfortunately, Cerberus have completely disabled galactic communications, which leaves it up to you to deliver this data to Alliance Command. Reaper forces are preoccupied with decimating planetary infrastructure, but the Cerberus fleet has only one target...
 
 YOU.
+
+Replaces the Kestrel-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -272,15 +278,15 @@ On the aesthetic side, the rebel fleet has been replaced with the Federation mil
     mod_info.put_version( "e7558768ce75524079d9e58d521f54dd", "1.1" )
     mod_info.set_thread_hash( "10ffac10ee66440ecc8e1fcea6dd4c1a" )
 
-    mod_info.set_desc(r"""Includes:
+    mod_info.set_desc(r"""Features
 - Burst Laser Mark IID
-- New Pegasus and Aristea missile sprites
 - Voulge beam
 - Plasma Beam
 - Beam Drone Mark II
-- Improved drone speeds and fire rates
-- Added Elite Rigger
-- Changed the playable Rockman ships somewhat
+- New Pegasus and Aristea missile sprites.
+- Improved drone speeds and fire rates.
+- Added Elite Rigger.
+- Changed the playable Rockman ships somewhat.
 - New nebula and background sprites, and new warnings.
 - New solar flare and ion storm sounds.
 """)
@@ -331,7 +337,7 @@ Features
     mod_info.put_version( "???", "N/A WIP" )
     mod_info.set_thread_hash( "45d4c8a847a945382311da3105cd07d3" )
 
-    mod_info.set_desc(r"""This mod is meant to give you the feeling that you're a captain in the dark and twisted universe that is Warhammer 40,000. It is starting off as a ship, weapon mod, but will continue to grow into something even bigger.
+    mod_info.set_desc(r"""This mod is meant to give you the feeling that you're a captain in the dark and twisted universe that is Warhammer 40,000. It is starting off as a ship+weapon mod, but will continue to grow into something even bigger.
 """)
     mod_db.add_mod(mod_info)
 
@@ -373,11 +379,13 @@ I am not including any custom events, so that this remains compatible with as ma
     mod_info.put_version( "3d50785d23090ecb0aa0ede535b0c24b", "1.0 WIP" )
     mod_info.set_thread_hash( "6264da50ab73f21b95e04a874255df1b" )
 
-    mod_info.set_desc(r"""The Cobra Class Destroyer is a ship from the Warhammer 40k Universe. It is known as the smallest independent Imperial ship (ie it can patrol alone, and is not a fighter or bomber based on another ship).
+    mod_info.set_desc(r"""The Cobra Class Destroyer is a ship from the Warhammer 40k Universe. It is known as the smallest independent Imperial ship (i.e., it can patrol alone, and is not a fighter or bomber based on another ship).
 
 Due to difficulty in finding an overhead image of the ship of suitable quality, I decided to try something different and make the ship from a side view. Sure, the crew and rooms are all top view, but I actually think it looks pretty good.
 
 The Cobra is armed with a dorsal weapons battery (a Burst Laser Mk II in the game) and prow-mounted torpedoes (2 Hull Missiles in the game). Note that the crew are not to-scale with the ship, as the ship is approximately 1.5km long (yeah, 40k ships are big). I like to think that instead of individual characters, each crew member represents a team of people, so the pilot is not just one pilot, it is the entire command staff on the bridge of the ship, and the weapons guy is not one guy, it is a large number of gun crew, the ratings that load the weapons, the engineers that serve them, etc.
+
+Replaces the Rock-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -390,11 +398,15 @@ The Cobra is armed with a dorsal weapons battery (a Burst Laser Mk II in the gam
     mod_info.put_version( "4b2d7e5f6d80b475a9b4e9d0d740ff41", "1.0" )
     mod_info.set_thread_hash( "49de32110c905eb33e5ef07f888afbfd" )
 
-    mod_info.set_desc(r"""Here we have a pair of ships in one file-the Galactica and the Pegasus.
+    mod_info.set_desc(r"""A pair of new ships.
 
 The Galactica begins with a missile launcher and two Vipers as a homage to what it fought like in the series.
 
+Replaces the Engi-A ship.
+
 With the Pegasus I didn't want to make the ship too overpowered so I gave it two KEW batteries and a single Viper, though starting it with more and giving it more drone slots would have been more accurate. I wanted it to play a bit differently, so it focuses more on weapons than fighters. In the game you can find the Viper Mk VII, as well, so keep your eyes peeled!
+
+Replaces the Engi-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -442,7 +454,9 @@ I have discovered that you can NOT load my ships simultaneously. I dont know WHA
     mod_info.put_version( "848d44e196b16fec980862432d82fa1f", "1.1 No Human" )
     mod_info.set_thread_hash( "04ef703bdcb3dcf80859040a2928e490" )
 
-    mod_info.set_desc(r"""This is the C-1092. It is made for teleportation combat. You get in, then out as quick as possible. I made this because I could not find any ships of this type. It looks the same as the Type B stealth fighter.
+    mod_info.set_desc(r"""This is the C-1092. It is made for teleportation combat. You get in, then out as quick as possible. I made this because I could not find any ships of this type.
+
+Replaces the Stealth-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -455,6 +469,11 @@ I have discovered that you can NOT load my ships simultaneously. I dont know WHA
     mod_info.set_thread_hash( "158f664b69f336be816be618902437ba" )
 
     mod_info.set_desc(r"""The Duality is divided into two sections.
+
+Replaces the Kestrel-A ship.
+Replaces the Kestrel-B ship.
+Replaces the Engi-A ship.
+Replaces the Engi-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -499,8 +518,10 @@ Mod data:
     mod_info.set_desc(r"""Lockheed-Martin/Boeing F-22A Raptor for FTL
 Part of a "Present-Time" Total Conversion that MAY be coming soon! (I'm working on an F-35)
 
-Intro:
+Intro
 The Lockheed Martin/Boeing F-22 Raptor is a single-seat, twin-engine fifth-generation supermaneuverable fighter aircraft that uses stealth technology. It was designed primarily as an air superiority fighter, but has additional capabilities that include ground attack, electronic warfare, and signals intelligence roles.
+
+Replaces the Kestrel-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -513,6 +534,8 @@ The Lockheed Martin/Boeing F-22 Raptor is a single-seat, twin-engine fifth-gener
     mod_info.set_thread_hash( "c4ed37f4842eb68bb5e7599a54cacdef" )
 
     mod_info.set_desc(r"""Greetings FTL and Halo fans!
+
+Replaces the Kestrel-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -581,10 +604,13 @@ Replaces the Engi-A ship.
     mod_info.put_version( "ee02457c0d7f3dc1217d8fb217ada74a", "2.0" )
     mod_info.set_thread_hash( "46a9a5f464e67eb9f63b7497692f0e30" )
 
-    mod_info.set_desc(r"""It's a Klingon K'vort-class Bird-of-Prey (replacing Mantis cruiser B) named PIvlob Do (klingonese for Warp Factor Speed).
+    mod_info.set_desc(r"""A Klingon K'vort-class Bird-of-Prey, "PIvlob Do" (klingonese: Warp Factor Speed).
 
-After a little busy time I got my hand again on this to present you a new ship!
-The Vor'cha-Class Klingon Battle Cruiser "IKS QeylIS BetleH" (klingonese: The Sword of Kahless).
+Replaces the Mantis-A ship.
+
+A Vor'cha-Class Klingon Battle Cruiser, "IKS QeylIS BetleH" (klingonese: The Sword of Kahless).
+
+Replaces the Mantis-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -612,13 +638,34 @@ Replaces the Stealth-A ship.
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11501" )
     mod_info.put_version( "ef5cdc4b6413f4013959271155ef84be", "1.0 2013-03-04" )
     mod_info.put_version( "3851b27cd288083356b433436eda6195", "1.0" )
-    mod_info.set_thread_hash( "72866888a9ed7d55024ea935461d3c21" )
+    mod_info.set_thread_hash( "1bee67b405215442610bfefccea184dd" )
 
     mod_info.set_desc(r"""Marauder ships are characterised by powerful weapon systems that seem to require massive power to operate, even at the expense of all other systems. While not refined, the weapons are effective. Usually disableing and stripping ships clean to provide resources required for the vessel to reach it's full potential. Even though their origins and source of technology are a mystery, the ships are crewed by common races though it's hard to say if they joined up willingly or are slaves.
 
 Fair warning to those eager to play, these ships will not be easy. My guess is that difficulty will be between NORMAL and EXTREME, depending on which ship you pick.
 
 This mod was made without regard for compatibility with other mods. However, it will work with visual, events, and weapon mods, but will almost certainly break system mods. Whether or not it works with other ship mods is unpredictable. I recommend that you install this as a single mod.
+
+Replaces the Stealth-A ship.
+Replaces the Stealth-B ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "The Marauders - Standalone Weapons" )
+    mod_info.set_author( "UltraMantis" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11501" )
+    mod_info.put_version( "33556a1a9389047a76c0bd2f3aa685c1", "1.0 2013-03-05" )
+    mod_info.set_thread_hash( "1bee67b405215442610bfefccea184dd" )
+
+    mod_info.set_desc(r"""This weapons pack makes stores sell new weapons although they are quite rare so you wont see them all the time.
+
+- Magma Cannon: High fire chance, bypasses shields, immune to defense drones. Pretty fast recycle.
+- High-Energy Laser: Modified Fire Beam, pierces 2 shields, medium recycle and high power demand.
+- Impact Cannon: Huge power demand. Each shot deals 1pt system damage and ion damage (can damage the shield system just by hitting the shield bubble, and of course ion it as well). Medium recycle.
+
+You are not supposed to use this together with the Marauders mod, since the weapons are not meant to be sold in stores for that. "Not supposed to" doesn't mean you can't, if that's the way you like it.
 """)
     mod_db.add_mod(mod_info)
 
@@ -681,7 +728,8 @@ Replaces the Engi-B ship.
 
     mod_info.set_desc(r"""A playable rebel flagship.
 
-Replaces the Slug-A and Slug-B ships.
+Replaces the Slug-A ship.
+Replaces the Slug-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -786,11 +834,12 @@ The Ship mod and the UI mod are designed to be used together, but if you find th
     mod_info.set_title( "Star Trek Universe" )
     mod_info.set_author( "speedoflight" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11844" )
+    mod_info.put_version( "77e25d8a9acc738970f0cd1c88269556", "0.5 Beta WIP" )
     mod_info.put_version( "0443f8504ad6823a1ea875127a87273b", "0.3 Beta WIP" )
     mod_info.put_version( "cddbb53e53745b8b1ac7cac7073e14e0", "0.2 Beta 2013-03-02 WIP" )
     mod_info.put_version( "c6880fd3e9423affe5ff9dc733580cad", "0.2 Beta WIP" )
     mod_info.put_version( "098dc2eb3865b701697e6a73420f57c6", "0.1 Beta WIP" )
-    mod_info.set_thread_hash( "4344e1d170bd33dbc01daf7de467cf3c" )
+    mod_info.set_thread_hash( "d34c6ef922270bb173a08017e3f1f197" )
 
     mod_info.set_desc(r"""For now, this is in alpha state.
 
@@ -799,6 +848,27 @@ The Defiant is a ship designed for assault purposes, there is no space for explo
 Replaces the Kestrel-A ship.
 
 Various new weapons are added, too.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Thanatos" )
+    mod_info.set_author( "OrangeBottle and kartoFlane" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2373" )
+    mod_info.put_version( "2fb96f6e697576947e7ff443e361ae01", "2.0" )
+    mod_info.set_thread_hash( "a19392919652ebc023d120e64d9d8184" )
+
+    mod_info.set_desc(r"""If there's anything I've had a problem with in the game, it's the Nisos. The damn thing's ugly as sin. So, this mod completely reworks the Nisos and turns it into it's brother, the Thanatos.
+
+Features
+- Starts without the Artillery Beam subsystem. (available in stores)
+- Starts with a single-shield-piercing, fire-causing, personnel-damaging, 1-damage, unique beam weapon.
+- Starts with two human and two engi crewmembers.
+- Starts with Engi Med-bot Dispersal and Titanium Casing augments.
+- It's fairly vulnerable to internal fires.
+
+Replaces the Federation Cruiser-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -836,6 +906,7 @@ Ship Replacements
     mod_info.set_desc(r"""The Viper is an assault-class cruiser. Strong offensive potential and level 2 shields right off the bat, at the cost of weak secondary systems.
 
 Replaces the Kestrel-A ship.
+
 You can just change which ship it overwrites in the blueprints file - all of the files the ship requires have unique names so it will work in any slot.
 """)
     mod_db.add_mod(mod_info)
@@ -877,6 +948,8 @@ Replaces the Kestrel-A ship.
     mod_info.set_thread_hash( "33cd8b79bb658db22bcc97805cf006b7" )
 
     mod_info.set_desc(r"""Developed by NATAR Weapons Development Division for the sole purpose of burning out enemy crews.
+
+Replaces the Engi-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -1122,9 +1195,9 @@ Rename .ftl to .zip and extract it in order to study it further.
     mod_info = moddb.ModInfo()
     mod_info.set_title( "Additional Events and Texts" )
     mod_info.set_author( "Collaboration" )
-    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11094" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=3365" )
     mod_info.put_version( "404bc800a8fd9febfe67475454e2c9c3", "2012-10-04" )
-    mod_info.set_thread_hash( "???" )
+    mod_info.set_thread_hash( "ce41a9a2d288f459d80843b4a46ff8e2" )
 
     mod_info.set_desc(r"""The goal of this mod is to add new content in form of events and random texts, this will ensure that you are unlucky if you experience the same event twice in a row. It will add extra random texts to already existing events, like when you get to a beacon with nothing, you don't want to see the same text here. All events should be balanced, you won't get a lot of scrap for nothing, at least not more than you could if you played vanilla.
 """)
