@@ -287,6 +287,8 @@ def main():
 
         elif (sys.argv[1] in ["-h", "--help"]):
             need_help = True
+        else:
+            need_help = True
     else:
         need_help = True
 
