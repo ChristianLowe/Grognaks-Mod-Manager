@@ -59,6 +59,6 @@ Pitfalls
   When adding a music track to sounds.xml, the explore and battle theme
   files are played simultaneously as one song (mixing between them when
   entering/exiting combat). They should have similar duration because if one
-  is longer than the other, there may be noticable silence at the end of the
+  is longer than the other, there may be noticeable silence at the end of the
   shorter piece.
   http://www.ftlgame.com/forum/viewtopic.php?f=12&t=9111
