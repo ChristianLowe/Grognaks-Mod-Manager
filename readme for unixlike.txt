@@ -68,6 +68,3 @@ Troubleshooting
         https://support.steampowered.com/kb_article.php?ref=2037-QEUH-3335
     Standalone users:
       Reinstall FTL.
-
-  Other...
-    Try deleting modorder.txt from the /mods folder and relaunching GMM.

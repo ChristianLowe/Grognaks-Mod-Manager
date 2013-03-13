@@ -923,11 +923,13 @@ def validate_mod(mod_path):
     result = ""
     mod_valid = True
     seen_append = False
-    seen_macosx = False
 
     junk_file_ptns = []
     junk_file_ptns.append(re.compile("[.]DS_Store$"))
     junk_file_ptns.append(re.compile("thumbs[.]db$"))
+
+    valid_rootdir_ptn = re.compile("^(?:audio|data|fonts|img)/")
+    seen_junk_dirs = []
 
     def is_junk_file(s):
         for ptn in junk_file_ptns:
@@ -943,15 +945,17 @@ def validate_mod(mod_path):
             mod_valid = False
 
         for item in mod_zip.namelist():
-            if (item.endswith("/")):
-                pass
-
-            elif (item.startswith("__MACOSX/")):
-                if (not seen_macosx):
+            if (not valid_rootdir_ptn.match(item)):
+                # Ignore the contents of unexpected root dirs. But report the dirs once.
+                junk_dir = re.sub("/.*", "/", item)
+                if (junk_dir not in seen_junk_dirs):
+                    seen_junk_dirs.append(junk_dir)
                     result += "\n"
-                    result += "! Junk Folder: __MACOSX/\n"
-                    seen_macosx = True
-                    mod_valid = False
+                    result += "! Unsupported Folder: %s\n" % junk_dir
+                mod_valid = False
+
+            elif (item.endswith("/")):
+                pass
 
             elif (is_junk_file(item)):
                 result += "\n"
