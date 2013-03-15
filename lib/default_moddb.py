@@ -18,7 +18,7 @@ def populate_catalog(mod_db):
 Get five shields and power your advanced weaponry! Thanks to a breakthrough by Engi scientists, ships are now able to have five shields and level twelve weapons. The Engi Advanced Technology Development Division has released this technology to the Federation, in hopes that they can beat the rebels. You can pick it up today, at your local Zoltan Trade Hub or on this post!
 
 Known Bugs:
-A bug in FTL causes asteroid storms to be abnormally fast when you have five shields.
+A bug in FTL causes asteroid storms to be abnormally fast when you have five shields. This mod removes asteroids from events to compensate.
 """)
     mod_db.add_mod(mod_info)
 
@@ -40,6 +40,28 @@ A bug in FTL causes asteroid storms to be abnormally fast when you have five shi
   - Level 12 Weapons=12 weapon energy bars.
 - Max power of shields increased to 10 (from Advanced Weapons and Shields).
   - That's 5 shield bars!
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Descent into Darkness" )
+    mod_info.set_author( "DryEagle" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=12203" )
+    mod_info.put_version( "c734abda7e230523f883a5ec92c28045", "1.0" )
+    mod_info.set_thread_hash( "06c2e3e254c7a063dcb06fbcd2c76586" )
+
+    mod_info.set_desc(r"""Descent into Darkness is a complete overhaul modification for FTL.
+You do not start with a single ship loadout and play the game regularly.
+Instead, you are given a barebones ship hull and pick your starting gear, crew, augments, everything.
+There are 72 possible starting combinations - 4x more than the number of default ships in vanilla FTL!
+
+Mod compatibility
+- This mod is not intended to be compatible with a lot of other things.
+- Anything with events is probably out of the question.
+- Background system/planet images should be ok.
+- Weapon graphic mods might work. Other stuff probably won't.
+- If you insist on running it alongisde other mods, make SURE you load this LAST in the list! Any part of this mod's content being overwritten will likely mess up the whole thing.
 """)
     mod_db.add_mod(mod_info)
 
@@ -72,6 +94,29 @@ Anyway, here's what FTHL will include if I ever release this:
 Most smaller enemy ships become corvettes or frigates, with ships that approach the size of a playable ship being Destroyers. Playable ships also become different types of destroyers, with one exception, the Arpyia Frigate. Drones becomes a fighterbay. Also, Rockmen become Vasudans, Mantis become Shivans, sekkrit race becomes Ancients, and the Rebels also become the Shivans.
 
 Oh yes, a demo, a demo! Not much, and most of the stuff is horribly unbalanced, broken, or not implemented (Only a single new ship, GTD Orion, and only a few weapons were added, and the new beams that pierce all shields are horribly unbalanced), but it is at least slightly functional. The Orion even has gibs and proper weapon placement!
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Faster Than Sound" )
+    mod_info.set_author( "nataryeahbuddy" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=12168" )
+    mod_info.put_version( "2f8bca0a4e60fd9393aa0e563698d920", "0.1 Alpha WIP" )
+    mod_info.set_thread_hash( "6e21416e7b96e68043ab05e864eb81a0" )
+
+    mod_info.set_desc(r"""A new Total Conversion to bring the modern day into FTL.
+
+Features
+- F-22 Raptor
+- F-35 Lightning
+- The title screen background has been changed.
+- Sector names changed (except for the first).
+- Music for some sectors have been replaced with the national anthem of their respective sectors.
+- Beginning sector events have been changed.
+
+Replaces the Kestrel-A ship.
+Replaces the Kestrel-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -462,6 +507,25 @@ Replaces the Stealth-B ship.
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Corellian Transport" )
+    mod_info.set_author( "LarsenB" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=12201" )
+    mod_info.put_version( "0e27c9756990306c581d3e175ee8b499", "1.0" )
+    mod_info.set_thread_hash( "0d6c99e43d5c45f5c678a42974165347" )
+
+    mod_info.set_desc(r"""A fairly straightforward ship based on Star Wars.
+
+Features
+- Good engines and FTL drive, for you smugglers out there.
+- Ion and laser weapons
+- Average sensors
+
+Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Duality Cruiser and Merchant Cruiser" )
     mod_info.set_author( "zaratustra" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=4&t=2729" )
@@ -834,20 +898,15 @@ The Ship mod and the UI mod are designed to be used together, but if you find th
     mod_info.set_title( "Star Trek Universe" )
     mod_info.set_author( "speedoflight" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11844" )
+    mod_info.put_version( "b8b68c6906752235a0d3100ce143c94b", "0.6 Beta WIP" )
     mod_info.put_version( "77e25d8a9acc738970f0cd1c88269556", "0.5 Beta WIP" )
     mod_info.put_version( "0443f8504ad6823a1ea875127a87273b", "0.3 Beta WIP" )
     mod_info.put_version( "cddbb53e53745b8b1ac7cac7073e14e0", "0.2 Beta 2013-03-02 WIP" )
     mod_info.put_version( "c6880fd3e9423affe5ff9dc733580cad", "0.2 Beta WIP" )
     mod_info.put_version( "098dc2eb3865b701697e6a73420f57c6", "0.1 Beta WIP" )
-    mod_info.set_thread_hash( "d34c6ef922270bb173a08017e3f1f197" )
+    mod_info.set_thread_hash( "35b4f144b73fdb865e2369428831f368" )
 
-    mod_info.set_desc(r"""For now, this is in alpha state.
-
-The Defiant is a ship designed for assault purposes, there is no space for exploration equipment, colonial investigation or whatever. Its main purpose is to provide high reactor power to feed the weapons and the engines. Like the tv show, the Defiant has a cloaking system, installed by the romulans when they needed to defeat the Dominion. The Hull is reduced to 26 points to compensate a bit.
-
-Replaces the Kestrel-A ship.
-
-Various new weapons are added, too.
+    mod_info.set_desc(r"""Eventually this will replace all 18 default ships in the game with vessels from Star Trek: Federation, Klingon, Species 8472, Romulan, etc.
 """)
     mod_db.add_mod(mod_info)
 
@@ -857,7 +916,7 @@ Various new weapons are added, too.
     mod_info.set_author( "OrangeBottle and kartoFlane" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2373" )
     mod_info.put_version( "2fb96f6e697576947e7ff443e361ae01", "2.0" )
-    mod_info.set_thread_hash( "a19392919652ebc023d120e64d9d8184" )
+    mod_info.set_thread_hash( "6500442f8b4999f6176d432b5b3358e7" )
 
     mod_info.set_desc(r"""If there's anything I've had a problem with in the game, it's the Nisos. The damn thing's ugly as sin. So, this mod completely reworks the Nisos and turns it into it's brother, the Thanatos.
 
@@ -1119,7 +1178,7 @@ Features
     mod_info.put_version( "8fb8c81074ef80f91ab9fa9a27b1c480", "1.0" )
     mod_info.set_thread_hash( "c1da7f250cb71a9f5c23d89d93f112f6" )
 
-    mod_info.set_desc(r"""This mod replaces all of the existing planets and backgrounds and adds a lot more. Only 3 of the backgrounds are taken from Hubble, rest were done by me.
+    mod_info.set_desc(r"""This mod replaces all of the existing planets and backgrounds and adds a lot more.
 """)
     mod_db.add_mod(mod_info)
 
