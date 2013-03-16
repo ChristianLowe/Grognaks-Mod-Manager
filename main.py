@@ -296,7 +296,8 @@ class MainWindow(tk.Toplevel):
         bottom_frame.pack(side="top", fill="both", expand="yes")
 
         # Add a listbox to hold the mod names.
-        self._mod_listbox = tk.Listbox(left_frame, width=30, height=1, selectmode="multiple") # Height readjusts itself for the button frame
+        self._mod_listbox = tk.Listbox(left_frame, selectmode="multiple", exportselection=0,
+            width=30, height=1) # Height readjusts itself for the button frame
         self._mod_listbox.pack(side="left", fill="both", expand="yes")
         self._mod_list_scroll = tk.Scrollbar(left_frame, orient="vertical")
         self._mod_list_scroll.pack(side="right", fill="y")
