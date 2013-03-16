@@ -4,6 +4,7 @@ Changelog
 - Added periodic updates to the catalog of mod metadata
 - Added ini setting: update_catalog
 - Added a log warning during patching if a mod gets clobbered
+- Added a log warning during patching if a modded file's case doesn't match
 
 1.7:
 - Lowered the required Python version to 2.6

@@ -813,6 +813,20 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
         unpackdat(data_dat_path, data_unp_path)
         unpackdat(resource_dat_path, resource_unp_path)
 
+        vanilla_items = []
+        vanilla_items.extend(list(ftldat.FolderPack(data_unp_path).list()))
+        vanilla_items.extend(list(ftldat.FolderPack(resource_unp_path).list()))
+        vanilla_items_lower = [x.lower() for x in vanilla_items]
+
+        def check_case(f):  # Compares mods' zip items to vanilla pack items.
+            if (f.endswith(".append")):
+                f = f[:-len(".append")]
+            elif (f.endswith(".append.xml")):
+                f = f[:-len(".append.xml")]+".xml"
+            f_lower = f.lower()
+            if (f not in vanilla_items and f_lower in vanilla_items_lower):
+                logging.warning("Modded file's case doesn't match vanilla path: \"%s\" vs \"%s\"" % (f, vanilla_items[vanilla_items_lower.index(f_lower)]))
+
         # Extract each mod into a temp dir and merge into unpacked dat dirs.
         for mod_path in mod_list:
             if (not keep_alive_func()): return False
@@ -828,6 +842,8 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                     mod_zip = zf.ZipFile(mod_path, "r")
 
                     for item in mod_zip.namelist():
+                        check_case(item)
+
                         if (item.endswith("/")):
                             path = os.path.join(tmp, item)
                             if (not os.path.exists(path)):
