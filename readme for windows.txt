@@ -63,8 +63,8 @@ Troubleshooting
     OR
     Start Menu -> Programs -> Accessories.
     Right-click "Command Prompt" to run as an admin.
-    cd to the GMM directory.
-    Run "main.py"
+    Type this, then hit enter: cd "c:\wherever\GMM\is"
+    Type this, then hit enter: main.py
 
     Make sure that your resource.dat and data.dat files are not read-only.
 
