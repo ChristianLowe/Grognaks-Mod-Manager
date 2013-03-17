@@ -103,7 +103,7 @@ class RootWindow(tk.Tk):
         # Pseudo enum constants.
         self.ACTIONS = ["ACTION_CONFIG", "ACTION_SHOW_MAIN_WINDOW",
                         "ACTION_ADD_MOD_HASH", "ACTION_SET_MODDB",
-                        "ACTION_PATCHING_SUCCEEDED", "ACTION_PATCHING_FAILED",
+                        "ACTION_SPAWN_FTL",
                         "ACTION_DIE"]
         for x in self.ACTIONS: setattr(self, x, x)
 
@@ -216,11 +216,12 @@ class RootWindow(tk.Tk):
             check_args(["new_moddb"])
             self.mod_db = arg_dict["new_moddb"]
 
-        elif (func_or_name == self.ACTION_PATCHING_SUCCEEDED):
-            check_args(["ftl_exe_path"])
+        elif (func_or_name == self.ACTION_SPAWN_FTL):
+            check_args(["ftl_exe_path", "message"])
 
             if (arg_dict["ftl_exe_path"]):
-                if (msgbox.askyesno(global_config.APP_NAME, "Patching completed successfully. Run FTL now?")):
+                message = "%s Run FTL now?" % (arg_dict["message"] if (arg_dict["message"]) else "")
+                if (msgbox.askyesno(global_config.APP_NAME, message)):
                     if (platform.system() == "Darwin" and os.path.isdir(arg_dict["ftl_exe_path"])
                         and os.path.isfile(os.join(arg_dict["ftl_exe_path"], "Contents", "Info.plist"))):
                         # This is an app bundle.
@@ -230,11 +231,8 @@ class RootWindow(tk.Tk):
                     else:
                         logging.info("Running FTL...")
                         subprocess.Popen([arg_dict["ftl_exe_path"]], cwd=os.path.dirname(arg_dict["ftl_exe_path"]))
-            else:
-                msgbox.showinfo(global_config.APP_NAME, "Patching completed successfully.")
-
-        elif (func_or_name == self.ACTION_PATCHING_FAILED):
-                msgbox.showerror(global_config.APP_NAME, "Patching failed. See log for details.")
+            elif (arg_dict["message"]):
+                msgbox.showinfo(global_config.APP_NAME, arg_dict["message"])
 
         elif (func_or_name == self.ACTION_DIE):
             # Destruction awaits. Nothing more to do.
@@ -262,7 +260,6 @@ class MainWindow(tk.Toplevel):
         self.button_padx = "2m"
         self.button_pady = "1m"
 
-        self._hyperman = None
         self._prev_selection = set()
         self._mouse_press_list_index = None
 
@@ -1481,10 +1478,13 @@ class LogicThread(killable_threading.KillableThread):
             if (global_config.never_run_ftl is False):
                 ftl_exe_path = find_ftl_exe()
 
-            self._mygui.invoke_later(self._mygui.ACTION_PATCHING_SUCCEEDED, {"ftl_exe_path":ftl_exe_path})
+            self._mygui.invoke_later(self._mygui.ACTION_SPAWN_FTL, {"ftl_exe_path":ftl_exe_path, "message":"Patching completed successfully."})
         else:
+            def next_func(arg_dict):
+                msgbox.showerror(global_config.APP_NAME, "Patching failed. See log for details.")
+
             logging.info("Patching failed.")
-            self._mygui.invoke_later(self._mygui.ACTION_PATCHING_FAILED, {})
+            self._mygui.invoke_later(next_func, {})
 
         self._mygui.invoke_later(self._mygui.ACTION_DIE, {})
 
