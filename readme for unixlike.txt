@@ -68,3 +68,11 @@ Troubleshooting
         https://support.steampowered.com/kb_article.php?ref=2037-QEUH-3335
     Standalone users:
       Reinstall FTL.
+
+  Mac: If you see the following error...
+    "Warning: 'as' will become a reserved keyword in Python 2.6"
+    This warning comes from python 2.5, which is too old for GMM.
+    You probably have several versions installed, and the wrong one is used.
+
+    Open a terminal, and type: man python
+    That explains how to set the "system-wide default" version of python.
