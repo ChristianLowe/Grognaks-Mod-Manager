@@ -818,14 +818,13 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
         vanilla_items.extend(list(ftldat.FolderPack(resource_unp_path).list()))
         vanilla_items_lower = [x.lower() for x in vanilla_items]
 
-        def check_case(f):  # Compares mods' zip items to vanilla pack items.
-            if (f.endswith(".append")):
-                f = f[:-len(".append")]
-            elif (f.endswith(".append.xml")):
-                f = f[:-len(".append.xml")]+".xml"
-            f_lower = f.lower()
-            if (f not in vanilla_items and f_lower in vanilla_items_lower):
-                logging.warning("Modded file's case doesn't match vanilla path: \"%s\" vs \"%s\"" % (f, vanilla_items[vanilla_items_lower.index(f_lower)]))
+        def check_case(path):
+            """Compares mods' files' paths to vanilla paths.
+            Both should be relative to the unpack dir, with forward slashes.
+            """
+            path_lower = path.lower()
+            if (path not in vanilla_items and path_lower in vanilla_items_lower):
+                logging.warning("Modded file's case doesn't match vanilla path: \"%s\" vs \"%s\"" % (path, vanilla_items[vanilla_items_lower.index(path_lower)]))
 
         # Extract each mod into a temp dir and merge into unpacked dat dirs.
         for mod_path in mod_list:
@@ -842,8 +841,6 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                     mod_zip = zf.ZipFile(mod_path, "r")
 
                     for item in mod_zip.namelist():
-                        check_case(item)
-
                         if (item.endswith("/")):
                             path = os.path.join(tmp, item)
                             if (not os.path.exists(path)):
@@ -865,24 +862,39 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
                                 if (not os.path.exists(path)):
                                     os.makedirs(path)
                             for f in files:
+                                # A path to f's parent, relative to the unpack dir, with forward slashes.
+                                packed_path = re.sub("/*$", "/", re.sub("\\\\", "/", root[len(tmp)+1:]))
+
                                 if (f.endswith(".xml.append")):
-                                    append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
-                                    modded_items.append(f[:-len(".append")])
+                                    dst_filename = f[:-len(".append")]
+                                    check_case(packed_path + dst_filename)
+                                    append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], dst_filename))
+                                    modded_items.append(packed_path + dst_filename)
                                 elif (f.endswith(".append.xml")):
-                                    append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append.xml")]+".xml"))
-                                    modded_items.append(f[:-len(".append.xml")]+".xml")
+                                    dst_filename = f[:-len(".append.xml")]+".xml"
+                                    check_case(packed_path + dst_filename)
+                                    append_xml_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], dst_filename))
+                                    modded_items.append(packed_path + dst_filename)
                                 elif (f.endswith(".append")):
-                                    append_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".append")]))
-                                    modded_items.append(f[:-len(".append")])
+                                    dst_filename = f[:-len(".append")]
+                                    check_case(packed_path + dst_filename)
+                                    append_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], dst_filename))
+                                    modded_items.append(packed_path + dst_filename)
                                 elif (f.endswith(".merge")):
-                                    merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge")]))
+                                    dst_filename = f[:-len(".merge")]
+                                    check_case(packed_path + dst_filename)
+                                    merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], dst_filename))
                                 elif (f.endswith("merge.xml")):
-                                    merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f[:-len(".merge.xml")]+".xml"))
+                                    dst_filename = f[:-len(".merge.xml")]+".xml"
+                                    check_case(packed_path + dst_filename)
+                                    merge_file(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], dst_filename))
                                 else:
-                                    if (f in modded_items):
-                                        logging.warning("Clobbering earlier mods: %s" % f)
-                                    sh.copy2(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], f))
-                                    modded_items.append(f)
+                                    dst_filename = f
+                                    check_case(packed_path + dst_filename)
+                                    if ((packed_path + dst_filename) in modded_items):
+                                        logging.warning("Clobbering earlier mods: %s" % (packed_path + dst_filename))
+                                    sh.copy2(os.path.join(root, f), os.path.join(unpack_dir, root[len(tmp)+1:], dst_filename))
+                                    modded_items.append(packed_path + dst_filename)
 
                     else:
                         logging.warning("Unsupported folder: %s" % directory)
