@@ -56,6 +56,11 @@ Pitfalls
   storms will be abnormally fast.
   http://www.ftlgame.com/forum/viewtopic.php?f=9&t=11057
 
+  The game will crash at the main menu or hangar if an event choice loads
+  another event, which has a choice that loads the previous event. FTL
+  does not like event loops.
+  http://www.ftlgame.com/forum/viewtopic.php?f=12&t=12265
+
   When adding a music track to sounds.xml, the explore and battle theme
   files are played simultaneously as one song (mixing between them when
   entering/exiting combat). They should have similar duration because if one
