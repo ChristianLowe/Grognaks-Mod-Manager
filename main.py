@@ -223,7 +223,7 @@ class RootWindow(tk.Tk):
                 message = "%s Run FTL now?" % (arg_dict["message"] if (arg_dict["message"]) else "")
                 if (msgbox.askyesno(global_config.APP_NAME, message)):
                     if (platform.system() == "Darwin" and os.path.isdir(arg_dict["ftl_exe_path"])
-                        and os.path.isfile(os.join(arg_dict["ftl_exe_path"], "Contents", "Info.plist"))):
+                        and os.path.isfile(os.path.join(arg_dict["ftl_exe_path"], "Contents", "Info.plist"))):
                         # This is an app bundle.
                         logging.info("Running FTL Bundle...")
                         subprocess.Popen(["open", "-a", arg_dict["ftl_exe_path"]], cwd=os.path.dirname(arg_dict["ftl_exe_path"]))
@@ -937,7 +937,7 @@ def find_ftl_exe():
     elif (platform.system() == "Darwin"):
         # FTL.app/Contents/Resources/
         app_path = os.path.normpath(os.path.join(global_config.dir_res, *["..", ".."]))
-        if (os.path.isfile(os.join(app_path, "Contents", "Info.plist"))):
+        if (os.path.isfile(os.path.join(app_path, "Contents", "Info.plist"))):
             return app_path
 
     return None
