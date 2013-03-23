@@ -48,8 +48,9 @@ A bug in FTL causes asteroid storms to be abnormally fast when you have five shi
     mod_info.set_title( "Descent into Darkness" )
     mod_info.set_author( "DryEagle" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=12203" )
+    mod_info.put_version( "5abed01b50c41b7a208ac29bdbdbdcc9", "1.1" )
     mod_info.put_version( "c734abda7e230523f883a5ec92c28045", "1.0" )
-    mod_info.set_thread_hash( "06c2e3e254c7a063dcb06fbcd2c76586" )
+    mod_info.set_thread_hash( "da9e53916a89f0474a6c4d5c19d810e7" )
 
     mod_info.set_desc(r"""Descent into Darkness is a complete overhaul modification for FTL.
 You do not start with a single ship loadout and play the game regularly.
@@ -364,6 +365,24 @@ Features
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Star Trek Universe" )
+    mod_info.set_author( "speedoflight" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11844" )
+    mod_info.put_version( "ab77b5a3c53b21c7c7d0d55c688ce508", "0.7 Beta WIP" )
+    mod_info.put_version( "b8b68c6906752235a0d3100ce143c94b", "0.6 Beta WIP" )
+    mod_info.put_version( "77e25d8a9acc738970f0cd1c88269556", "0.5 Beta WIP" )
+    mod_info.put_version( "0443f8504ad6823a1ea875127a87273b", "0.3 Beta WIP" )
+    mod_info.put_version( "cddbb53e53745b8b1ac7cac7073e14e0", "0.2 Beta 2013-03-02 WIP" )
+    mod_info.put_version( "c6880fd3e9423affe5ff9dc733580cad", "0.2 Beta WIP" )
+    mod_info.put_version( "098dc2eb3865b701697e6a73420f57c6", "0.1 Beta WIP" )
+    mod_info.set_thread_hash( "2603f75e120a2a3aaa9dbb437fb74691" )
+
+    mod_info.set_desc(r"""Eventually this will replace all 18 default ships in the game with vessels from Star Trek: Federation, Klingon, Species 8472, Romulan, Borg, etc.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Turning the Tide" )
     mod_info.set_author( "Kieve" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=4&t=3056" )
@@ -388,11 +407,29 @@ Features
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Anterian Alpha Terminator" )
+    mod_info.set_author( "Metzelmax" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=12652" )
+    mod_info.put_version( "???", "??? WIP" )
+    mod_info.set_thread_hash( "a86cc7eb461d2bd2ef0b4a36fbd515ca" )
+
+    mod_info.set_desc(r"""Background
+Back when my friend and me were 14, we got soon bored by the standard Species in the Star Trek Universe and began to develop our own.
+
+The Anterian are small, blue scaled Humanoids with a lifespan of about 25. Their Home Planet is surounded by a huge Nebula, which consists mainly out of metal. The Anterian have specialized in A.I., robotics and Computers. Most of their work is done by Androids, which are not sentient but intelligent enough to work without surveillance.
+
+Replaces the Engi-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "The Amber Shard" )
     mod_info.set_author( "DryEagle" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11703" )
+    mod_info.put_version( "8a5a336510ac21b1e5b24e0657287b5d", "2.0" )
     mod_info.put_version( "8a5a336510ac21b1e5b24e0657287b5d", "1.0" )
-    mod_info.set_thread_hash( "c4de807ba790239c6d44f9de89bc700b" )
+    mod_info.set_thread_hash( "db2b990bc454e5d5e9fe4264a8a0393d" )
 
     mod_info.set_desc(r"""Features
 - Custom graphics for pretty much everything
@@ -799,6 +836,28 @@ Replaces the Slug-B ship.
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Praying Mantis" )
+    mod_info.set_author( "arcuspilot" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13051" )
+    mod_info.put_version( "12543d2a574a5431997d154a7c00d9c5", "1.0" )
+    mod_info.set_thread_hash( "d67b46fdf005e4fc6061e008a0abc424" )
+
+    mod_info.set_desc(r"""It's a modified Mantis bomber. The crew are a human, an engi, and the mantis who brought the ship to the feds.
+
+Features
+- More ergonomic room layout
+- Level 2 sensors
+- Custom paint job
+- Basic cloaking system
+- Drone system
+- Cool placement of weapon mounts
+
+Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "The Predator" )
     mod_info.set_author( "Dark Spartan" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11474" )
@@ -895,18 +954,23 @@ The Ship mod and the UI mod are designed to be used together, but if you find th
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "Star Trek Universe" )
-    mod_info.set_author( "speedoflight" )
-    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11844" )
-    mod_info.put_version( "b8b68c6906752235a0d3100ce143c94b", "0.6 Beta WIP" )
-    mod_info.put_version( "77e25d8a9acc738970f0cd1c88269556", "0.5 Beta WIP" )
-    mod_info.put_version( "0443f8504ad6823a1ea875127a87273b", "0.3 Beta WIP" )
-    mod_info.put_version( "cddbb53e53745b8b1ac7cac7073e14e0", "0.2 Beta 2013-03-02 WIP" )
-    mod_info.put_version( "c6880fd3e9423affe5ff9dc733580cad", "0.2 Beta WIP" )
-    mod_info.put_version( "098dc2eb3865b701697e6a73420f57c6", "0.1 Beta WIP" )
-    mod_info.set_thread_hash( "35b4f144b73fdb865e2369428831f368" )
+    mod_info.set_title( "Tengu Type-1" )
+    mod_info.set_author( "brothershogo" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13094" )
+    mod_info.put_version( "???", "1.0" )
+    mod_info.set_thread_hash( "4dd071df2fb2767cbd841966ab859c8c" )
 
-    mod_info.set_desc(r"""Eventually this will replace all 18 default ships in the game with vessels from Star Trek: Federation, Klingon, Species 8472, Romulan, etc.
+    mod_info.set_desc(r"""Tengu Type-1
+A prototype armored stealth assault vessel, using Engi and Rockmen technology, the Tengu was designed to ambush ships with its advanced cloak and impressive barrage of lasers. It lacks shields, drones, and maneuverability, however, these systems can be bought and upgraded(except drones).
+
+Features
+- Lacks a drone system (Do not buy the drone system at the store, waste of scrap)
+- Cloak can be upgraded to level 4
+- 5 weapon slots
+- 4 dual lasers to start
+- Reinforced armor plating
+
+Replaces the Stealth-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -915,8 +979,9 @@ The Ship mod and the UI mod are designed to be used together, but if you find th
     mod_info.set_title( "Thanatos" )
     mod_info.set_author( "OrangeBottle and kartoFlane" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=2373" )
+    mod_info.put_version( "92ab09489c224940e0fa8c566ad79e3a", "2.1" )
     mod_info.put_version( "2fb96f6e697576947e7ff443e361ae01", "2.0" )
-    mod_info.set_thread_hash( "6500442f8b4999f6176d432b5b3358e7" )
+    mod_info.set_thread_hash( "31cc4aa05d0f38697afdff2210f8f5ee" )
 
     mod_info.set_desc(r"""If there's anything I've had a problem with in the game, it's the Nisos. The damn thing's ugly as sin. So, this mod completely reworks the Nisos and turns it into it's brother, the Thanatos.
 
@@ -1196,6 +1261,20 @@ Features
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Corpses" )
+    mod_info.set_author( "harpuea" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=12367" )
+    mod_info.put_version( "0e72f5a6b10c10f60d7ed9f7f1dab837", "1.0" )
+    mod_info.set_thread_hash( "618e543e0f4a4c254e9348a114e95e14" )
+
+    mod_info.set_desc(r"""This is a very small mod that adds corpses when the enemy ship explodes. You may miss it if you don't look for it at the brief moment. When an enemy ship explodes, you may see the enemy crew get sucked into the vacuum of space. The corpses are also race specific. Rebel ships will have human corpses, mantis will have mantis corpses, and so forth. Nonetheless, adds that extra little satisfaction when killing your enemies after a bitter battle.
+
+Should be compatible with all mods, unless the mod changes enemy gibs like this one.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "diversityMod" )
     mod_info.set_author( "liakad" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=3363" )
@@ -1204,7 +1283,7 @@ Features
     mod_info.put_version( "179857cc78d0b8be747c20358e3fbb90", "0.1" )
     mod_info.set_thread_hash( "bacae38d34c3ad9eaf06d4d244d747cc" )
 
-    mod_info.set_desc(r"""This Mod aims to create a greater diversity in mostly graphics and some parameters of FTL.
+    mod_info.set_desc(r"""This mod aims to create a greater diversity in mostly graphics and some parameters of FTL.
 """)
     mod_db.add_mod(mod_info)
 
