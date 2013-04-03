@@ -95,3 +95,10 @@ Troubleshooting
       Run FTL, which will cause steam to copy fresh resources from its cache.
     Standalone users:
       Reinstall FTL.
+
+* ImportError: DLL load failed: %1 is not a valid Win32 application...
+    This can happen when mixing 32bit and 64bit exes/dlls.
+    One edition of Python installed over top of another existing one?
+
+    Completely uninstall Python (delete its folder if it lingers afterward).
+    Then reinstall Python.
