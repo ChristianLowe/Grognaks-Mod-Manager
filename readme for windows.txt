@@ -51,27 +51,47 @@ Usage
   To uninstall all mods:
     Click "Patch" with none selected.
 
+  Before upgrading GMM:
+    Uninstall all mods, so the next GMM can start with a clean game.
+
   If you upgrade FTL:
-    Delete the outdated files in GMM\Backup\
+    Delete the outdated files in GMM\backup\
     If you don't, the game's resources will get corrupted.
 
 
 Troubleshooting
 
-  If you get permission errors...
+* If you get permission errors...
     Right-click modman.exe -> "Run as Administrator".
     OR
     Start Menu -> Programs -> Accessories.
     Right-click "Command Prompt" to run as an admin.
-    Type this, then hit enter: cd "c:\wherever\GMM\is"
+    Type this, then hit enter: cd "c:\location\of\GMM"
     Type this, then hit enter: main.py
 
     Make sure that your resource.dat and data.dat files are not read-only.
 
-  If the game shows exclamation marks for everything...
-    Delete the files in GMM\Backup\
+* If the game shows exclamation marks for everything...
+    See the suggestion below for replacing corrupt resources.
+
+* If text in-game is shrunken and moved to the top of the screen...
+    FTL was upgraded, but GMM modded using used resources from the old FTL.
+    When upgrading FTL in the future, delete what's in GMM\backup\ first.
+    See the suggestion below for replacing corrupt resources.
+
+* ERROR: unpack requires a string argument of length 8...
+    Seems data.dat or resource.dat had been corrupted somehow.
+    The dat file claims to be larger than it really is, and
+    GMM reaches the end prematurely, unable to read 8 more bytes.
+    See the suggestion below for replacing corrupt resources.
+
+* If FTL's resources are corrupt...
+    Delete the files in GMM\backup\
     Steam users:
-      Delete the FTL\resources\ directory and "verify game cache".
+      Delete FTL's resource directory:
+        "C:\Program Files [or (x86)]\Steam\steamapps\common\FTL Faster Than Light\resources"
+      Start Steam and "verify game cache".
         https://support.steampowered.com/kb_article.php?ref=2037-QEUH-3335
+      Run FTL, which will cause steam to copy fresh resources from its cache.
     Standalone users:
       Reinstall FTL.

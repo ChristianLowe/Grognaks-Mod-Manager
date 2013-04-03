@@ -51,25 +51,46 @@ Usage
   To uninstall all mods:
     Click "Patch" with none selected.
 
+  Before upgrading GMM:
+    Uninstall all mods, so the next GMM can start with a clean game.
+
   If you upgrade FTL:
-    Delete the outdated files in GMM/Backup/
+    Delete the outdated files in GMM/backup/
     If you don't, the game's resources will get corrupted.
 
 
 Troubleshooting
 
-  If you get permission errors...
+* If you get permission errors...
     Make sure that your resource.dat and data.dat files are not read-only.
 
-  If the game shows exclamation marks for everything...
-    Delete the files in GMM/Backup/
+* If the game shows exclamation marks for everything...
+    See the suggestion below for replacing corrupt resources.
+
+* If text in-game is shrunken and moved to the top of the screen...
+    FTL was upgraded, but GMM modded using used resources from the old FTL.
+    When upgrading FTL in the future, delete what's in GMM/backups/ first.
+    See the suggestion below for replacing corrupt resources.
+
+* ERROR: unpack requires a string argument of length 8...
+    Seems data.dat or resource.dat had been corrupted somehow.
+    The dat file claims to be larger than it really is, and
+    GMM reaches the end prematurely, unable to read 8 more bytes.
+    See the suggestion below for replacing corrupt resources.
+
+* If FTL's resources are corrupt...
+    Delete the files in GMM/backup/
     Steam users:
-      Delete the FTL/resources/ directory and "verify game cache".
+      Delete FTL's resource directory:
+        Linux: "[~/.local/share or $XDG_DATA_HOME]/Steam/SteamApps/common/FTL Faster Than Light/data/resources"
+        Mac: "~/Library/Application Support/Steam/SteamApps/common/FTL Faster Than Light/FTL.app"
+      Start Steam and "verify game cache".
         https://support.steampowered.com/kb_article.php?ref=2037-QEUH-3335
+      Run FTL, which will cause steam to copy fresh resources from its cache.
     Standalone users:
       Reinstall FTL.
 
-  Mac: If you see the following error...
+* Mac: If you see the following error...
     "Warning: 'as' will become a reserved keyword in Python 2.6"
     This warning comes from python 2.5, which is too old for GMM.
     You probably have several versions installed, and the wrong one is used.
