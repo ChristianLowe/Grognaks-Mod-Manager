@@ -64,7 +64,7 @@ Troubleshooting
   If the game shows exclamation marks for everything...
     Delete the files in GMM/Backup/
     Steam users:
-      Delete the /resources directory and "verify game cache".
+      Delete the FTL/resources/ directory and "verify game cache".
         https://support.steampowered.com/kb_article.php?ref=2037-QEUH-3335
     Standalone users:
       Reinstall FTL.
