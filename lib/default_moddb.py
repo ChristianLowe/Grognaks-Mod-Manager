@@ -50,7 +50,7 @@ A bug in FTL causes asteroid storms to be abnormally fast when you have five shi
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=12203" )
     mod_info.put_version( "5abed01b50c41b7a208ac29bdbdbdcc9", "1.1" )
     mod_info.put_version( "c734abda7e230523f883a5ec92c28045", "1.0" )
-    mod_info.set_thread_hash( "da9e53916a89f0474a6c4d5c19d810e7" )
+    mod_info.set_thread_hash( "1b400277f3d8db6be901744b13050697" )
 
     mod_info.set_desc(r"""Descent into Darkness is a complete overhaul modification for FTL.
 You do not start with a single ship loadout and play the game regularly.
@@ -368,6 +368,7 @@ Features
     mod_info.set_title( "Star Trek Universe" )
     mod_info.set_author( "speedoflight" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11844" )
+    mod_info.put_version( "ff4c15c3926827c4170c462369e2b0ce", "1.0" )
     mod_info.put_version( "ab77b5a3c53b21c7c7d0d55c688ce508", "0.7 Beta WIP" )
     mod_info.put_version( "b8b68c6906752235a0d3100ce143c94b", "0.6 Beta WIP" )
     mod_info.put_version( "77e25d8a9acc738970f0cd1c88269556", "0.5 Beta WIP" )
@@ -375,9 +376,9 @@ Features
     mod_info.put_version( "cddbb53e53745b8b1ac7cac7073e14e0", "0.2 Beta 2013-03-02 WIP" )
     mod_info.put_version( "c6880fd3e9423affe5ff9dc733580cad", "0.2 Beta WIP" )
     mod_info.put_version( "098dc2eb3865b701697e6a73420f57c6", "0.1 Beta WIP" )
-    mod_info.set_thread_hash( "2603f75e120a2a3aaa9dbb437fb74691" )
+    mod_info.set_thread_hash( "958d1033262161b6a20c1c75c0245eb5" )
 
-    mod_info.set_desc(r"""Eventually this will replace all 18 default ships in the game with vessels from Star Trek: Federation, Klingon, Species 8472, Romulan, Borg, etc.
+    mod_info.set_desc(r"""Eventually this will replace all 18 default ships in the game with vessels from Star Trek: Federation, Klingon, Species 8472, Romulan, Borg, Cardassian, Jem Haddar, etc.
 """)
     mod_db.add_mod(mod_info)
 
@@ -407,11 +408,12 @@ Features
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "Anterian Alpha Terminator" )
+    mod_info.set_title( "Anterian Terminators" )
     mod_info.set_author( "Metzelmax" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=12652" )
-    mod_info.put_version( "???", "??? WIP" )
-    mod_info.set_thread_hash( "a86cc7eb461d2bd2ef0b4a36fbd515ca" )
+    mod_info.put_version( "43bdef53b4f612da111e8a7ab49cc174", "1.2 WIP" )
+    mod_info.put_version( "2abbf46cdf98db0a02ed65734757370d", "1.0 WIP" )
+    mod_info.set_thread_hash( "b69d23a8d7c86fe4c7d79809fcb218f8" )
 
     mod_info.set_desc(r"""Background
 Back when my friend and me were 14, we got soon bored by the standard Species in the Star Trek Universe and began to develop our own.
@@ -419,6 +421,8 @@ Back when my friend and me were 14, we got soon bored by the standard Species in
 The Anterian are small, blue scaled Humanoids with a lifespan of about 25. Their Home Planet is surounded by a huge Nebula, which consists mainly out of metal. The Anterian have specialized in A.I., robotics and Computers. Most of their work is done by Androids, which are not sentient but intelligent enough to work without surveillance.
 
 Replaces the Engi-A ship.
+Replaces the Engi-B ship.
+Replaces the Rock-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -623,6 +627,40 @@ Intro
 The Lockheed Martin/Boeing F-22 Raptor is a single-seat, twin-engine fifth-generation supermaneuverable fighter aircraft that uses stealth technology. It was designed primarily as an air superiority fighter, but has additional capabilities that include ground attack, electronic warfare, and signals intelligence roles.
 
 Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Goa'uld Hatak" )
+    mod_info.set_author( "Zanoko" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13846" )
+    mod_info.put_version( "9c8f89d7489a197fbfd3a427757b233b", "1.1" )
+    mod_info.set_thread_hash( "1bd6e84261edce85248ba92ab9452f41" )
+
+    mod_info.set_desc(r"""A Hatak from Stargate.
+
+Replaces the Mantis-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Gotterdammerung" )
+    mod_info.set_author( "Koobi" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13496" )
+    mod_info.put_version( "???", "2.0" )
+    mod_info.set_thread_hash( "abed3b00b059e58def61a29ccf8f297e" )
+
+    mod_info.set_desc(r"""This will add the mighty Gotterdammerung to your game, the strongest force in the galaxy. It is so dense that each square meter weighs 200 tons. It is so massive, it has its own gravitational field. The large gyro on top keeps it from attracting to other objects. It would take the combined force of 20 tsar bombs to breach its armor, so it doesn't need a shield.
+
+Features
+- New weapons
+- New sounds and music
+- New drones
+- FTL fuel is now called helium
+
+Replaces the Slug-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -839,8 +877,9 @@ Replaces the Slug-B ship.
     mod_info.set_title( "Praying Mantis" )
     mod_info.set_author( "arcuspilot" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13051" )
+    mod_info.put_version( "12543d2a574a5431997d154a7c00d9c5", "1.1" )
     mod_info.put_version( "12543d2a574a5431997d154a7c00d9c5", "1.0" )
-    mod_info.set_thread_hash( "d67b46fdf005e4fc6061e008a0abc424" )
+    mod_info.set_thread_hash( "2ec28e69a7fa32a47936c26b096a73db" )
 
     mod_info.set_desc(r"""It's a modified Mantis bomber. The crew are a human, an engi, and the mantis who brought the ship to the feds.
 
@@ -954,14 +993,13 @@ The Ship mod and the UI mod are designed to be used together, but if you find th
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "Tengu Type-1" )
+    mod_info.set_title( "Tengu Stealth Cruiser" )
     mod_info.set_author( "brothershogo" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13094" )
-    mod_info.put_version( "???", "1.0" )
-    mod_info.set_thread_hash( "4dd071df2fb2767cbd841966ab859c8c" )
+    mod_info.put_version( "f244b440445c90181ae9a12b9a2238dc", "1.1" )
+    mod_info.set_thread_hash( "0cc564d096b478fea6e2cee6f88424f3" )
 
-    mod_info.set_desc(r"""Tengu Type-1
-A prototype armored stealth assault vessel, using Engi and Rockmen technology, the Tengu was designed to ambush ships with its advanced cloak and impressive barrage of lasers. It lacks shields, drones, and maneuverability, however, these systems can be bought and upgraded(except drones).
+    mod_info.set_desc(r"""A prototype armored stealth assault vessel, using Engi and Rockmen technology, the Tengu was designed to ambush ships with its advanced cloak and impressive barrage of lasers. It lacks shields, drones, and maneuverability, however, these systems can be bought and upgraded(except drones).
 
 Features
 - Lacks a drone system (Do not buy the drone system at the store, waste of scrap)
@@ -970,6 +1008,7 @@ Features
 - 4 dual lasers to start
 - Reinforced armor plating
 
+Replaces the Stealth-A ship.
 Replaces the Stealth-B ship.
 """)
     mod_db.add_mod(mod_info)
@@ -992,6 +1031,30 @@ Features
 - Starts with Engi Med-bot Dispersal and Titanium Casing augments.
 - It's fairly vulnerable to internal fires.
 
+Replaces the Federation Cruiser-B ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Tsunami Class Battlecruiser" )
+    mod_info.set_author( "brothershogo" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13508" )
+    mod_info.put_version( "50cab257009ddadfa94a94da6ebff263", "1.1" )
+    mod_info.set_thread_hash( "e3027dc0c9bb6217865bad04c35de6d3" )
+
+    mod_info.set_desc(r"""A Ion Battlecruiser, using Zoltan, Slug, and Federation technology, the Tsunami is the pinnacle of electronic warfare technology, designed to disable entire ships with its advanced ion beam. It lacks shields, cloak, and maneuverability, however, these systems can be bought and upgraded.
+
+Notes
+- May conflict with my Tengu Type-1 mod, which disables buy-able drone system
+- May conflict with any mod that modifies the Vindicator Beam
+- Advanced Ion Beam replaces the Vindicator Beam
+- Advanced Ion Beam can be upgraded to level 5
+- Tsunami Type-1 was designed to disable ships then finish them off with lasers
+- Tsunami Type-2 was designed to disable ships and then board
+- Both ships equipped with Ion Shielding and Titanium System Casing augments
+
+Replaces the Federation Cruiser-A ship.
 Replaces the Federation Cruiser-B ship.
 """)
     mod_db.add_mod(mod_info)
