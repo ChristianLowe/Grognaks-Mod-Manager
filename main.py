@@ -48,6 +48,7 @@ try:
     import errno
     import glob
     import hashlib
+    import io
     import platform
     import re
     import shutil as sh
@@ -1285,9 +1286,11 @@ class LogicThread(killable_threading.KillableThread):
         write_config = False
         prompts = []  # A list of settings the user needs to be asked about.
         try:
-            with open(os.path.join(global_config.dir_self, "modman.ini"), "r") as cfg_file:
+            with io.open(os.path.join(global_config.dir_self, "modman.ini"), mode="rt", encoding="utf-8", errors="strict") as cfg_file:
                 cfg.readfp(cfg_file)
         except (Exception) as err:
+            if (err.errno != errno.ENOENT):  # Ignore "No such file"
+                logging.exception(err)
             write_config = True
 
         try:
@@ -1346,18 +1349,35 @@ class LogicThread(killable_threading.KillableThread):
                 return
 
         if (arg_dict["write_config"]):
-            with open(os.path.join(global_config.dir_self, "modman.ini"), "w") as cfg_file:
-                cfg_file.write("#\n")
-                cfg_file.write("# allowzip - Sets whether to treat .zip files as .ftl files. Default: 0 (false).\n")
-                cfg_file.write("# ftl_dats_path - The path to FTL's resources folder. If invalid, you'll be prompted.\n")
-                cfg_file.write("# never_run_ftl - If true, there will be no offer to run FTL after patching. Default: 0 (false).\n")
-                cfg_file.write("# update_catalog - If true, periodically download descriptions for the latest mods. If invalid, you'll be prompted.\n")
-                cfg_file.write("#\n")
-                cfg_file.write("# highlightall - Deprecated.\n")
-                cfg_file.write("# macmodsdir - Deprecated. Each OS keeps mods in GMM/mods/ now.\n")
-                cfg_file.write("#\n")
-                cfg_file.write("\n")
-                arg_dict["config_parser"].write(cfg_file)
+            # Python 2.x's configparser's write() method lacks unicode support.
+
+            with open(os.path.join(global_config.dir_self, "modman.ini"), "wb") as cfg_file:
+                enc_type = "utf-8"
+                buf = ""
+                buf += "# This config is encoded in utf8. ANSI text editors will work, if they don't add accented chars.\n"
+                buf += "#\n"
+                buf += "# allowzip - Sets whether to treat .zip files as .ftl files. Default: 0 (false).\n"
+                buf += "# ftl_dats_path - The path to FTL's resources folder. If invalid, you'll be prompted.\n"
+                buf += "# never_run_ftl - If true, there will be no offer to run FTL after patching. Default: 0 (false).\n"
+                buf += "# update_catalog - If true, periodically download descriptions for the latest mods. If invalid, you'll be prompted.\n"
+                buf += "#\n"
+                buf += "# highlightall - Deprecated.\n"
+                buf += "# macmodsdir - Deprecated. Each OS keeps mods in GMM/mods/ now.\n"
+                buf += "#\n"
+                buf += "\n"
+                cfg_file.write(buf.encode(enc_type, "strict"))
+
+                for section in arg_dict["config_parser"]._sections:
+                    buf = ""
+                    buf += "[%s]\n" % section
+                    for (key, value) in arg_dict["config_parser"]._sections[section].items():
+                        if (key == "__name__"):
+                            continue
+                        if (value is not None) or (arg_dict["config_parser"]._optcre == arg_dict["config_parser"].OPTCRE):
+                            key = " = ".join((key, str(value).replace("\n", "\n\t")))
+                        buf += "%s\n" % key
+                    buf += "\n"
+                cfg_file.write(buf.encode(enc_type, "strict"))
 
         # Delete backups in the old location.
         old_data_bak_path = os.path.join(global_config.dir_res, "data.dat.bak")

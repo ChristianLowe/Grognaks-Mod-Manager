@@ -6,6 +6,7 @@ Changelog
 - Added a log warning during patching if a mod gets clobbered
 - Added a log warning during patching if a modded file's case doesn't match
 - Fixed AttributeError after patching, before offering to launch FTL on Mac
+- Changed ini encoding to utf-8 to support accented paths
 
 1.7:
 - Lowered the required Python version to 2.6
