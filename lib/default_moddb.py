@@ -50,7 +50,7 @@ A bug in FTL causes asteroid storms to be abnormally fast when you have five shi
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=12203" )
     mod_info.put_version( "5abed01b50c41b7a208ac29bdbdbdcc9", "1.1" )
     mod_info.put_version( "c734abda7e230523f883a5ec92c28045", "1.0" )
-    mod_info.set_thread_hash( "1b400277f3d8db6be901744b13050697" )
+    mod_info.set_thread_hash( "5eda41623baddb2180379cad4c549648" )
 
     mod_info.set_desc(r"""Descent into Darkness is a complete overhaul modification for FTL.
 You do not start with a single ship loadout and play the game regularly.
@@ -230,7 +230,7 @@ This mod is not compatible with other mods that change the Kestrel A Layout! In 
     mod_info.set_author( "Kieve" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=10361" )
     mod_info.put_version( "fd357ea6465756e45e393feffb986f5f", "0.9c Beta WIP" )
-    mod_info.set_thread_hash( "3acaa80e3d2cecae869436ed0835a35f" )
+    mod_info.set_thread_hash( "372c5cd546627c1639f098e53e4d748d" )
 
     mod_info.set_desc(r"""DISCLAIMER - This mod is still in "beta" status and requires testing. Some weapons may feel imbalanced or overpowered, others underpowered or useless. Please leave detailed, constructive feedback.
 
@@ -343,8 +343,9 @@ On the aesthetic side, the rebel fleet has been replaced with the Federation mil
     mod_info.set_title( "Sonata Total Conversion" )
     mod_info.set_author( "thashepherd" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=6517" )
+    mod_info.put_version( "48e5693219f0fa501b9aa354118e2713", "7a" )
     mod_info.put_version( "b13de0c782576c9c20f0ef6d0fe317c5", "7" )
-    mod_info.set_thread_hash( "3e0d8f09ba612d167e80368e4bd79e3d" )
+    mod_info.set_thread_hash( "b88f4265939cc399a6d0422f1eabcdcd" )
 
     mod_info.set_desc(r"""With cries of "Sic Semper Tyrannis", nearly a quarter of the United Empire's worlds have seceded to form their own nation. They call themselves the "Pilgrims". The Empire's legislature interpreted this secession as treason, and the overwhelming might of the loyalist fleet has fallen on the Pilgrims. Although the situation is militarily hopeless, your family and friends have all joined the resistance - and so you shall.
 
@@ -368,6 +369,7 @@ Features
     mod_info.set_title( "Star Trek Universe" )
     mod_info.set_author( "speedoflight" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11844" )
+    mod_info.put_version( "c60abdd47746b7233250fe1ae7272d38", "1.1" )
     mod_info.put_version( "ff4c15c3926827c4170c462369e2b0ce", "1.0" )
     mod_info.put_version( "ab77b5a3c53b21c7c7d0d55c688ce508", "0.7 Beta WIP" )
     mod_info.put_version( "b8b68c6906752235a0d3100ce143c94b", "0.6 Beta WIP" )
@@ -376,9 +378,9 @@ Features
     mod_info.put_version( "cddbb53e53745b8b1ac7cac7073e14e0", "0.2 Beta 2013-03-02 WIP" )
     mod_info.put_version( "c6880fd3e9423affe5ff9dc733580cad", "0.2 Beta WIP" )
     mod_info.put_version( "098dc2eb3865b701697e6a73420f57c6", "0.1 Beta WIP" )
-    mod_info.set_thread_hash( "958d1033262161b6a20c1c75c0245eb5" )
+    mod_info.set_thread_hash( "350df987700786b2f51bc7bc784485b8" )
 
-    mod_info.set_desc(r"""Eventually this will replace all 18 default ships in the game with vessels from Star Trek: Federation, Klingon, Species 8472, Romulan, Borg, Cardassian, Jem Haddar, etc.
+    mod_info.set_desc(r"""Eventually this will replace all 18 default ships in the game with vessels from Star Trek: Federation, Klingon, Species 8472, Romulan, Borg, Cardassian, Jem Haddar, Krenim, Hirogen, etc.
 """)
     mod_db.add_mod(mod_info)
 
@@ -411,18 +413,22 @@ Features
     mod_info.set_title( "Anterian Terminators" )
     mod_info.set_author( "Metzelmax" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=12652" )
+    mod_info.put_version( "1da09a8b91c0043d87223fae29a073ff", "1.6" )
     mod_info.put_version( "43bdef53b4f612da111e8a7ab49cc174", "1.2 WIP" )
     mod_info.put_version( "2abbf46cdf98db0a02ed65734757370d", "1.0 WIP" )
-    mod_info.set_thread_hash( "b69d23a8d7c86fe4c7d79809fcb218f8" )
+    mod_info.set_thread_hash( "87e5b76f04bc085a261c5b94fc785e3c" )
 
     mod_info.set_desc(r"""Background
-Back when my friend and me were 14, we got soon bored by the standard Species in the Star Trek Universe and began to develop our own.
+Back when my friend and me were 14, we got soon bored by the standard species in the Star Trek universe and began to develop our own.
 
-The Anterian are small, blue scaled Humanoids with a lifespan of about 25. Their Home Planet is surounded by a huge Nebula, which consists mainly out of metal. The Anterian have specialized in A.I., robotics and Computers. Most of their work is done by Androids, which are not sentient but intelligent enough to work without surveillance.
+The Anterian are small, blue scaled Humanoids with a lifespan of about 25. Their home planet is surounded by a huge nebula, which consists mainly out of metal. The Anterian have specialized in A.I., robotics and Computers. Most of their work is done by androids, which are not sentient but intelligent enough to work without surveillance.
 
 Replaces the Engi-A ship.
 Replaces the Engi-B ship.
 Replaces the Rock-A ship.
+Replaces the Rock-B ship.
+Replaces the Kestrel-A ship.
+Replaces the Kestrel-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -567,6 +573,22 @@ Replaces the Kestrel-A ship.
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Dark Knight Cruiser" )
+    mod_info.set_author( "Gunman698" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13991" )
+    mod_info.put_version( "0d12efc80148b6feb3e8769b63edc6d0", "1.0 WIP" )
+    mod_info.set_thread_hash( "e9fb98dd4935939da884605fefd7d52e" )
+
+    mod_info.set_desc(r"""To all of you who have a keen eye, yes I did just get some AI ships and gibs and glue them together for the ship design. 
+
+The ship is designed mostly for ion and drone damage, hence why it is an engi ship. It has 4 crew (2 Human, 2 Engi), all subsystems level 1 and basic systems.
+
+Replaces the Engi-B ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Duality Cruiser and Merchant Cruiser" )
     mod_info.set_author( "zaratustra" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=4&t=2729" )
@@ -588,7 +610,7 @@ Replaces the Engi-B ship.
     mod_info.set_author( "DryEagle" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11531" )
     mod_info.put_version( "bed7f8c867bb728ce852f4fcccf923e8", "1.0" )
-    mod_info.set_thread_hash( "0493e82769c2067b4a8e0704c986aec8" )
+    mod_info.set_thread_hash( "6435f1e566e92347458a8e21806037db" )
 
     mod_info.set_desc(r"""The story:
 You have been comissioned to help escort some freighters which carry intel and technology vital to the federation. Unfortunately weaponry is in short supply so you had to salvage what you could:
@@ -625,6 +647,20 @@ Part of a "Present-Time" Total Conversion that MAY be coming soon! (I'm working 
 
 Intro
 The Lockheed Martin/Boeing F-22 Raptor is a single-seat, twin-engine fifth-generation supermaneuverable fighter aircraft that uses stealth technology. It was designed primarily as an air superiority fighter, but has additional capabilities that include ground attack, electronic warfare, and signals intelligence roles.
+
+Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Firestarter" )
+    mod_info.set_author( "arcuspilot" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=14014" )
+    mod_info.put_version( "7074ea05763ced5d65a4a9f55954308b", "1.0 WIP" )
+    mod_info.set_thread_hash( "46b8185a6a035766fc272ea66e61bc4c" )
+
+    mod_info.set_desc(r"""The starting crew, a human and an engi find that there are no sleeping quarters and have put their bedrolls in the sensor and pilot room.
 
 Replaces the Kestrel-A ship.
 """)
@@ -718,6 +754,27 @@ It only has 2 Weapon slots, starting with:
 - Ion Blast
 
 Replaces the Rock-B ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Hayabusa Class Battlecruiser" )
+    mod_info.set_author( "brothershogo" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14341" )
+    mod_info.put_version( "22c643accb0ebd09bfafa641b0eb7dbd", "1.0" )
+    mod_info.set_thread_hash( "e0aa36589fc065e748b2452df80860f8" )
+
+    mod_info.set_desc(r"""A Drone Battlecruiser, using Engi, Mantis, and Federation technology, the Hayabusa is the pinnacle of drone warfare technology, designed to swarm entire ships with its advanced assault drones.
+
+Features
+- Advanced drone system can be upgraded to level 12
+- Ship equipped with Drone Recovery Arm, Drone Reactor Booster, and FTL Jammer
+- Ship balanced to play with my Insane Difficulty Mod
+
+In terms of difficulty, this ship is OP because of its advanced drone system and assault drones. Haven't fully play tested it yet, so still working out the balancing.
+
+Replaces the Mantis-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -964,6 +1021,20 @@ All files/graphics which have been edited use custom names specific to this mod;
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Space Zeppelin" )
+    mod_info.set_author( "Koobi" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14040" )
+    mod_info.put_version( "0d430e810f3269c463a3ac1d2d4879a9", "1.0" )
+    mod_info.set_thread_hash( "b9127af5cbe9ff8c011c7b8469982a2e" )
+
+    mod_info.set_desc(r"""This will add the iron sky space zeppelin. These ships where large ship carriers. In the movie they where towing asteroids to bombard the planet.
+
+Replaces the Federation Cruiser-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "StarBug - Red Dwarf" )
     mod_info.set_author( "Heathen" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11448" )
@@ -997,7 +1068,7 @@ The Ship mod and the UI mod are designed to be used together, but if you find th
     mod_info.set_author( "brothershogo" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13094" )
     mod_info.put_version( "f244b440445c90181ae9a12b9a2238dc", "1.1" )
-    mod_info.set_thread_hash( "0cc564d096b478fea6e2cee6f88424f3" )
+    mod_info.set_thread_hash( "7a2351fc1a116437b193536d46f6c4e0" )
 
     mod_info.set_desc(r"""A prototype armored stealth assault vessel, using Engi and Rockmen technology, the Tengu was designed to ambush ships with its advanced cloak and impressive barrage of lasers. It lacks shields, drones, and maneuverability, however, these systems can be bought and upgraded(except drones).
 
@@ -1041,7 +1112,7 @@ Replaces the Federation Cruiser-B ship.
     mod_info.set_author( "brothershogo" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13508" )
     mod_info.put_version( "50cab257009ddadfa94a94da6ebff263", "1.1" )
-    mod_info.set_thread_hash( "e3027dc0c9bb6217865bad04c35de6d3" )
+    mod_info.set_thread_hash( "8b481d4106b97648c79765a694942a39" )
 
     mod_info.set_desc(r"""A Ion Battlecruiser, using Zoltan, Slug, and Federation technology, the Tsunami is the pinnacle of electronic warfare technology, designed to disable entire ships with its advanced ion beam. It lacks shields, cloak, and maneuverability, however, these systems can be bought and upgraded.
 
@@ -1137,6 +1208,20 @@ Replaces the Kestrel-A ship.
     mod_info.set_desc(r"""Developed by NATAR Weapons Development Division for the sole purpose of burning out enemy crews.
 
 Replaces the Engi-B ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Balanced Arsenal Mod" )
+    mod_info.set_author( "Sleeper Service" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13920" )
+    mod_info.put_version( "654bf376137ab0616a3d21bd77ebd834", "1.12" )
+    mod_info.set_thread_hash( "235c86547c5d4e3a2901f645b80a02f3" )
+
+    mod_info.set_desc(r"""Balanced Arsenal currently adds dozens of new weapons, all of them with custom models and animations. Among them are beams, missile launchers (mostly multishot variations), bomb launchers, lasers and ion weapons (some of them electronic warfare devices that work quite differently).
+
+The aim here was to create stuff that fits into vanilla, both visually as well as from the side of balance.
 """)
     mod_db.add_mod(mod_info)
 
