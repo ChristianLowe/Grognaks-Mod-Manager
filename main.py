@@ -528,18 +528,23 @@ class MainWindow(tk.Toplevel):
 
 
 def append_xml_file(src_path, dst_path):
-    """Semi-intelligently appends XML from one file onto another.
+    """Semi-intelligently appends XML from one file (src) onto another (dst).
 
     UTF-8 BOMs will be pruned.
     Any XML declaration in the source will be pruned.
     The destination's declaration will be replaced with one for utf-8.
     This assumes the encoding of both files can be decoded as utf-8 (ascii's fine).
     CR-LF line endings will be normalized to LF for reading, then written as CR-LF.
+
+    Any uncommented <gmm:blueprintListAppend> tag in the src will be removed, and
+    a new blueprintList will be added, including names from both the src's tag and
+    from the last list in dst that had the same name. FTL will honor this combined
+    list instead.
     """
     src_text = ""
     dst_text = ""
 
-    xml_decl_ptn = re.compile("<[?]xml version=\"1.0\" encoding=\"[^\"]+?\"[?]>")
+    xml_decl_ptn = re.compile("<[?]xml version=\"1.0\" encoding=\"[^\"]+?\"[?]>\n*")
 
     def get_text(f):
         f_bytes = f.read()
@@ -561,6 +566,50 @@ def append_xml_file(src_path, dst_path):
             dst_text = get_text(dst_file)
             dst_text = xml_decl_ptn.sub("", dst_text)  # Prune any declaration.
 
+    # Handle <gmm:blueprintListAppend>, if present.
+    # A new list will be added with entries from both dst and src.
+
+    bp_list_ptn = re.compile("(?s)[ \t]*<blueprintList\\sname\\s?=\\s?\"([^\"]+)\"[^>]*>\n?(.*?)</blueprintList>\n?")
+    bp_append_ptn = re.compile("(?s)[ \t]*<gmm:blueprintListAppend\\sname\\s?=\\s?\"([^\"]+)\"[^>]*>\n?(.*?)</gmm:blueprintListAppend>\n?")
+    bp_name_ptn = re.compile("<name>([^>]+)</name>")
+
+    if (bp_append_ptn.search(src_text) is not None):
+        dst_bp_lists = {}  # Map original list names to their content.
+        src_bp_lists = {}  # Map append list names to their content.
+
+        def replacer(m):
+            last_comment_start = dst_text.rfind("<!--", 0, m.start())
+            if (last_comment_start == -1 or dst_text.rfind("-->", last_comment_start, m.start()) > last_comment_start):
+                list_name = m.group(1)
+                list_content = re.sub("(?s)<!--.*?-->", "", m.group(2))
+                list_entries = []
+                for m in bp_name_ptn.finditer(list_content):
+                    list_entries.append(m.group(1))
+                dst_bp_lists[list_name] = list_entries
+            return m.group(0)  #  Leave text as-is.
+        _ = re.sub(bp_list_ptn, replacer, dst_text)
+
+        def replacer(m):
+            last_comment_start = src_text.rfind("<!--", 0, m.start())
+            if (last_comment_start == -1 or src_text.rfind("-->", last_comment_start, m.start()) > last_comment_start):
+                list_name = m.group(1)
+                list_content = re.sub("(?s)<!--.*?-->", "", m.group(2))
+                list_entries = []
+                for m in bp_name_ptn.finditer(list_content):
+                    list_entries.append(m.group(1))
+                src_bp_lists[list_name] = list_entries
+                return ""  # Remove the tag.
+            else:
+                return m.group(0)  #  Leave text as-is.
+        src_text = re.sub(bp_append_ptn, replacer, src_text)
+
+        for (name, entries) in src_bp_lists.items():
+            src_text += "\n<blueprintList name=\"%s\">\n" % name
+            for entry in ((dst_bp_lists[name] if (name in dst_bp_lists) else []) + entries):
+                src_text += "  <name>%s</name>\n" % entry
+            src_text += "</blueprintList>\n"
+
+    # Write the combined text.
     with open(dst_path, "wb") as dst_file:
         new_text = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
         new_text += dst_text +"\n\n<!-- Appended by GMM -->\n\n"+ src_text +"\n"

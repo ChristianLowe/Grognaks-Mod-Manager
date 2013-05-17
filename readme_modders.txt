@@ -24,14 +24,28 @@ The Append Extension
   It is highly recommended that you take advantage of this as much as
   possible. As a rule of thumb, if you're editing an event xml file,
   you're going to want to append your changes rather then flat out replace
-  the file. Keep in mind that you can override vanilla events to your
-  pleasure by writing an event of the same name. Using .append helps prevent
-  mod conflict.
+  the file. Keep in mind that you can override vanilla events (among other
+  things) to your pleasure by writing an event of the same name.
+  Using .append helps prevent mod conflict.
+
+  Overriding named lists can be problematic, so a special tag is available
+  to add names to blueprintLists.
+  ---
+  <gmm:blueprintListAppend name="DRONES_STANDARD">
+    <name>A</name>
+    <name>B</name>
+    <name>C</name>
+  </gmm:blueprintListAppend>
+  ---
+  This will generate a new blueprintList containing all existing names,
+  plus any you mention. The new list will then override the previous one,
+  since FTL honors the last one it sees. Thus, multiple mods can safely
+  edit the same list.
 
 
 General
 
-  When developing a mod, save your text files as ANSI/ASCII, not UTF-8.
+  When developing a mod, save your text files as ANSI/ASCII, or UTF-8.
 
   Unless you're overriding something, try to use unique names in your xml so
   that it won't clobber another mod and vice versa.

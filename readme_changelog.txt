@@ -7,6 +7,7 @@ Changelog
 - Added a log warning during patching if a modded file's case doesn't match
 - Fixed AttributeError after patching, before offering to launch FTL on Mac
 - Changed ini encoding to utf-8 to support accented paths
+- Added <gmm:blueprintListAppend> tag to *.xml.append files
 
 1.7:
 - Lowered the required Python version to 2.6
