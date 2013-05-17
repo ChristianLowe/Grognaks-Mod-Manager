@@ -1174,8 +1174,8 @@ def validate_xml(xml_text):
     xml_text = re.sub(ptn, replacer, xml_text)
 
     try:
-        parser = xml.parsers.expat.ParserCreate()
-        parser.Parse(xml_text, True)
+        parser = xml.parsers.expat.ParserCreate("utf-8")
+        parser.Parse(xml_text.encode("utf-8"), True)
         results.append(["done", "Done"])
 
         valid = True
