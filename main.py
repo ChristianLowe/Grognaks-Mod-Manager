@@ -597,7 +597,7 @@ def append_xml_file(src_path, dst_path):
                 list_entries = []
                 for m in bp_name_ptn.finditer(list_content):
                     list_entries.append(m.group(1))
-                src_bp_lists[list_name] = list_entries
+                src_bp_lists[list_name] = (src_bp_lists[list_name] if (list_name in src_bp_lists) else []) + list_entries
                 return ""  # Remove the tag.
             else:
                 return m.group(0)  #  Leave text as-is.
