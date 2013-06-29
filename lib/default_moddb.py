@@ -482,6 +482,18 @@ Features
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Twinge's Balance Mod" )
+    mod_info.set_author( "Twinge" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14766" )
+    mod_info.put_version( "6568f9abfb133a49d0a95baeb1cce2a4", "0.5.3 for FTL 1.03.3" )
+    mod_info.set_thread_hash( "0a5ff027e923fa43016b7d4b76d2086e" )
+
+    mod_info.set_desc(r"""This mod makes more equipment in the game worth using and increases the quantity of interesting decisions. This mod doesn't add large amounts of additional content - instead it focuses on improving the usefulness of existing content and making the base game a better overall experience.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Warhammer 40k - Battlefleet Gothic Mod" )
     mod_info.set_author( "DauntlessK" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=12&t=11604" )
@@ -549,15 +561,50 @@ I am not including any custom events, so that this remains compatible with as ma
 
 
     mod_info = moddb.ModInfo()
-    mod_info.set_title( "Arwing I" )
+    mod_info.set_title( "Arwing" )
     mod_info.set_author( "VanguardOfValor" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15646" )
-    mod_info.put_version( "c59674791a6faeef2b2751f44d3b0333", "1.0" )
+    mod_info.put_version( "7474299587c81e49240a11aae175db3b", "Arwing II 1.0" )
+    mod_info.put_version( "c59674791a6faeef2b2751f44d3b0333", "Arwing I 1.0" )
     mod_info.set_thread_hash( "c792d6654155511431050ecc53221b09" )
 
     mod_info.set_desc(r"""The Arwing from StarFox 64.
 
+If you're finding Arwing I too difficult, you may want to try the Arwing II instead, which has it's starting weaponry buffed and is quite a bit easier to get going with!
+
 Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "The Asteroid" )
+    mod_info.set_author( "5thHorseman" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=16215" )
+    mod_info.put_version( "fd266a27e4a32e82c345b87f4a5ecb88", "1.0" )
+    mod_info.set_thread_hash( "c04ff19431fa0655922f34d0f7f85f72" )
+
+    mod_info.set_desc(r"""Who's crazy enough to go toe-to-toe with the Rebel Flagship in a hollowed out asteroid?
+
+The Asteroid is my attempt at a ship with a 4-person teleporter and a 4-person medbay. I love the 2x2 teleporter rooms but it's a pain to shuffle your away team around when you want to heal everybody up. No longer! Just run your whole team into the nearby medbay, heal 'em up, and send 'em back into the fray!
+
+Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Banana" )
+    mod_info.set_author( "corporat" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=16567&p=50491#p50491" )
+    mod_info.put_version( "5dcb1aa7e1dc985bb82b19874edeee7c", "0.999" )
+    mod_info.set_thread_hash( "7783ac7281c6adaadb0fa66e395e47cd" )
+
+    mod_info.set_desc(r"""A "space banana".
+
+Why, you ask? I've been following the FTL mod community for a while now, and I've found it lacks something. Potassium. You guys have a serious deficiency. It's a problem.
+
+Replaces the Engi-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -622,6 +669,21 @@ Replaces the Kestrel-B ship.
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "BSG Colonial Fleet" )
+    mod_info.set_author( "TheEzdev" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15799" )
+    mod_info.put_version( "969e1c9ea59a13bca0db6d36caf23519", "1.1" )
+    mod_info.set_thread_hash( "8444f0c4ef993e6695b4855b7fef612c" )
+
+    mod_info.set_desc(r"""Ships from Battlestar Galactica.
+
+Replaces the Kestrel-A ship.
+Replaces the Kestrel-B ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "The Buffalo" )
     mod_info.set_author( "EchoesofOld" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11327" )
@@ -648,6 +710,28 @@ I have discovered that you can NOT load my ships simultaneously. I dont know WHA
     mod_info.set_desc(r"""This is the C-1092. It is made for teleportation combat. You get in, then out as quick as possible. I made this because I could not find any ships of this type.
 
 Replaces the Stealth-B ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "The Capital Cruiser" )
+    mod_info.set_author( "slowriderxcorps" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15761" )
+    mod_info.put_version( "e488d5d8822f4748c8016cda3057a97d", "1.1" )
+    mod_info.set_thread_hash( "ab480cec02bb380a6b046de2dad5a4d3" )
+
+    mod_info.set_desc(r"""The Capital Cruiser (Type A) - The Imposter
+
+She comes equipped with a wide variety of weaponry to pick off any foe that stands in your way. However, regardless of its blast doors, the lack of starting crew and any form of venting will make dealing with damage particularly challenging.
+
+Replaces the Crystal-A ship.
+
+The Capital Cruiser (Type B) - The Paradox
+
+It starts with every single system already installed. Naturally it has its own issues, namely the lack of any form of direct damage, with the only form of offensive capability coming from a two-man teleporter and a quartet of hapless Humans. The other weaknesses to mention include a reactor that'll struggle to keep everything running from the get-go, as well as the (again) lack of any venting and additional lack of blast doors.
+
+Replaces the Crystal-B ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -975,6 +1059,20 @@ Replaces the Mantis-B ship.
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "The Hunter" )
+    mod_info.set_author( "Starfire" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15892" )
+    mod_info.put_version( "38282cb1da8ea862bc5304c1e9a45975", "1.0" )
+    mod_info.set_thread_hash( "5ea80a4120f948cfde358915711ce87f" )
+
+    mod_info.set_desc(r"""Right after the Rebels started to form, These ships were made to stop them, however the Federation underestimated the Rebellion and these ships were blown to shreds. You now have the last ship, your ship is better then the rest, you refitted it yourself giving it a prototype cloak and impressive weaponry, Will you make it?
+
+Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Incursor Cruiser" )
     mod_info.set_author( "Kieve" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=10361" )
@@ -1084,7 +1182,7 @@ Replaces the Stealth-A ship.
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11501" )
     mod_info.put_version( "ef5cdc4b6413f4013959271155ef84be", "1.0 2013-03-04" )
     mod_info.put_version( "3851b27cd288083356b433436eda6195", "1.0" )
-    mod_info.set_thread_hash( "1bee67b405215442610bfefccea184dd" )
+    mod_info.set_thread_hash( "7a8105b7665fa01ad9e42bbea07a42c4" )
 
     mod_info.set_desc(r"""Marauder ships are characterised by powerful weapon systems that seem to require massive power to operate, even at the expense of all other systems. While not refined, the weapons are effective. Usually disableing and stripping ships clean to provide resources required for the vessel to reach it's full potential. Even though their origins and source of technology are a mystery, the ships are crewed by common races though it's hard to say if they joined up willingly or are slaves.
 
@@ -1122,7 +1220,7 @@ You are not supposed to use this together with the Marauders mod, since the weap
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15508" )
     mod_info.put_version( "25fd96768a367597a3412d72514a2e18", "0.2_1 WIP" )
     mod_info.put_version( "6549abd125069ad10e0a682a2a3ea0ba", "0.2b WIP" )
-    mod_info.set_thread_hash( "27e3927ed6be267dd438247da74110e2" )
+    mod_info.set_thread_hash( "00e3fbfce2c8895aa79c01f4a6952cf5" )
 
     mod_info.set_desc(r"""Originally used as a medevac, this ship has gone through multiple refittings and is now the fastest cruiser this side of the Milky Way.
 
@@ -1341,7 +1439,7 @@ Replaces the Engi-B ship.
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14597" )
     mod_info.put_version( "26449f76e88f2fb16901e3a035aa1b03", "2.0" )
     mod_info.put_version( "26449f76e88f2fb16901e3a035aa1b03", "1.0" )
-    mod_info.set_thread_hash( "7bc6fd632e1f904e5113a91bdf306536" )
+    mod_info.set_thread_hash( "e0bfeed6c3498efd5657a8b5f782e663" )
 
     mod_info.set_desc(r"""The Pyro is my attempt at a fire/teleport combo that is not overpowered (though it packs quite a punch). However, it has almost nothing else going for it. I upped the engines because I found the beginning sectors pretty hard without them. Even so, you'll be taking a lot of damage while your boarders and fire - the only ways you can do damage - slowly take apart the enemy ship and crew. It - like the default ships - has one less power bar to start than you need for every system.
 
@@ -1412,6 +1510,20 @@ Replaces the Engi-A ship.
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "The Revenant" )
+    mod_info.set_author( "Excelious" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=16536" )
+    mod_info.put_version( "f2ef91890f00e646c75cf672e6790ae4", "1.0" )
+    mod_info.set_thread_hash( "88375a0ae5095ff5a761957e87342921" )
+
+    mod_info.set_desc(r"""The Revenant is a modified Rock assault cruiser. Used as the flagship of the small paramilitary, Excelsior, the Revenant has been through many fierce battles and contains much advanced technology.
+
+Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Robotic Cruiser" )
     mod_info.set_author( "Jonfon" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=10839" )
@@ -1448,6 +1560,31 @@ All files/graphics which have been edited use custom names specific to this mod;
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Science Vessels" )
+    mod_info.set_author( "Teodor" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15717" )
+    mod_info.put_version( "53659cd7824dd4c805dfe5edb8aa0c02", "A 1.0" )
+    mod_info.put_version( "dfa905e94828e2472d39f6b57458f9fd", "B 1.0" )
+    mod_info.set_thread_hash( "7ccf023e02b2a5a229f2cabe0b73efcb" )
+
+    mod_info.set_desc(r"""Science Vessel Type-A
+The Needle is made for exploring unknown planetary objects.
+
+Replaces the Kestrel-A ship.
+
+Science Vessel Type-B
+Scarecrow was heavily damaged during a pirate attack. All but one crew died and the remaining engi now only has the company of a mindless system repair drone. Because of the damage the ship has NO possibility for stealth.
+
+Note: Don't waste your scrap trying to buy a cloak for Scarecrow!
+
+Replaces the Kestrel-B ship.
+
+Since FTL doesn't fully support 1x1 size rooms I recommend using 5thHorseman's "Low O2 Icons" for a better visual experience.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Space Zeppelin" )
     mod_info.set_author( "Koobi" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14040" )
@@ -1457,6 +1594,20 @@ All files/graphics which have been edited use custom names specific to this mod;
     mod_info.set_desc(r"""This will add the iron sky space zeppelin. These ships where large ship carriers. In the movie they where towing asteroids to bombard the planet.
 
 Replaces the Federation Cruiser-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "SR-71 Blackbird" )
+    mod_info.set_author( "Ferox9" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15664" )
+    mod_info.put_version( "24d588d57e0ab5083e994798b6a6421f", "1.0 WIP" )
+    mod_info.set_thread_hash( "772b81e2685f87e769272d4873d225ba" )
+
+    mod_info.set_desc(r"""The Federation has recently stumbled upon ancient USAF blueprints from a time when humans solely lived on Earth. With these blueprints, Federation scientists have recreated the SR-71 Blackbird. It has been fitted with what some might say are the most powerful engines the galaxy has ever seen, as well as an incredibly tough titanium shell. The ship needs its engines and casing because it doesn't have the power necessary to run a shield system. To help counter this large hole in its defenses, The Federation also outfitted the ship with a cloaking system. Can you handle what just might be the fastest ship in the galaxy?
+
+Replaces the Stealth-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -1933,6 +2084,18 @@ Note: This will conflict with any mod that alters the start of the game event, a
     mod_info.set_thread_hash( "ddba41960966ec48c84a5ecea4123ea9" )
 
     mod_info.set_desc(r"""So, I just wanted to make overclocked weapons to add more variety to the game, so far, it seems to have worked. As on February 9th 2013, there are 4 new weapons, based off their original counterparts, after all, overclocking makes the weapon more powerful, not a different model.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "The Vindicator Artillery Beam" )
+    mod_info.set_author( "slowriderxcorps" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14513" )
+    mod_info.put_version( "15885023a319f7ce3b0dd8aed08bb5f4", "1.0" )
+    mod_info.set_thread_hash( "4b26434bf2562f22702723a28b571547" )
+
+    mod_info.set_desc(r"""Ever wondered what the Artillery Beam was going to look like initially? Well thanks to files that were left in the standard game after being scrapped, you can. This mod takes two unused files and makes a couple of minor graphical and textual tweaks in order to animate the nose of the Federation Cruiser to reflect the charge status of the Artillery Beam.
 """)
     mod_db.add_mod(mod_info)
 
