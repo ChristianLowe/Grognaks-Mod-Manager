@@ -66,8 +66,8 @@ Mac-Specific
 
 Pitfalls
 
-  As of FTL 1.03.1: If a ship is modded to have level 5 shields, asteroid
-  storms will be abnormally fast.
+  FTL Bug (fixed in 1.03.3): If a ship is modded to have level 5 shields,
+  asteroid storms will be abnormally fast.
   http://www.ftlgame.com/forum/viewtopic.php?f=9&t=11057
 
   The game will crash at the main menu or hangar if an event choice loads
