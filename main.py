@@ -46,7 +46,7 @@ if (__name__ == "__main__"):
 try:
     import codecs
     import errno
-    import glob
+    import fnmatch
     import hashlib
     import io
     import platform
@@ -765,7 +765,7 @@ def load_modorder():
     # Get a list of full filenames.
     mod_filenames = []
     for ext in mod_exts:
-        ext_filenames = glob.glob(os.path.join(global_config.dir_mods, "*."+ext))
+        ext_filenames = [ f for f in os.listdir(global_config.dir_mods) if (fnmatch.fnmatch(f, "*."+ext)) ]
         ext_filenames = [os.path.basename(f) for f in ext_filenames]
         mod_filenames.extend(ext_filenames)
 

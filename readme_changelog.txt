@@ -3,6 +3,7 @@ Changelog
 ???:
 - Added periodic updates to the catalog of mod metadata
 - Added ini setting: update_catalog
+- Fixed empty mod list bug when GMM's path included square brackets
 - Added a log warning during patching if a mod gets clobbered
 - Added a log warning during patching if a modded file's case doesn't match
 - Fixed AttributeError after patching, before offering to launch FTL on Mac
