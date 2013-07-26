@@ -207,6 +207,7 @@ class RootWindow(tk.Tk):
 
             if (not self._main_window):
                 self._main_window = MainWindow(master=self, title=global_config.APP_NAME, mod_names=arg_dict["mod_names"], next_func=arg_dict["next_func"])
+                self._main_window.resizable("yes", "yes")
                 self._main_window.center_window()
 
         elif (func_or_name == self.ACTION_ADD_MOD_HASH):
@@ -271,7 +272,7 @@ class MainWindow(tk.Toplevel):
 
         # Our topmost frame is called root_frame.
         root_frame = tk.Frame(self)
-        root_frame.pack()
+        root_frame.pack(fill="both", expand="yes")
 
         # Top frame (container).
         top_frame = tk.Frame(root_frame)
@@ -319,7 +320,7 @@ class MainWindow(tk.Toplevel):
 
         self._statusbar = tk.Label(root_frame, borderwidth="1", relief="sunken",
             anchor="w", font="helvetica 9")
-        self._statusbar.pack(fill="x", expand="yes", pady=("3","0"))
+        self._statusbar.pack(fill="x", expand="no", pady=("3","0"))
 
         # Add the buttons to the buttons frame.
         self._patch_btn = tk.Button(right_frame, text="Patch")

@@ -10,6 +10,7 @@ Changelog
 - Changed ini encoding to utf-8 to support accented paths
 - Fixed Validate encoding errors when non-ascii characters are present
 - Added <gmm:blueprintListAppend> tag to *.xml.append files
+- Made the main window resizable
 
 1.7:
 - Lowered the required Python version to 2.6
