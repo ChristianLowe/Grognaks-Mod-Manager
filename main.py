@@ -866,14 +866,13 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
 
         if (not keep_alive_func()): return False
 
-        # Clobber current dat files with their respective backups.
-        for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
-            sh.copy2(bak_path, dat_path)
-
-        if (not keep_alive_func()): return False
-
         if (len(mod_list) == 0):
-            return True  # No mods. Skip the repacking.
+            # No mods. Skip the repacking.
+            # Just clobber current dat files with their respective backups.
+            for (dat_path, bak_path) in [(data_dat_path,data_bak_path), (resource_dat_path,resource_bak_path)]:
+                sh.copy2(bak_path, dat_path)
+
+            return True
 
         # Use temp folders for unpacking.
         data_unp_path = tf.mkdtemp()
@@ -885,9 +884,9 @@ def patch_dats(selected_mods, keep_alive_func=None, sleep_func=None):
         for x in ["audio", "fonts", "img"]:
             unp_map[x] = resource_unp_path
 
-        # Extract both of the dats.
-        unpackdat(data_dat_path, data_unp_path)
-        unpackdat(resource_dat_path, resource_unp_path)
+        # Extract both of the backup dats.
+        unpackdat(data_bak_path, data_unp_path)
+        unpackdat(resource_bak_path, resource_unp_path)
 
         vanilla_items = []
         vanilla_items.extend(list(ftldat.FolderPack(data_unp_path).list()))
