@@ -43,7 +43,7 @@ Usage
     Double-click modman.command.
 
   To install mods:
-    Select the mods you want to install.
+    Double-click to select the mods you want to install.
     Mods at the top get clobbered by ones below. Drag names to reorder.
     Click the "Patch" button.
     (Any unselected mods will be omitted/uninstalled.)

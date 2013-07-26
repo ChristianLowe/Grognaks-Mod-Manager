@@ -301,6 +301,7 @@ class MainWindow(tk.Toplevel):
         self._mod_list_scroll = tk.Scrollbar(left_frame, orient="vertical")
         self._mod_list_scroll.pack(side="right", fill="y")
         self._mod_listbox.bind("<<ListboxSelect>>", self._on_listbox_select)
+        self._mod_listbox.bind("<Double-Button-1>", self._on_listbox_mouse_double_clicked)
         self._mod_listbox.bind("<Button-1>", self._on_listbox_mouse_pressed)
         self._mod_listbox.bind("<B1-Motion>", self._on_listbox_mouse_dragged)
         self._mod_listbox.configure(yscrollcommand=self._mod_list_scroll.set)
@@ -380,28 +381,34 @@ class MainWindow(tk.Toplevel):
 
         if (len(new_selection) > 0):
             mod_name = self._mod_listbox.get(new_selection[0])
-            if (mod_name in self._root().mod_hashes):
-                mod_hash = self._root().mod_hashes[mod_name]
-                mod_info = self._root().mod_db.get_mod_info(hash=mod_hash)
-                if (mod_info is not None):
-                    # Don't assume solely hash searching today will guarantee
-                    # the hash in among results' versions tomorrow.
-                    mod_ver = mod_info.get_version(mod_hash)
-                    if (mod_ver is None):
-                        mod_ver = "???"
-                    self._set_description(mod_info.get_title(), author=mod_info.get_author(), version=mod_ver, url=mod_info.get_url(), description=mod_info.get_desc())
-                else:
-                    desc = "No info is available for the selected mod.\n\n"
-                    desc += "If it's stable, please let the GMM devs know\n"
-                    desc += "where you found it and include this md5 hash:\n"
-                    desc += str(mod_hash) +"\n"
-                    self._set_description(mod_name, description=desc)
-                    logging.info("No info for selected mod: %s (%s)." % (mod_name, mod_hash))
-            else:
-                self._set_description(mod_name, description="The selected mod has not been identified by its hash yet.\nTry again in a few seconds.")
+            self.show_mod_description(mod_name)
+
+    def _on_listbox_mouse_double_clicked(self, event):
+        clicked_index = self._mod_listbox.nearest(event.y)
+
+        if (self._mod_listbox.selection_includes(clicked_index)):
+            self._mod_listbox.selection_clear(clicked_index)
+        else:
+            self._mod_listbox.selection_set(clicked_index)
+
+        # The above methods won't fire a <<ListboxSelect>> event.
+        # But the single click handler will have fired already.
+        self._on_listbox_select(None)
+
+        return "break"  # Consume the event.
 
     def _on_listbox_mouse_pressed(self, event):
         self._mouse_press_list_index = self._mod_listbox.nearest(event.y)
+
+        # Override normal selection: show a mod's description on single-click.
+        self._mod_listbox.activate(self._mouse_press_list_index)
+        self._mod_listbox.focus_force()
+
+        mod_name = self._mod_listbox.get(self._mouse_press_list_index)
+        self.show_mod_description(mod_name)
+
+                        # A custom double-click handler to do list selection instead.
+        return "break"  # Consume the event.
 
     def _on_listbox_mouse_dragged(self, event):
         if (self._mouse_press_list_index is None): return
@@ -459,6 +466,27 @@ class MainWindow(tk.Toplevel):
         else:
             self._desc_area.insert(tk.END, "No description.")
         self._desc_area.configure(state="disabled")
+
+    def show_mod_description(self, mod_name):
+        if (mod_name in self._root().mod_hashes):
+            mod_hash = self._root().mod_hashes[mod_name]
+            mod_info = self._root().mod_db.get_mod_info(hash=mod_hash)
+            if (mod_info is not None):
+                # Don't assume solely hash searching today will guarantee
+                # the hash in among results' versions tomorrow.
+                mod_ver = mod_info.get_version(mod_hash)
+                if (mod_ver is None):
+                    mod_ver = "???"
+                self._set_description(mod_info.get_title(), author=mod_info.get_author(), version=mod_ver, url=mod_info.get_url(), description=mod_info.get_desc())
+            else:
+                desc = "No info is available for the selected mod.\n\n"
+                desc += "If it's stable, please let the GMM devs know\n"
+                desc += "where you found it and include this md5 hash:\n"
+                desc += str(mod_hash) +"\n"
+                self._set_description(mod_name, description=desc)
+                logging.info("No info for selected mod: %s (%s)." % (mod_name, mod_hash))
+        else:
+            self._set_description(mod_name, description="The selected mod has not been identified by its hash yet.\nTry again in a few seconds.")
 
     def _patch(self):
         # Remember the names to return in _on_delete().
