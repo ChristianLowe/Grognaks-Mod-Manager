@@ -10,13 +10,15 @@ def populate_catalog(mod_db):
     mod_info.set_title( "A Strange New Galaxy" )
     mod_info.set_author( "Metzelmax" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14896" )
+    mod_info.put_version( "3fa172af0c748c67c0dc1d34934ba1d0", "0.3c Standard WIP" )
+    mod_info.put_version( "1a1578a8b1c4505497e8e6be899624f9", "0.3c WOO WIP" )
     mod_info.put_version( "59a741e873b67efe38411d1c83424432", "0.2d Standard WIP" )
     mod_info.put_version( "926f3fbab11d1aeb61d58e94b49c93af", "0.2d WOO WIP" )
     mod_info.put_version( "a714b38157d5d665b54be419ed741790", "0.2b Standard WIP" )
     mod_info.put_version( "65468b6991b6988d929bc9b51170aba5", "0.2b WOO WIP" )
-    mod_info.set_thread_hash( "af1588d408a42c78fcc9d8fa098d3336" )
+    mod_info.set_thread_hash( "dc55811d1a9ac82f72443c04ff26aab1" )
 
-    mod_info.set_desc(r"""This Mod contains the ships, weapons, and drones from my other 3 Mods. Check there for a detailed overview of ships and weaponry:
+    mod_info.set_desc(r"""This Mod contains the ships, weapons, and drones from my other Mods. Check there for a detailed overview of ships and weaponry:
 - The Anterian Terminator-Ships
 - The Treel
 - The Uz'ran Tribes
@@ -33,7 +35,7 @@ There are two versions of this mod:
     mod_info.set_author( "nataryeahbuddy" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=11058" )
     mod_info.put_version( "1368ecb746bea1fab261d8a5eb8c23f1", "1.2" )
-    mod_info.set_thread_hash( "dbb90b01a5931e59a6e2cf5e6b3054f6" )
+    mod_info.set_thread_hash( "227e1ce8c93f3cf460078e89c1aeaa99" )
 
     mod_info.set_desc(r"""Discontinued. See: "Advanced Battle Systems".
 
@@ -174,6 +176,37 @@ Replaces the Kestrel-B ship.
     mod_info.set_desc(r"""This mod is supposed to present the foundation of the federation, rather than its fall. The Engi and Zoltan are presented as allies while the Mantis, Rock, and Slugs as aggressors; the final battle is a unifying battle in which the Engi, Zoltan, and Humanity stand against the Rock, Slugs, and Mantis (I'm thinking of casting the slugs as the manipulators of this 'axis'). The old playable ships associated with those races are mini-bosses at the end of quest chains and, of course, they will be used in the final battle as well.
 
 The plan is also to rewrite a whole bunch of events, as I intend the mod to be event focused.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "FTL Captains Edition" )
+    mod_info.set_author( "Sleeper Service" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15663" )
+    mod_info.put_version( "61fe7dcc7a9c2ac159d601cf5a7a9154", "Player Ships Addon 1.0" )
+    mod_info.put_version( "b70340ce059ea57256d16f03218eee49", "1.02" )
+    mod_info.set_thread_hash( "5bd7bf6778c218527d56294a98d6ed16" )
+
+    mod_info.set_desc(r"""FTL Captains Edition is a major overhaul mod-compilation that aims to diversify and extend FTL's gameplay on different levels. The mod tries to match the game's lore, graphic style and general tone. While it adds a lot of new content, it also aims to maintain the balance of the vanilla game.
+
+An optional "Captains Edition for Player Ships Addon" mod equips all player ships with new weapons, drones and sometimes trade goods. (Load it after Captains Edition to work properly.)
+
+If you want to see more of your new enemies, you can use kartoFlanes nifty "Expanded Enemy Window" mod.
+
+Components
+- "diversityMod" (visuals only) by likad, modified by Istarune
+- Rebel Destroyer ship model, originally from "Turning The Tide" by Kieve
+- Event Ideas/events/flavour texts by Snowhusky5
+- The "New Enemy Classes" mod by Sleeper Service
+- The "Balanced Arsenal" mod by Sleeper Service
+
+Compatibility
+- I assume you can guess that this wont work together with the standalone versions of these bundled mods...
+- Incompatible with mods that change vanilla enemies.
+- Probably incompatible with mods that change ship lists, weapon lists or drone lists.
+- Event mods probably wont work well. Incompatible with mods that change event lists.
+- Most other stuff, specially visual mods, should work.
 """)
     mod_db.add_mod(mod_info)
 
@@ -364,10 +397,10 @@ There are two versions of this mod:
     mod_info.set_title( "Omicron Dynasty" )
     mod_info.set_author( "speedoflight" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14577" )
+    mod_info.put_version( "d4b73883afa80fe2e67ca2fb9ec1c628", "1.0 WIP" )
     mod_info.put_version( "d49d1868d8c5d9af67e29f4516399742", "0.8 WIP" )
-    mod_info.put_version( "", "0.7 WIP" )
     mod_info.put_version( "654970533e12c68e11ea48ceccc39b72", "0.6 WIP" )
-    mod_info.set_thread_hash( "677655c04e2bb5c746a3c55f8aaa61d5" )
+    mod_info.set_thread_hash( "ece602175dc5ddce73b7dcbaed6fea50" )
 
     mod_info.set_desc(r"""The Omicron Dynasty was born in the deepest quadrant of the Galaxy, the origins of this Society is almost unknown, but some rumors along the entire galaxy tell that they were a really advanced civilization eons ago, but the giant sun of their system started to collapse. Then some of them abandoned their system searching a new planet to colonize.
 
@@ -462,9 +495,23 @@ Features
     mod_info.put_version( "cddbb53e53745b8b1ac7cac7073e14e0", "0.2 Beta 2013-03-02 WIP" )
     mod_info.put_version( "c6880fd3e9423affe5ff9dc733580cad", "0.2 Beta WIP" )
     mod_info.put_version( "098dc2eb3865b701697e6a73420f57c6", "0.1 Beta WIP" )
-    mod_info.set_thread_hash( "970abbe8864db06e2695f5c280e174bb" )
+    mod_info.set_thread_hash( "3dfa20192c73007bfe61e4183cb7384d" )
 
     mod_info.set_desc(r"""Eventually this will replace all 18 default ships in the game with vessels from Star Trek: Federation, Klingon, Species 8472, Romulan, Borg, Cardassian, Jem Haddar, Krenim, Hirogen, etc.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Star Wars" )
+    mod_info.set_author( "The Swarm Lord" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=16819" )
+    mod_info.put_version( "cb25c236bb5589cb93102e2074188114", "1.0" )
+    mod_info.set_thread_hash( "ceedba97403f9537e41fcd4e7b3837c2" )
+
+    mod_info.set_desc(r"""A Star Wars mod!
+
+This adds some new ships, new drones, and new weapons.
 """)
     mod_db.add_mod(mod_info)
 
@@ -566,7 +613,7 @@ I am not including any custom events, so that this remains compatible with as ma
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15646" )
     mod_info.put_version( "7474299587c81e49240a11aae175db3b", "Arwing II 1.0" )
     mod_info.put_version( "c59674791a6faeef2b2751f44d3b0333", "Arwing I 1.0" )
-    mod_info.set_thread_hash( "c792d6654155511431050ecc53221b09" )
+    mod_info.set_thread_hash( "e608264c675bb4ff6bcf61fe03519782" )
 
     mod_info.set_desc(r"""The Arwing from StarFox 64.
 
@@ -594,11 +641,26 @@ Replaces the Kestrel-A ship.
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Aurora Class Battleship" )
+    mod_info.set_author( "lambaline" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=16774" )
+    mod_info.put_version( "c4a9a7931553af0b81a026e8dd92fabd", "1.0" )
+    mod_info.set_thread_hash( "440fa0f53c18de842cf9ee969d269c29" )
+
+    mod_info.set_desc(r"""An Aurora Class Battleship from Stargate Atlantis.
+
+The shield of the battleship is unlike any others, as it conforms to the shape of the hull of the ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Banana" )
     mod_info.set_author( "corporat" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=16567&p=50491#p50491" )
+    mod_info.put_version( "8016d71dfde0c07cb3667bddfff40a4c", "1.0" )
     mod_info.put_version( "5dcb1aa7e1dc985bb82b19874edeee7c", "0.999" )
-    mod_info.set_thread_hash( "7783ac7281c6adaadb0fa66e395e47cd" )
+    mod_info.set_thread_hash( "c1b4bb3c7ee1356bfc6962490e4bd81b" )
 
     mod_info.set_desc(r"""A "space banana".
 
@@ -822,6 +884,22 @@ Replaces the Engi-B ship.
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Daedalus" )
+    mod_info.set_author( "FrostWyrmWraith" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14078" )
+    mod_info.put_version( "01c4208b5e356e52bfad761397358b82", "1.0" )
+    mod_info.set_thread_hash( "6a45724e6ffcfe5b6dc86306fffb326e" )
+
+    mod_info.set_desc(r"""One of Earth's finest battlecruisers.
+
+The Daedalus comes packaged with an F-302 missile drone. It doesn't start with it, since it uses a prohibitive four power bars, but it will show up in shops and events. And the Daedalus does come with the Asgard Plasma Beam. It uses the mini beam model and is... kind of hilariously overpowered. It bypasses all shields and deals three damage, and since it is a beam it never misses. The charge up is pretty long and it is incredibly short though, to make up for that. The Daedalus also starts with no door controls to make up for starting with a teleporter.
+
+Replaces the Kestrel-B ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Dark Knight Cruiser" )
     mod_info.set_author( "Gunman698" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=13991" )
@@ -838,6 +916,22 @@ Replaces the Engi-B ship.
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Destiny (Stargate Universe)" )
+    mod_info.set_author( "HerrDoktor" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15887" )
+    mod_info.put_version( "dc93a1cb2005d070a6ae4be9ed8a7551", "1.1" )
+    mod_info.set_thread_hash( "3c8bb26afc26664c8b21a5c085c91270" )
+
+    mod_info.set_desc(r"""Destiny from Stargate Universe TV series.
+
+When you come aboard, the ship is heavily damaged. It has very low amount of energy, but the shields and weapons used to be really powerfull. It was drifting through space for hundreds of thousands years unmanned.
+
+Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "Duality Cruiser and Merchant Cruiser" )
     mod_info.set_author( "zaratustra" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=4&t=2729" )
@@ -846,10 +940,26 @@ Replaces the Engi-B ship.
 
     mod_info.set_desc(r"""The Duality is divided into two sections.
 
-Replaces the Kestrel-A ship.
-Replaces the Kestrel-B ship.
 Replaces the Engi-A ship.
 Replaces the Engi-B ship.
+Replaces the Kestrel-A ship.
+Replaces the Kestrel-B ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Dumper Mk1" )
+    mod_info.set_author( "killercrd" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=16586" )
+    mod_info.put_version( "c54d7605de710d0047c2c0716d8fd8b5", "1.3" )
+    mod_info.set_thread_hash( "a8a5b11e99209541a14be5b3bc2fa902" )
+
+    mod_info.set_desc(r"""This rundown cargo ship was sold to the federation once the war broke out, it has since then been converted into a cargo / attack ship. This ship is useful since it is capable of carrying valuable cargo without an escort, due to its overhauled weapons systems.
+
+Note: You can ONLY buy drone control upgrade
+
+Replaces the Engi-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -937,6 +1047,22 @@ Replaces the Kestrel-A ship.
     mod_info.set_thread_hash( "46b8185a6a035766fc272ea66e61bc4c" )
 
     mod_info.set_desc(r"""The starting crew, a human and an engi find that there are no sleeping quarters and have put their bedrolls in the sensor and pilot room.
+
+Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Fortitude" )
+    mod_info.set_author( "SIR 9000" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=16746" )
+    mod_info.put_version( "64e60b7f3f201ca2c5af1769016eec38", "1.0" )
+    mod_info.set_thread_hash( "ee2f40cab1a37ade123f3476c3fd4955" )
+
+    mod_info.set_desc(r"""This ship is just the Fed Cruiser and Kestrel spliced together. The layout is made to be somewhat "hazardous" with the only 2 airlocks at the back. Luckily the med bay is pretty close to the engines, shields, weapons and helm.
+
+You start with only 1 human and 2 dual lasers (For balance use "diversityMod", so each laser takes 2 bars.)
 
 Replaces the Kestrel-A ship.
 """)
@@ -1062,8 +1188,9 @@ Replaces the Mantis-B ship.
     mod_info.set_title( "The Hunter" )
     mod_info.set_author( "Starfire" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15892" )
+    mod_info.put_version( "21d5d7100678873d82a2b6c490783fce", "1.1" )
     mod_info.put_version( "38282cb1da8ea862bc5304c1e9a45975", "1.0" )
-    mod_info.set_thread_hash( "5ea80a4120f948cfde358915711ce87f" )
+    mod_info.set_thread_hash( "9b12ab7954e76979edae5a0b6cc2cb45" )
 
     mod_info.set_desc(r"""Right after the Rebels started to form, These ships were made to stop them, however the Federation underestimated the Rebellion and these ships were blown to shreds. You now have the last ship, your ship is better then the rest, you refitted it yourself giving it a prototype cloak and impressive weaponry, Will you make it?
 
@@ -1434,6 +1561,22 @@ Replaces the Engi-B ship.
 
 
     mod_info = moddb.ModInfo()
+    mod_info.set_title( "Prometheus" )
+    mod_info.set_author( "FrostWyrmWraith" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14078" )
+    mod_info.put_version( "3eba3eece9d171bedf012c4f43ee0b83", "1.0" )
+    mod_info.set_thread_hash( "6a45724e6ffcfe5b6dc86306fffb326e" )
+
+    mod_info.set_desc(r"""One of Earth's finest battlecruisers.
+
+The Prometheus starts with an Artemis and a Breach launcher, and it has a pretty inefficient design. All on purpose - it's Earth's first ship after all, and should have some drawbacks.
+
+Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
     mod_info.set_title( "The Pyro" )
     mod_info.set_author( "5thHorseman" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14597" )
@@ -1539,6 +1682,36 @@ Slug Bomber
 Uses an array of new bombs and a small Disruptor.
 
 Replaces the Slug-B ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Rock Experimental Super Duper Battlecruiser" )
+    mod_info.set_author( "Lyna" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=16695" )
+    mod_info.put_version( "da7d1c14fc50cea61f20eff9663bdf02", "1.0" )
+    mod_info.set_thread_hash( "126140a0c657822f6e0d119914d9ad83" )
+
+    mod_info.set_desc(r"""Developed in ancient Rockmen vs Twi-leks war, this heavy well-equipped ship features everything rockmen love and suits their style well!
+
+Replaces the Kestrel-A ship.
+""")
+    mod_db.add_mod(mod_info)
+
+
+    mod_info = moddb.ModInfo()
+    mod_info.set_title( "Rock Sunstrike" )
+    mod_info.set_author( "madhatter" )
+    mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=16782" )
+    mod_info.put_version( "0e53cfcd99ebffbd9af4f353daaec7f0", "1.0" )
+    mod_info.set_thread_hash( "f1495ae21bd1d5a38e2c0728b509d5ab" )
+
+    mod_info.set_desc(r"""The Sunstrike is a prototype rock cruiser and replaces the Bulwark.
+
+Don't play with another ship while you have this mod installed (it changes the maximum weapon system power to 4 and replaces the "weapon box" image for a 4 weapon slot ship, with the image for a single weapon slot).
+
+Replaces the Rock-A ship.
 """)
     mod_db.add_mod(mod_info)
 
@@ -1705,7 +1878,7 @@ Replaces the Federation Cruiser-B ship.
     mod_info.set_author( "Metzelmax" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=14532" )
     mod_info.put_version( "38073f6b5e4e5d6167713f8c3db49cda", "0.5a WIP" )
-    mod_info.set_thread_hash( "3ae9bacd08609ff571dd46faca6b3112" )
+    mod_info.set_thread_hash( "c843d30d3bad7a87ccb3c7d6ef830e53" )
 
     mod_info.set_desc(r"""These are ships from the "A Strange New Galaxy" mod.
 
@@ -1755,15 +1928,15 @@ Replaces the Federation Cruiser-B ship.
     mod_info.set_desc(r"""Replaces all the standard versions of the ships, the only loadout changed is the Millenium Falcon.
 
 Ship Replacements
-- Starbug = Fed A
-- Fed Shuttle = Zoltan A
-- Star Destroyer = Stealth A
-- Romulan = Rock A
-- Millennium Falcon = Kestrel A
-- Death Star = Slug A
-- Klingon D7 = Engi A
-- Klingon BOP = Mantis A
-- Big Fed ship = Crystal A
+- Starbug = Federation Cruiser-A
+- Fed Shuttle = Zoltan-A
+- Star Destroyer = Stealth-A
+- Romulan = Rock-A
+- Millennium Falcon = Kestrel-A
+- Death Star = Slug-A
+- Klingon D7 = Engi-A
+- Klingon BOP = Mantis-A
+- Big Fed ship = Crystal-A
 """)
     mod_db.add_mod(mod_info)
 
@@ -1828,8 +2001,9 @@ Replaces the Kestrel-A ship.
     mod_info.set_title( "The Uz'ran Tribes" )
     mod_info.set_author( "Metzelmax" )
     mod_info.set_url( "http://www.ftlgame.com/forum/viewtopic.php?f=11&t=15103" )
+    mod_info.put_version( "64d11102ca8c230de7dfe32bd452098a", "0.4a WIP" )
     mod_info.put_version( "295b5d0e09bab25c8f469943b3b72bb1", "0.2a WIP" )
-    mod_info.set_thread_hash( "9511687a8443fd71139270620b568c17" )
+    mod_info.set_thread_hash( "2ac13358759782b14658fb874b028f6c" )
 
     mod_info.set_desc(r"""These are ships from the "A Strange New Galaxy" mod.
 
@@ -1839,6 +2013,8 @@ Their ships are organic and alive with a mind of their own. Since they are origi
 
 But even though the Uz'ran learned a lot from our Technology they could not adapt everything. Shields for instance.
 
+Replaces the Crystal-A ship.
+Replaces the Crystal-B ship.
 Replaces the Slug-A ship.
 Replaces the Slug-B ship.
 """)

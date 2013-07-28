@@ -228,6 +228,8 @@ def _scrape():
     ignored_urls.append("http://www.ftlgame.com/forum/viewtopic.php?f=12&t=11083")
     ignored_urls.append("http://www.ftlgame.com/forum/viewtopic.php?f=4&t=2938")
     ignored_urls.append("http://www.moddb.com/mods/better-planets-and-backgrounds/downloads/better-asteroids")
+    # SpaceDock is an app.
+    ignored_urls.append("http://www.ftlgame.com/forum/viewtopic.php?f=11&t=16842");
     # Beginning Scrap Advantage is bundled in GMM.
     ignored_urls.append("http://www.ftlgame.com/forum/viewtopic.php?f=4&t=2464")
 
